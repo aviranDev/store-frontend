@@ -1,0 +1,234 @@
+import styled from 'styled-components'
+import { useLogin } from '../Store/LoginProvider'
+
+const Page = styled.main`
+  min-height: 100dvh;
+  background: var(--background-color, #f5f5f5);
+  color: var(--text-color, #111111);
+  padding: clamp(16px, 4vw, 32px);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+`
+
+const Container = styled.div`
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  gap: 24px;
+`
+
+const Hero = styled.section`
+  background: var(--card-background, #ffffff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 16px;
+  box-shadow: 0 6px 18px var(--shadow-color, rgba(0, 0, 0, 0.08));
+  padding: clamp(16px, 3vw, 28px);
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+`
+
+const Title = styled.h1`
+  font-size: clamp(24px, 4vw, 36px);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--heading-color, #1f2937);
+  margin: 0;
+`
+
+const SubTitle = styled.p`
+  font-size: clamp(14px, 2.2vw, 18px);
+  color: var(--secondary-color, #6b7280);
+  margin: 4px 0 0 0;
+`
+
+const Actions = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+`
+
+const Button = styled.button`
+  appearance: none;
+  border: 1px solid var(--border-color, #e5e7eb);
+  background: var(--button-background, #111827);
+  color: var(--accent-color, #ffffff);
+  font-weight: 600;
+  font-size: 14px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease,
+    background 120ms ease;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+
+  &:hover {
+    transform: translateY(-1px);
+  }
+  &:active {
+    transform: translateY(0);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--primary-color, #3b82f6);
+    outline-offset: 2px;
+  }
+`
+
+const GhostButton = styled(Button)`
+  background: transparent;
+  color: var(--text-color, #111);
+`
+
+const Section = styled.section`
+  display: grid;
+  gap: 16px;
+`
+
+const SectionTitle = styled.h2`
+  font-size: clamp(18px, 2.8vw, 22px);
+  margin: 0;
+  color: var(--heading-color, #1f2937);
+`
+
+const FeatureGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+`
+
+const Card = styled.article`
+  background: var(--card-background, #ffffff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 14px;
+  padding: 14px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  display: grid;
+  gap: 6px;
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  }
+`
+
+const CardTitle = styled.h3`
+  font-size: 16px;
+  margin: 0;
+`
+
+const CardText = styled.p`
+  font-size: 14px;
+  color: var(--secondary-color, #6b7280);
+  margin: 0;
+`
+
+const Hint = styled.p`
+  margin: 0;
+  font-size: 13px;
+  color: var(--secondary-color, #6b7280);
+`
+
+export default function Home() {
+  const { logout, getProfile } = useLogin()
+
+  const handleGetProfile = async (): Promise<void> => {
+    try {
+      const userProfile = await getProfile()
+      console.log('Profile:', userProfile)
+    } catch (error) {
+      console.error('Failed to fetch profile:', error)
+    }
+  }
+
+  return (
+    <Page role="main" aria-label="Home">
+      <Container>
+        <Hero aria-labelledby="home-title">
+          <Title id="home-title">Welcome 👋</Title>
+          <button onClick={handleGetProfile}>click</button>
+          <SubTitle>
+            This is your starting point. Create, track, and manage your work from one clean screen.
+          </SubTitle>
+          <Actions>
+            <Button onClick={() => alert('Get Started action')}>Get Started</Button>
+            <GhostButton onClick={() => alert('Take a tour')}>Take a Tour</GhostButton>
+          </Actions>
+        </Hero>
+
+        <Section aria-labelledby="quick-actions-title">
+          <SectionTitle id="quick-actions-title">Quick actions</SectionTitle>
+          <FeatureGrid>
+            <Card
+              role="button"
+              tabIndex={0}
+              onClick={() => alert('Create new item')}
+              aria-label="Create new item"
+            >
+              <CardTitle>➕ New</CardTitle>
+              <CardText>Create a new project, task, or record.</CardText>
+            </Card>
+            <Card
+              role="button"
+              tabIndex={0}
+              onClick={() => alert('Open reports')}
+              aria-label="Open reports"
+            >
+              <CardTitle>📊 Reports</CardTitle>
+              <CardText>View analytics and performance at a glance.</CardText>
+            </Card>
+            <Card
+              role="button"
+              tabIndex={0}
+              onClick={() => alert('Open inbox')}
+              aria-label="Open inbox"
+            >
+              <CardTitle>📥 Inbox</CardTitle>
+              <CardText>Review the latest updates and notifications.</CardText>
+            </Card>
+            <Card
+              role="button"
+              tabIndex={0}
+              onClick={() => alert('Open settings')}
+              aria-label="Open settings"
+            >
+              <CardTitle>⚙️ Settings</CardTitle>
+              <CardText>Personalize preferences and workspace options.</CardText>
+            </Card>
+          </FeatureGrid>
+        </Section>
+
+        <Section aria-labelledby="shortcuts-title">
+          <SectionTitle id="shortcuts-title">Shortcuts</SectionTitle>
+          <FeatureGrid>
+            <Card
+              as="a"
+              href="#"
+              onClick={(e) => e.preventDefault()}
+              aria-label="Go to documentation"
+            >
+              <CardTitle>📚 Documentation</CardTitle>
+              <CardText>Read how-tos, API notes, and guides.</CardText>
+            </Card>
+            <Card as="a" href="#" onClick={(e) => e.preventDefault()} aria-label="Go to templates">
+              <CardTitle>🧩 Templates</CardTitle>
+              <CardText>Start faster with ready-made layouts.</CardText>
+            </Card>
+            <Card as="a" href="#" onClick={(e) => e.preventDefault()} aria-label="Go to support">
+              <CardTitle>💬 Support</CardTitle>
+              <CardText>Get help or talk to the team.</CardText>
+            </Card>
+          </FeatureGrid>
+          <Hint>Tip: these buttons are placeholders—wire them to your routes or handlers.</Hint>
+        </Section>
+        <button onClick={logout}>Logout</button>
+      </Container>
+    </Page>
+  )
+}
