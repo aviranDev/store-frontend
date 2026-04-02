@@ -2,7 +2,7 @@ import httpService from './http'
 import { jwtDecode } from 'jwt-decode'
 import { setLocalStorage, getLocalStorage } from '../utils/localStorage'
 import axios, { AxiosResponse } from 'axios' // Import AxiosResponse if you're using axios
-
+import { DecodedToken } from './auth' // Import DecodedToken from auth service
 axios.defaults.withCredentials = true // Include credentials for all requests
 
 export interface Auth {
@@ -11,15 +11,14 @@ export interface Auth {
 }
 
 export interface SigninResponse {
-  data: {
-    accessToken: string
-    user: {
-      _id: string
-      username: string
-      resetPassword: string
-      role: string
-      // Add other properties you expect for the user object
-    }
+  message: string
+  accessToken: string
+  user: {
+    _id: string
+    username: string
+    resetPassword: string
+    role: string
+    // Add other properties you expect for the user object
   }
 }
 
@@ -37,28 +36,22 @@ export const profile = async (): Promise<AxiosResponse<UserProfile>> => {
 }
 
 export const signin = async (credentails: Auth): Promise<SigninResponse> => {
-  try {
-    const response = await httpService.post(`/auth/login`, credentails)
-    console.log(response)
-    return response
-  } catch (error) {
-    throw error
-  }
+  const response: AxiosResponse<SigninResponse> = await httpService.post('/auth/login', credentails)
+
+  return response.data
 }
 
 export const refreshtoken = async (): Promise<string> => {
-  try {
-    const response = await httpService.get<{ accessToken: string }>(`/auth/refresh-token`)
+  const response = await axios.get<{ accessToken: string }>(
+    'http://localhost:8080/api/auth/refresh-token',
+    { withCredentials: true }
+  )
 
-    // Ensure the access token is a string before returning
-    if (response.data && typeof response.data.accessToken === 'string') {
-      return response.data.accessToken
-    } else {
-      throw new Error('Invalid access token format')
-    }
-  } catch (error) {
-    throw error
+  if (typeof response.data?.accessToken !== 'string') {
+    throw new Error('Invalid access token format')
   }
+
+  return response.data.accessToken
 }
 
 export const logoutService = async (): Promise<void> => {
@@ -69,17 +62,9 @@ export const logoutService = async (): Promise<void> => {
   }
 }
 
-export interface DecodedToken {
-  role: string
-  username: string
-  exp: number
-  data: object
-  // Add any other properties your token might have
-}
-
 export const getCurrentUser = (): DecodedToken | null => {
   try {
-    const jwt = getLocalStorage('token', null)
+    const jwt = getLocalStorage('accessToken', null)
     if (!jwt) {
       return null
     }

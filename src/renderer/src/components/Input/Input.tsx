@@ -1,50 +1,65 @@
 import { useState } from 'react'
-// import { FaEye, FaEyeSlash } from 'react-icons/fa'
+import type { ChangeEvent } from 'react'
+import { WinButton, WinInput } from '../Win95Controls'
+import { ErrorMessage, InputContainer, InputRow } from './inputStyles'
 
-import {
-  ErrorMessage,
-  InputContainer,
-  InputRow,
-  IconWrapper,
-  StyledInput,
-  TogglePasswordIcon,
-  InputProps
-} from './inputStyles'
+type InputProps = {
+  type?: string
+  name?: string
+  value?: string
+  placeholder?: string
+  errorMessage?: string
+  onChange?: (event: ChangeEvent<HTMLInputElement>) => void
+}
 
-const Input: React.FC<InputProps> = ({ icon: Icon, ...props }) => {
+const Input = ({
+  type = 'text',
+  name,
+  value = '',
+  onChange,
+  placeholder,
+  errorMessage
+}: InputProps) => {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false)
-  const [isButtonPressed, setIsButtonPressed] = useState(false)
-  const isPasswordType = props.type === 'password'
-  console.log(isButtonPressed)
+  const isPasswordType = type === 'password'
 
   const handleMouseDown = (): void => {
-    setIsButtonPressed(true)
     setIsPasswordVisible(true)
   }
 
   const handleMouseUp = (): void => {
-    setIsButtonPressed(false)
+    setIsPasswordVisible(false)
+  }
+
+  const handleMouseLeave = (): void => {
     setIsPasswordVisible(false)
   }
 
   return (
     <InputContainer>
       <InputRow>
-        <IconWrapper>{Icon && <Icon size={20} />}</IconWrapper>
-        <StyledInput
-          type={isPasswordType ? (isPasswordVisible ? 'text' : 'password') : props.type}
-          name={props.name}
-          defaultValue={props.value}
-          onChange={props.onChange}
-          placeholder={props.placeholder}
+        <WinInput
+          type={isPasswordType ? (isPasswordVisible ? 'text' : 'password') : type}
+          name={name}
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
         />
+
         {isPasswordType && (
-          <TogglePasswordIcon onMouseDown={handleMouseDown} onMouseUp={handleMouseUp}>
-            {/* {isButtonPressed ? <FaEyeSlash size={20} /> : <FaEye size={20} />} */}
-          </TogglePasswordIcon>
+          <WinButton
+            type="button"
+            onMouseDown={handleMouseDown}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseLeave}
+            style={{ minWidth: '56px', padding: '6px 8px' }}
+          >
+            View
+          </WinButton>
         )}
       </InputRow>
-      <ErrorMessage $hasError={!!props.errorMessage}>{props.errorMessage}</ErrorMessage>
+
+      <ErrorMessage $hasError={!!errorMessage}>{errorMessage}</ErrorMessage>
     </InputContainer>
   )
 }

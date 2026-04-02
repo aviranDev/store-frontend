@@ -1,14 +1,13 @@
-import { useState, useEffect, createContext, Fragment, ReactNode, useContext } from 'react'
-import { jwtDecode } from 'jwt-decode'
-import { getLocalStorage, setLocalStorage, removeLocalStorage } from '../utils/localStorage'
+import { useState, createContext, Fragment, ReactNode, useContext } from 'react'
+import { signin, Auth, SigninResponse, profile, logoutService } from '../Services/user'
 import {
-  signin,
-  Auth,
-  SigninResponse,
   DecodedToken,
-  profile,
-  logoutService
-} from '../Services/user'
+  getStoredUser,
+  hasValidAccessToken,
+  setAuthSession,
+  clearAuthSession,
+  resetRedirectFlag
+} from '../Services/auth'
 
 export interface LoginContextProps {
   login: (data: Auth) => Promise<SigninResponse>
@@ -26,30 +25,25 @@ interface LoginProviderProps {
 export const AuthContext = createContext<LoginContextProps | undefined>(undefined)
 
 const AuthProvider: React.FC<LoginProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<DecodedToken | null>(() => getLocalStorage('user', null))
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
-    const token = getLocalStorage<string | null>('accessToken', null)
-    return !!token
-  })
+  const [user, setUser] = useState<DecodedToken | null>(() => getStoredUser())
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => hasValidAccessToken())
 
   const clearAuthState = (): void => {
-    removeLocalStorage('accessToken')
-    removeLocalStorage('user')
+    clearAuthSession()
     setUser(null)
     setIsLoggedIn(false)
+    resetRedirectFlag()
   }
 
   const login = async (data: Auth): Promise<SigninResponse> => {
     const response = await signin(data)
-    const accessToken = response.data.accessToken
+    const accessToken = response.accessToken
 
-    setLocalStorage('accessToken', accessToken)
-
-    const decodedUser = jwtDecode<DecodedToken>(accessToken)
-    setLocalStorage('user', decodedUser)
+    const decodedUser = setAuthSession(accessToken)
 
     setUser(decodedUser)
     setIsLoggedIn(true)
+    resetRedirectFlag()
 
     return response
   }
@@ -68,21 +62,6 @@ const AuthProvider: React.FC<LoginProviderProps> = ({ children }) => {
       clearAuthState()
     }
   }
-
-  useEffect(() => {
-    if (!isLoggedIn) return
-
-    const interval = setInterval(async () => {
-      try {
-        await profile()
-      } catch (error) {
-        clearAuthState()
-        window.location.href = '/login'
-      }
-    }, 30000)
-
-    return () => clearInterval(interval)
-  }, [isLoggedIn])
 
   return (
     <AuthContext.Provider value={{ login, isLoggedIn, logout, user, getProfile, clearAuthState }}>

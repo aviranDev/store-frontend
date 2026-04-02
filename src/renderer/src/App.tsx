@@ -5,32 +5,40 @@ import { HashRouter, Routes, Route } from 'react-router-dom'
 import Home from './Pages/Home'
 import PublicRoute from './PublicRoute'
 
+import { ThemeProvider } from 'styled-components'
+import { GlobalStyles } from './styles/GlobalStyles'
+import { win95Theme } from './styles/theme'
+
 function App(): React.JSX.Element {
   const { isLoggedIn } = useLogin()
 
-  console.log(isLoggedIn)
+  console.log('isLoggedIn: ', isLoggedIn)
 
   return (
-    <HashRouter>
-      <Routes>
-        <Route
-          path="/login"
-          element={
-            <PublicRoute>
-              <Login />
-            </PublicRoute>
-          }
-        />
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <Home />
-            </ProtectedRoute>
-          }
-        />
-      </Routes>
-    </HashRouter>
+    <ThemeProvider theme={win95Theme}>
+      <GlobalStyles />
+      <GlobalStyles />
+      <HashRouter>
+        <Routes>
+          <Route
+            path="/login"
+            element={
+              <PublicRoute>
+                <Login />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <Home />
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </HashRouter>
+    </ThemeProvider>
   )
 }
 

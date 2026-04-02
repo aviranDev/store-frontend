@@ -1,22 +1,8 @@
 import styled from 'styled-components'
 import { useLogin } from '../Store/LoginProvider'
-
-const Page = styled.main`
-  min-height: 100dvh;
-  background: var(--background-color, #f5f5f5);
-  color: var(--text-color, #111111);
-  padding: clamp(16px, 4vw, 32px);
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-`
-
-const Container = styled.div`
-  max-width: 1100px;
-  margin: 0 auto;
-  display: grid;
-  gap: 24px;
-`
+import Win95Page from '../components/Win95Page'
+import { WinButton } from '../components/Win95Controls'
+import { Title } from '../components/Win95Window'
 
 const Hero = styled.section`
   background: var(--card-background, #ffffff);
@@ -27,20 +13,6 @@ const Hero = styled.section`
   display: grid;
   grid-template-columns: 1fr;
   gap: 12px;
-`
-
-const Title = styled.h1`
-  font-size: clamp(24px, 4vw, 36px);
-  line-height: 1.15;
-  letter-spacing: -0.02em;
-  color: var(--heading-color, #1f2937);
-  margin: 0;
-`
-
-const SubTitle = styled.p`
-  font-size: clamp(14px, 2.2vw, 18px);
-  color: var(--secondary-color, #6b7280);
-  margin: 4px 0 0 0;
 `
 
 const Actions = styled.div`
@@ -148,87 +120,83 @@ export default function Home() {
   }
 
   return (
-    <Page role="main" aria-label="Home">
-      <Container>
-        <Hero aria-labelledby="home-title">
-          <Title id="home-title">Welcome 👋</Title>
-          <button onClick={handleGetProfile}>click</button>
-          <SubTitle>
-            This is your starting point. Create, track, and manage your work from one clean screen.
-          </SubTitle>
-          <Actions>
-            <Button onClick={() => alert('Get Started action')}>Get Started</Button>
-            <GhostButton onClick={() => alert('Take a tour')}>Take a Tour</GhostButton>
-          </Actions>
-        </Hero>
+    <Win95Page title="Home">
+      <Hero aria-labelledby="home-title">
+        <Title id="home-title">Home</Title>
+        <WinButton onClick={handleGetProfile}>click</WinButton>
 
-        <Section aria-labelledby="quick-actions-title">
-          <SectionTitle id="quick-actions-title">Quick actions</SectionTitle>
-          <FeatureGrid>
-            <Card
-              role="button"
-              tabIndex={0}
-              onClick={() => alert('Create new item')}
-              aria-label="Create new item"
-            >
-              <CardTitle>➕ New</CardTitle>
-              <CardText>Create a new project, task, or record.</CardText>
-            </Card>
-            <Card
-              role="button"
-              tabIndex={0}
-              onClick={() => alert('Open reports')}
-              aria-label="Open reports"
-            >
-              <CardTitle>📊 Reports</CardTitle>
-              <CardText>View analytics and performance at a glance.</CardText>
-            </Card>
-            <Card
-              role="button"
-              tabIndex={0}
-              onClick={() => alert('Open inbox')}
-              aria-label="Open inbox"
-            >
-              <CardTitle>📥 Inbox</CardTitle>
-              <CardText>Review the latest updates and notifications.</CardText>
-            </Card>
-            <Card
-              role="button"
-              tabIndex={0}
-              onClick={() => alert('Open settings')}
-              aria-label="Open settings"
-            >
-              <CardTitle>⚙️ Settings</CardTitle>
-              <CardText>Personalize preferences and workspace options.</CardText>
-            </Card>
-          </FeatureGrid>
-        </Section>
+        <Actions>
+          <Button onClick={() => alert('Get Started action')}>Get Started</Button>
+          <GhostButton onClick={() => alert('Take a tour')}>Take a Tour</GhostButton>
+        </Actions>
+      </Hero>
 
-        <Section aria-labelledby="shortcuts-title">
-          <SectionTitle id="shortcuts-title">Shortcuts</SectionTitle>
-          <FeatureGrid>
-            <Card
-              as="a"
-              href="#"
-              onClick={(e) => e.preventDefault()}
-              aria-label="Go to documentation"
-            >
-              <CardTitle>📚 Documentation</CardTitle>
-              <CardText>Read how-tos, API notes, and guides.</CardText>
-            </Card>
-            <Card as="a" href="#" onClick={(e) => e.preventDefault()} aria-label="Go to templates">
-              <CardTitle>🧩 Templates</CardTitle>
-              <CardText>Start faster with ready-made layouts.</CardText>
-            </Card>
-            <Card as="a" href="#" onClick={(e) => e.preventDefault()} aria-label="Go to support">
-              <CardTitle>💬 Support</CardTitle>
-              <CardText>Get help or talk to the team.</CardText>
-            </Card>
-          </FeatureGrid>
-          <Hint>Tip: these buttons are placeholders—wire them to your routes or handlers.</Hint>
-        </Section>
-        <button onClick={logout}>Logout</button>
-      </Container>
-    </Page>
+      <Section aria-labelledby="quick-actions-title">
+        <SectionTitle id="quick-actions-title">Quick actions</SectionTitle>
+        <FeatureGrid>
+          <Card
+            role="button"
+            tabIndex={0}
+            onClick={() => alert('Create new item')}
+            aria-label="Create new item"
+          >
+            <CardTitle>➕ New</CardTitle>
+            <CardText>Create a new project, task, or record.</CardText>
+          </Card>
+          <Card
+            role="button"
+            tabIndex={0}
+            onClick={() => alert('Open reports')}
+            aria-label="Open reports"
+          >
+            <CardTitle>📊 Reports</CardTitle>
+            <CardText>View analytics and performance at a glance.</CardText>
+          </Card>
+          <Card
+            role="button"
+            tabIndex={0}
+            onClick={() => alert('Open inbox')}
+            aria-label="Open inbox"
+          >
+            <CardTitle>📥 Inbox</CardTitle>
+            <CardText>Review the latest updates and notifications.</CardText>
+          </Card>
+          <Card
+            role="button"
+            tabIndex={0}
+            onClick={() => alert('Open settings')}
+            aria-label="Open settings"
+          >
+            <CardTitle>⚙️ Settings</CardTitle>
+            <CardText>Personalize preferences and workspace options.</CardText>
+          </Card>
+        </FeatureGrid>
+      </Section>
+
+      <Section aria-labelledby="shortcuts-title">
+        <SectionTitle id="shortcuts-title">Shortcuts</SectionTitle>
+        <FeatureGrid>
+          <Card
+            as="a"
+            href="#"
+            onClick={(e) => e.preventDefault()}
+            aria-label="Go to documentation"
+          >
+            <CardTitle>📚 Documentation</CardTitle>
+            <CardText>Read how-tos, API notes, and guides.</CardText>
+          </Card>
+          <Card as="a" href="#" onClick={(e) => e.preventDefault()} aria-label="Go to templates">
+            <CardTitle>🧩 Templates</CardTitle>
+            <CardText>Start faster with ready-made layouts.</CardText>
+          </Card>
+          <Card as="a" href="#" onClick={(e) => e.preventDefault()} aria-label="Go to support">
+            <CardTitle>💬 Support</CardTitle>
+            <CardText>Get help or talk to the team.</CardText>
+          </Card>
+        </FeatureGrid>
+        <Hint>Tip: these buttons are placeholders—wire them to your routes or handlers.</Hint>
+      </Section>
+      <WinButton onClick={logout}>Logout</WinButton>
+    </Win95Page>
   )
 }

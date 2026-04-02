@@ -1,14 +1,8 @@
 import axios, { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from 'axios'
-import { getLocalStorage, setLocalStorage, removeLocalStorage } from '../utils/localStorage'
-import { jwtDecode } from 'jwt-decode'
 import { refreshtoken } from './user'
+import { getAccessToken, isTokenExpired, setAuthSession, forceLogout } from './auth'
 
 axios.defaults.withCredentials = true
-
-export interface DecodedToken {
-  exp: number
-  data: object
-}
 
 const instance = axios.create({
   baseURL: 'http://localhost:8080/api',
@@ -16,13 +10,49 @@ const instance = axios.create({
   headers: { 'Content-Type': 'application/json' }
 })
 
-// Request interceptor to add auth token
+let refreshPromise: Promise<string> | null = null
+
+const refreshAccessToken = async (): Promise<string> => {
+  if (!refreshPromise) {
+    refreshPromise = (async () => {
+      const newToken = await refreshtoken()
+      setAuthSession(newToken)
+      return newToken
+    })().finally(() => {
+      refreshPromise = null
+    })
+  }
+
+  return refreshPromise
+}
+
 instance.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
-    const token = getLocalStorage<string | null>('accessToken', null)
-    if (token && config.headers) {
+  async (config: InternalAxiosRequestConfig) => {
+    const token = getAccessToken()
+
+    if (!token) {
+      return config
+    }
+
+    if (isTokenExpired(token)) {
+      try {
+        const newToken = await refreshAccessToken()
+
+        if (config.headers) {
+          config.headers.Authorization = `Bearer ${newToken}`
+        }
+
+        return config
+      } catch (error) {
+        forceLogout()
+        return Promise.reject(error)
+      }
+    }
+
+    if (config.headers) {
       config.headers.Authorization = `Bearer ${token}`
     }
+
     return config
   },
   (error: AxiosError): Promise<AxiosError> => {
@@ -30,44 +60,20 @@ instance.interceptors.request.use(
   }
 )
 
-const refreshAccessToken = async (): Promise<string> => {
-  try {
-    // Make a request to the refresh token endpoint
-    const response = await refreshtoken()
-    const decodedUser = jwtDecode<DecodedToken>(response)
-
-    setLocalStorage('user', decodedUser)
-    setLocalStorage('accessToken', response)
-
-    return response
-  } catch (error) {
-    removeLocalStorage('accessToken')
-    removeLocalStorage('user')
-    window.location.href = '/login'
-    throw error
-  }
-}
-
-let isRedirecting = false
-
 instance.interceptors.response.use(
   (response: AxiosResponse) => response,
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean }
 
-    const requestUrl = originalRequest?.url ?? ''
+    if (!originalRequest) {
+      return Promise.reject(error)
+    }
 
+    const requestUrl = originalRequest.url ?? ''
     const isRefreshRequest = requestUrl.includes('/auth/refresh-token')
 
     if (isRefreshRequest) {
-      removeLocalStorage('accessToken')
-      removeLocalStorage('user')
-
-      if (!isRedirecting) {
-        isRedirecting = true
-        window.location.href = '/login'
-      }
-
+      forceLogout()
       return Promise.reject(error)
     }
 
@@ -77,18 +83,17 @@ instance.interceptors.response.use(
     ) {
       originalRequest._retry = true
 
-      console.log('Cookie is located')
       try {
         const newToken = await refreshAccessToken()
-        originalRequest.headers.Authorization = `Bearer ${newToken}`
-        console.log('re-login')
-        console.log('Cookie is located')
-        return axios(originalRequest)
-      } catch (err) {
-        console.log('Cookie is located')
-        removeLocalStorage('accessToken')
-        removeLocalStorage('user')
-        return Promise.reject(err)
+
+        if (originalRequest.headers) {
+          originalRequest.headers.Authorization = `Bearer ${newToken}`
+        }
+
+        return instance(originalRequest)
+      } catch (refreshError) {
+        forceLogout()
+        return Promise.reject(refreshError)
       }
     }
 
