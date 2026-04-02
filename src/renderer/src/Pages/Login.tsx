@@ -3,10 +3,11 @@ import { useLogin } from '../Store/LoginProvider'
 import { Auth } from '../Services/user'
 import validate from '../utils/validateFiled'
 import Input from '../components/Input/Input'
-import { StyledForm, FormWrapper, MessageContainer, LayerContainer } from '../styles/formStyles'
-import Title from '../components/Title/Title'
 import { AxiosError } from 'axios' // Import AxiosError
-import Button from '../components/Button/Button'
+import Win95Page from '../components/Win95Page'
+import { WinButton } from '../components/Win95Controls'
+import { WinForm, WinFormField, WinFormLabel, WinFormActions } from '../components/Win95Form'
+import Win95Card from '../components/Win95Card'
 
 type InputChangeEvent = React.ChangeEvent<HTMLInputElement>
 
@@ -18,20 +19,20 @@ const initialState: Auth = {
 const Login = (): JSX.Element => {
   const { login } = useLogin()
   const [values, setValues] = useState<Auth>(initialState)
-  const lengths = useRef<{ [key in keyof Auth]: number }>({
-    email: 24,
-    password: 9
-  })
   const [errors, setErrors] = useState<Auth>(initialState)
+  const [loading, setLoading] = useState(false)
   const [apiMessage, setApiMessage] = useState<{ message: string; fulfill: boolean }>({
     message: '',
     fulfill: false
   })
-  const [loading, setLoading] = useState(false) // Loading state
+
+  const lengths = useRef<{ [key in keyof Auth]: number }>({
+    email: 24,
+    password: 9
+  })
 
   const MIN_LOADING_DURATION = 2000 // Minimum delay of 1 second
 
-  // Centralized error handling function
   const handleError = (error: unknown): void => {
     setApiMessage({ message: 'An unknown error occurred', fulfill: false })
 
@@ -72,7 +73,7 @@ const Login = (): JSX.Element => {
 
     try {
       const response = await login(values)
-      setApiMessage({ message: response.data.message, fulfill: true })
+      setApiMessage({ message: response.message, fulfill: true })
     } catch (error) {
       handleError(error) // Use centralized error handler
     } finally {
@@ -83,37 +84,41 @@ const Login = (): JSX.Element => {
   }
 
   return (
-    <FormWrapper>
-      <LayerContainer>
-        <StyledForm onSubmit={handleSubmit}>
-          <Title $level={3} color="var(--background-color)">
-            User login
-          </Title>
-          <Input
-            // icon={CiUser}
-            placeholder="email"
-            type="text"
-            name="email"
-            onChange={handleChange}
-            errorMessage={errors.email}
-          />
-          <Input
-            // icon={CiUnlock}
-            placeholder="password"
-            type="password"
-            name="password"
-            onChange={handleChange}
-            errorMessage={errors.password}
-          />
-          <Button width="100%" $variant="primary" type="submit">
-            {loading ? 'Logging in...' : 'Submit'}
-          </Button>
-          <MessageContainer $apiFulfill={apiMessage.fulfill}>
-            {apiMessage.message && <span>{apiMessage.message}</span>}
-          </MessageContainer>
-        </StyledForm>
-      </LayerContainer>
-    </FormWrapper>
+    <Win95Page title="Login" width="430px">
+      <Win95Card title="Please log in to your account" inset>
+        <WinForm onSubmit={handleSubmit}>
+          <WinFormField>
+            <WinFormLabel>Email</WinFormLabel>
+            <Input
+              placeholder="email"
+              type="text"
+              name="email"
+              value={values.email}
+              onChange={handleChange}
+              errorMessage={errors.email}
+            />
+          </WinFormField>
+          <WinFormField>
+            <WinFormLabel>Password</WinFormLabel>
+            <Input
+              placeholder="password"
+              type="password"
+              name="password"
+              value={values.password}
+              onChange={handleChange}
+              errorMessage={errors.password}
+            />
+
+            {apiMessage.message && <div role="status">{apiMessage.message}</div>}
+          </WinFormField>
+          <WinFormActions>
+            <WinButton type="submit">{loading ? 'Logging in...' : 'Submit'}</WinButton>
+          </WinFormActions>
+
+          <div>{apiMessage.message && <span>{apiMessage.message}</span>}</div>
+        </WinForm>
+      </Win95Card>
+    </Win95Page>
   )
 }
 
