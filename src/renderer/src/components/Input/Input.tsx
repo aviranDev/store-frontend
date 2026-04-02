@@ -8,8 +8,9 @@ type InputProps = {
   name?: string
   value?: string
   placeholder?: string
-  errorMessage?: string
+  errorMessage?: string | null
   onChange?: (event: ChangeEvent<HTMLInputElement>) => void
+  onBlur?: (event: ChangeEvent<HTMLInputElement>) => void
 }
 
 const Input = ({
@@ -17,22 +18,15 @@ const Input = ({
   name,
   value = '',
   onChange,
+  onBlur,
   placeholder,
   errorMessage
 }: InputProps) => {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false)
   const isPasswordType = type === 'password'
 
-  const handleMouseDown = (): void => {
-    setIsPasswordVisible(true)
-  }
-
-  const handleMouseUp = (): void => {
-    setIsPasswordVisible(false)
-  }
-
-  const handleMouseLeave = (): void => {
-    setIsPasswordVisible(false)
+  const handleTogglePasswordVisibility = (): void => {
+    setIsPasswordVisible((prev) => !prev)
   }
 
   return (
@@ -43,18 +37,17 @@ const Input = ({
           name={name}
           value={value}
           onChange={onChange}
+          onBlur={onBlur}
           placeholder={placeholder}
         />
 
         {isPasswordType && (
           <WinButton
             type="button"
-            onMouseDown={handleMouseDown}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseLeave}
-            style={{ minWidth: '56px', padding: '6px 8px' }}
+            onClick={handleTogglePasswordVisibility}
+            style={{ minWidth: '52px', height: '26px', padding: '0 8px' }}
           >
-            View
+            {isPasswordVisible ? 'Hide' : 'View'}
           </WinButton>
         )}
       </InputRow>

@@ -17,23 +17,23 @@ const CardWrapper = styled.section<{ $padded: boolean; $inset: boolean }>`
   ${({ $padded }) =>
     $padded &&
     css`
-      padding: 10px;
+      padding: 8px;
     `};
 
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 `
 
 const CardHeader = styled.div`
   font-weight: bold;
-  padding-bottom: 4px;
+  padding-bottom: 2px;
 `
 
 const CardBody = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 `
 
 function Win95Card({

@@ -26,11 +26,24 @@ const refreshAccessToken = async (): Promise<string> => {
   return refreshPromise
 }
 
+const isAuthRoute = (url = ''): boolean => {
+  return (
+    url.includes('/auth/login') ||
+    url.includes('/auth/refresh-token') ||
+    url.includes('/auth/logout')
+  )
+}
+
 instance.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
     const token = getAccessToken()
+    const requestUrl = config.url ?? ''
 
     if (!token) {
+      return config
+    }
+
+    if (isAuthRoute(requestUrl)) {
       return config
     }
 
@@ -55,9 +68,7 @@ instance.interceptors.request.use(
 
     return config
   },
-  (error: AxiosError): Promise<AxiosError> => {
-    return Promise.reject(error)
-  }
+  (error: AxiosError) => Promise.reject(error)
 )
 
 instance.interceptors.response.use(
@@ -70,17 +81,12 @@ instance.interceptors.response.use(
     }
 
     const requestUrl = originalRequest.url ?? ''
-    const isRefreshRequest = requestUrl.includes('/auth/refresh-token')
 
-    if (isRefreshRequest) {
-      forceLogout()
+    if (isAuthRoute(requestUrl)) {
       return Promise.reject(error)
     }
 
-    if (
-      (error.response?.status === 401 || error.response?.status === 403) &&
-      !originalRequest._retry
-    ) {
+    if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true
 
       try {
@@ -101,7 +107,6 @@ instance.interceptors.response.use(
   }
 )
 
-// Export the HTTP methods
 const httpService = {
   get: instance.get,
   post: instance.post,

@@ -4,17 +4,6 @@ import Win95Page from '../components/Win95Page'
 import { WinButton } from '../components/Win95Controls'
 import { Title } from '../components/Win95Window'
 
-const Hero = styled.section`
-  background: var(--card-background, #ffffff);
-  border: 1px solid var(--border-color, #e5e7eb);
-  border-radius: 16px;
-  box-shadow: 0 6px 18px var(--shadow-color, rgba(0, 0, 0, 0.08));
-  padding: clamp(16px, 3vw, 28px);
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 12px;
-`
-
 const Actions = styled.div`
   display: flex;
   flex-wrap: wrap;
@@ -120,16 +109,14 @@ export default function Home() {
   }
 
   return (
-    <Win95Page title="Home">
-      <Hero aria-labelledby="home-title">
-        <Title id="home-title">Home</Title>
-        <WinButton onClick={handleGetProfile}>click</WinButton>
+    <Win95Page title="Home" width="92vw" maxWidth="1400px" height="88vh" maxHeight="88vh">
+      <Title id="home-title">Home</Title>
+      <WinButton onClick={handleGetProfile}>click</WinButton>
 
-        <Actions>
-          <Button onClick={() => alert('Get Started action')}>Get Started</Button>
-          <GhostButton onClick={() => alert('Take a tour')}>Take a Tour</GhostButton>
-        </Actions>
-      </Hero>
+      <Actions>
+        <Button onClick={() => alert('Get Started action')}>Get Started</Button>
+        <GhostButton onClick={() => alert('Take a tour')}>Take a Tour</GhostButton>
+      </Actions>
 
       <Section aria-labelledby="quick-actions-title">
         <SectionTitle id="quick-actions-title">Quick actions</SectionTitle>

@@ -12,14 +12,15 @@ export const Window = styled.div`
 `
 
 export const TitleBar = styled.div`
-  height: 30px;
+  height: 26px;
   background: ${({ theme }) => theme.colors.titleBar};
   color: ${({ theme }) => theme.colors.titleText};
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 6px;
+  padding: 0 4px;
   font-weight: bold;
+  font-size: 13px;
 `
 
 export const Title = styled.div`
@@ -30,12 +31,12 @@ export const Title = styled.div`
 
 export const TitleButtons = styled.div`
   display: flex;
-  gap: 2px;
+  gap: 1px;
 `
 
 export const TitleButton = styled.button`
-  width: 24px;
-  height: 22px;
+  width: 20px;
+  height: 18px;
   padding: 0;
   background: ${({ theme }) => theme.colors.face};
   color: ${({ theme }) => theme.colors.text};
@@ -46,6 +47,7 @@ export const TitleButton = styled.button`
   display: grid;
   place-items: center;
   cursor: pointer;
+  font-size: 11px;
 
   &:active {
     border-top: 2px solid #404040;
@@ -56,8 +58,8 @@ export const TitleButton = styled.button`
 `
 
 export const WindowBody = styled.div`
-  padding: 12px;
+  padding: 10px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 `

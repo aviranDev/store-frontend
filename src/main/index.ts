@@ -52,6 +52,27 @@ app.whenReady().then(() => {
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
 
+  ipcMain.on('window:minimize', () => {
+    const win = BrowserWindow.getFocusedWindow()
+    win?.minimize()
+  })
+
+  ipcMain.on('window:maximize', () => {
+    const win = BrowserWindow.getFocusedWindow()
+    if (!win) return
+
+    if (win.isMaximized()) {
+      win.unmaximize()
+    } else {
+      win.maximize()
+    }
+  })
+
+  ipcMain.on('window:close', () => {
+    const win = BrowserWindow.getFocusedWindow()
+    win?.close()
+  })
+
   createWindow()
 
   app.on('activate', function () {

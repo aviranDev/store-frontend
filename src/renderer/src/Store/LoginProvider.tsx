@@ -35,9 +35,13 @@ const AuthProvider: React.FC<LoginProviderProps> = ({ children }) => {
     resetRedirectFlag()
   }
 
+  const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
+
   const login = async (data: Auth): Promise<SigninResponse> => {
     const response = await signin(data)
     const accessToken = response.accessToken
+
+    await delay(3000)
 
     const decodedUser = setAuthSession(accessToken)
 
