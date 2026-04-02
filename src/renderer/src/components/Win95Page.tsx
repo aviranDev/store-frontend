@@ -7,8 +7,10 @@ type Win95PageProps = {
   children: React.ReactNode
   width?: string
   maxWidth?: string
+  height?: string
+  maxHeight?: string
   className?: string
-  showTitleButtons?: boolean
+  showWindowControls?: boolean
 }
 
 const Desktop = styled.div`
@@ -21,34 +23,57 @@ const Desktop = styled.div`
   padding: 24px;
 `
 
-const PageWindow = styled(Window)<{ $width: string; $maxWidth: string }>`
+const PageWindow = styled(Window)<{
+  $width: string
+  $maxWidth: string
+  $height: string
+  $maxHeight: string
+}>`
   width: ${({ $width }) => $width};
   max-width: ${({ $maxWidth }) => $maxWidth};
+  height: ${({ $height }) => $height};
+  max-height: ${({ $maxHeight }) => $maxHeight};
 `
 
 function Win95Page({
   title,
   children,
-  width = '720px',
+  width = '420px',
   maxWidth = '95vw',
+  height = 'auto',
+  maxHeight = '90vh',
   className,
-  showTitleButtons = true
+  showWindowControls = true
 }: Win95PageProps): React.JSX.Element {
+  const handleMinimize = (): void => {
+    window.api?.windowControls?.minimize()
+  }
+
+  const handleMaximize = (): void => {
+    window.api?.windowControls?.maximize()
+  }
+
+  const handleClose = (): void => {
+    window.api?.windowControls?.close()
+  }
+
   return (
     <Desktop className={className}>
-      <PageWindow $width={width} $maxWidth={maxWidth}>
+      <PageWindow $width={width} $maxWidth={maxWidth} $height={height} $maxHeight={maxHeight}>
         <TitleBar>
           <Title>{title}</Title>
 
-          {showTitleButtons && (
+          {showWindowControls && (
             <TitleButtons>
-              <TitleButton type="button" aria-label="Minimize">
+              <TitleButton type="button" aria-label="Minimize window" onClick={handleMinimize}>
                 _
               </TitleButton>
-              <TitleButton type="button" aria-label="Maximize">
+
+              <TitleButton type="button" aria-label="Maximize window" onClick={handleMaximize}>
                 □
               </TitleButton>
-              <TitleButton type="button" aria-label="Close">
+
+              <TitleButton type="button" aria-label="Close window" onClick={handleClose}>
                 ×
               </TitleButton>
             </TitleButtons>
