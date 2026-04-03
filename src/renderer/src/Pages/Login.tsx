@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, JSX } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useLogin } from '../Store/LoginProvider'
 import { Auth } from '../Services/user'
 import validate from '../utils/validateFiled'
@@ -14,16 +15,33 @@ import {
   MessageArea
 } from '../components/Win95Form'
 import Win95Card from '../components/Win95Card'
+import { WinFormRow } from '../components/Win95Form'
 
 import keyIcon from '../assets/keys-5.png'
 import styled from 'styled-components'
 
 const HeaderRow = styled.div`
+  display: grid;
+  grid-template-columns: 70px 260px;
+  column-gap: 6px;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  margin: 0 auto 6px;
+`
+
+const HeaderIconWrap = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
-  font-weight: bold;
+  justify-content: flex-start;
+  height: 26px;
+`
+
+const HeaderText = styled.span`
+  display: flex;
+  align-items: center;
+  height: 26px;
+  font-weight: normal;
 `
 
 const Icon = styled.img`
@@ -37,8 +55,10 @@ const Icon = styled.img`
 function LoginHeader() {
   return (
     <HeaderRow>
-      <Icon src={keyIcon} alt="" />
-      <span>Please log in to your account</span>
+      <HeaderIconWrap>
+        <Icon src={keyIcon} alt="" />
+      </HeaderIconWrap>
+      <HeaderText>Please log in to your account</HeaderText>
     </HeaderRow>
   )
 }
@@ -52,6 +72,8 @@ const initialState: Auth = {
 
 const Login = (): JSX.Element => {
   const { login } = useLogin()
+  const navigate = useNavigate()
+
   const [values, setValues] = useState<Auth>(initialState)
 
   const [errors, setErrors] = useState<Auth>(initialState)
@@ -133,28 +155,32 @@ const Login = (): JSX.Element => {
         <LoginHeader />
 
         <WinForm onSubmit={handleSubmit}>
-          <WinFormField>
+          <WinFormRow>
             <WinFormLabel>Email</WinFormLabel>
-            <Input
-              type="text"
-              name="email"
-              value={values.email}
-              onChange={handleChange}
-              errorMessage={errors.email}
-            />
-          </WinFormField>
-          <WinFormField>
+            <WinFormField>
+              <Input
+                type="text"
+                name="email"
+                value={values.email}
+                onChange={handleChange}
+                errorMessage={errors.email}
+              />
+            </WinFormField>
+          </WinFormRow>
+          <WinFormRow>
             <WinFormLabel>Password</WinFormLabel>
-            <Input
-              type="password"
-              name="password"
-              value={values.password}
-              onChange={handleChange}
-              errorMessage={errors.password}
-            />
-          </WinFormField>
+            <WinFormField>
+              <Input
+                type="password"
+                name="password"
+                value={values.password}
+                onChange={handleChange}
+                errorMessage={errors.password}
+              />
+            </WinFormField>
+          </WinFormRow>
           <WinFormActions>
-            <WinButton type="button" disabled={loading}>
+            <WinButton type="button" disabled={loading} onClick={() => navigate('/register')}>
               Register
             </WinButton>
             <WinButton type="submit" disabled={loading}>
