@@ -5,6 +5,17 @@ import axios, { AxiosResponse } from 'axios' // Import AxiosResponse if you're u
 import { DecodedToken } from './auth' // Import DecodedToken from auth service
 axios.defaults.withCredentials = true // Include credentials for all requests
 
+export interface RegisterCustomerPayload {
+  username: string
+  email: string
+  password: string
+  customerNumber: string
+}
+
+export interface RegisterCustomerResponse {
+  message: string
+}
+
 export interface Auth {
   email: string
   password: string
@@ -33,6 +44,16 @@ export const profile = async (): Promise<AxiosResponse<UserProfile>> => {
   } catch (error) {
     throw error
   }
+}
+
+export const registerCustomer = async (
+  credentials: RegisterCustomerPayload
+): Promise<RegisterCustomerResponse> => {
+  console.log(credentials)
+
+  const response = await httpService.post<RegisterCustomerResponse>('/users/customers', credentials)
+
+  return response.data
 }
 
 export const signin = async (credentails: Auth): Promise<SigninResponse> => {

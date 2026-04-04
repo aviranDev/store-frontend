@@ -1,31 +1,40 @@
-import { useState, useRef, useCallback, JSX } from 'react'
+import { useState, useCallback, JSX } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AxiosError } from 'axios'
 import styled from 'styled-components'
+import { WinFormRow } from '../components/Win95Form'
 
 import Input from '../components/Input/Input'
 import Win95Page from '../components/Win95Page'
 import { WinButton } from '../components/Win95Controls'
-import {
-  WinForm,
-  WinFormField,
-  WinFormLabel,
-  WinFormActions,
-  MessageArea
-} from '../components/Win95Form'
+import { WinForm, WinFormLabel, WinFormActions, MessageArea } from '../components/Win95Form'
 import Win95Card from '../components/Win95Card'
-import validate from '../utils/validateFiled'
-
-// import { register } from '../Services/user'
-
-import keyIcon from '../assets/keys-5.png'
+import validateRegisterField from '../validation/validateRegisterField'
+import { useLogin } from '../Store/LoginProvider'
+import keyIcon from '../assets/users_green-4.png'
 
 const HeaderRow = styled.div`
+  display: grid;
+  grid-template-columns: 70px 260px;
+  column-gap: 6px;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  margin: 0 auto 6px;
+`
+
+const HeaderIconWrap = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
-  font-weight: bold;
+  justify-content: flex-start;
+  height: 26px;
+`
+
+const HeaderText = styled.span`
+  display: flex;
+  align-items: center;
+  height: 26px;
+  font-weight: normal;
 `
 
 const Icon = styled.img`
@@ -39,8 +48,10 @@ const Icon = styled.img`
 function RegisterHeader() {
   return (
     <HeaderRow>
-      <Icon src={keyIcon} alt="" />
-      <span>Create your account</span>
+      <HeaderIconWrap>
+        <Icon src={keyIcon} alt="" />
+      </HeaderIconWrap>
+      <HeaderText>Please log in to your account</HeaderText>
     </HeaderRow>
   )
 }
@@ -49,6 +60,7 @@ type RegisterData = {
   username: string
   email: string
   password: string
+  customerNumber: string
 }
 
 type InputChangeEvent = React.ChangeEvent<HTMLInputElement>
@@ -56,11 +68,13 @@ type InputChangeEvent = React.ChangeEvent<HTMLInputElement>
 const initialState: RegisterData = {
   username: '',
   email: '',
-  password: ''
+  password: '',
+  customerNumber: ''
 }
 
 const Register = (): JSX.Element => {
   const navigate = useNavigate()
+  const { register } = useLogin()
 
   const [values, setValues] = useState<RegisterData>(initialState)
   const [errors, setErrors] = useState<RegisterData>(initialState)
@@ -68,12 +82,6 @@ const Register = (): JSX.Element => {
   const [apiMessage, setApiMessage] = useState<{ message: string; fulfill: boolean }>({
     message: '',
     fulfill: false
-  })
-
-  const lengths = useRef<{ [key in keyof RegisterData]: number }>({
-    username: 3,
-    email: 24,
-    password: 9
   })
 
   const MIN_LOADING_DURATION = 2000
@@ -102,7 +110,7 @@ const Register = (): JSX.Element => {
 
     setErrors((prev) => ({
       ...prev,
-      [fieldName]: validate(fieldName, value, lengths.current[fieldName]) ?? ''
+      [fieldName]: validateRegisterField(fieldName, value) ?? ''
     }))
   }, [])
 
@@ -110,9 +118,10 @@ const Register = (): JSX.Element => {
     e.preventDefault()
 
     const newErrors: RegisterData = {
-      username: validate('username', values.username, lengths.current.username) ?? '',
-      email: validate('email', values.email, lengths.current.email) ?? '',
-      password: validate('password', values.password, lengths.current.password) ?? ''
+      username: validateRegisterField('username', values.email) ?? '',
+      email: validateRegisterField('email', values.email) ?? '',
+      password: validateRegisterField('password', values.password) ?? '',
+      customerNumber: validateRegisterField('customerNumber', values.customerNumber) ?? ''
     }
 
     setErrors(newErrors)
@@ -121,14 +130,16 @@ const Register = (): JSX.Element => {
     if (hasErrors) return
 
     setLoading(true)
+
     const start = Date.now()
 
     try {
-      // const response = await register(values)
-      // setApiMessage({ message: response.message, fulfill: true })
+      const response = await register(values)
+      setApiMessage({ message: response.message, fulfill: true })
 
-      setApiMessage({ message: 'Registration completed successfully', fulfill: true })
-      setValues(initialState)
+      setTimeout(() => {
+        navigate('/login')
+      }, 1500)
     } catch (error) {
       handleError(error)
     } finally {
@@ -144,7 +155,7 @@ const Register = (): JSX.Element => {
         <RegisterHeader />
 
         <WinForm onSubmit={handleSubmit}>
-          <WinFormField>
+          <WinFormRow>
             <WinFormLabel>Username</WinFormLabel>
             <Input
               type="text"
@@ -153,9 +164,9 @@ const Register = (): JSX.Element => {
               onChange={handleChange}
               errorMessage={errors.username}
             />
-          </WinFormField>
+          </WinFormRow>
 
-          <WinFormField>
+          <WinFormRow>
             <WinFormLabel>Email</WinFormLabel>
             <Input
               type="text"
@@ -164,9 +175,9 @@ const Register = (): JSX.Element => {
               onChange={handleChange}
               errorMessage={errors.email}
             />
-          </WinFormField>
+          </WinFormRow>
 
-          <WinFormField>
+          <WinFormRow>
             <WinFormLabel>Password</WinFormLabel>
             <Input
               type="password"
@@ -175,14 +186,25 @@ const Register = (): JSX.Element => {
               onChange={handleChange}
               errorMessage={errors.password}
             />
-          </WinFormField>
+          </WinFormRow>
+
+          <WinFormRow>
+            <WinFormLabel>Customer Number</WinFormLabel>
+            <Input
+              type="text"
+              name="customerNumber"
+              value={values.customerNumber}
+              onChange={handleChange}
+              errorMessage={errors.customerNumber}
+            />
+          </WinFormRow>
 
           <WinFormActions>
             <WinButton type="button" disabled={loading} onClick={() => navigate('/login')}>
-              Login
+              Cancel
             </WinButton>
             <WinButton type="submit" disabled={loading}>
-              {loading ? 'Loading...' : 'Register'}
+              {loading ? 'Loading...' : 'OK'}
             </WinButton>
           </WinFormActions>
 

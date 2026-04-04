@@ -1,5 +1,14 @@
 import { useState, createContext, Fragment, ReactNode, useContext } from 'react'
-import { signin, Auth, SigninResponse, profile, logoutService } from '../Services/user'
+import {
+  signin,
+  Auth,
+  SigninResponse,
+  profile,
+  logoutService,
+  registerCustomer,
+  RegisterCustomerPayload,
+  RegisterCustomerResponse
+} from '../Services/user'
 import {
   DecodedToken,
   getStoredUser,
@@ -10,6 +19,7 @@ import {
 } from '../Services/auth'
 
 export interface LoginContextProps {
+  register: (data: RegisterCustomerPayload) => Promise<RegisterCustomerResponse>
   login: (data: Auth) => Promise<SigninResponse>
   logout: () => Promise<void>
   isLoggedIn: boolean
@@ -52,6 +62,11 @@ const AuthProvider: React.FC<LoginProviderProps> = ({ children }) => {
     return response
   }
 
+  const register = async (data: RegisterCustomerPayload): Promise<RegisterCustomerResponse> => {
+    const response = await registerCustomer(data)
+    return response
+  }
+
   const getProfile = async (): Promise<any> => {
     const response = await profile()
     return response.data
@@ -68,7 +83,9 @@ const AuthProvider: React.FC<LoginProviderProps> = ({ children }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ login, isLoggedIn, logout, user, getProfile, clearAuthState }}>
+    <AuthContext.Provider
+      value={{ register, login, isLoggedIn, logout, user, getProfile, clearAuthState }}
+    >
       <Fragment>{children}</Fragment>
     </AuthContext.Provider>
   )
