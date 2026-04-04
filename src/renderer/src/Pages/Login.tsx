@@ -1,8 +1,7 @@
-import { useState, useRef, useCallback, JSX } from 'react'
+import { useState, useCallback, JSX } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useLogin } from '../Store/LoginProvider'
 import { Auth } from '../Services/user'
-import validate from '../utils/validateFiled'
 import Input from '../components/Input/Input'
 import { AxiosError } from 'axios' // Import AxiosError
 import Win95Page from '../components/Win95Page'
@@ -16,6 +15,7 @@ import {
 } from '../components/Win95Form'
 import Win95Card from '../components/Win95Card'
 import { WinFormRow } from '../components/Win95Form'
+import validateLoginField from '../validation/validateLoginField'
 
 import keyIcon from '../assets/keys-5.png'
 import styled from 'styled-components'
@@ -83,11 +83,6 @@ const Login = (): JSX.Element => {
     fulfill: false
   })
 
-  const lengths = useRef<{ [key in keyof Auth]: number }>({
-    email: 24,
-    password: 9
-  })
-
   const MIN_LOADING_DURATION = 2000 // Minimum delay of 1 second
 
   const handleError = (error: unknown): void => {
@@ -114,7 +109,7 @@ const Login = (): JSX.Element => {
 
     setErrors((prev) => ({
       ...prev,
-      [fieldName]: validate(fieldName, value, lengths.current[fieldName]) ?? ''
+      [fieldName]: validateLoginField(fieldName, value) ?? ''
     }))
   }, [])
 
@@ -122,10 +117,9 @@ const Login = (): JSX.Element => {
     e.preventDefault()
 
     const newErrors: Auth = {
-      email: validate('email', values.email, lengths.current.email) ?? '',
-      password: validate('password', values.password, lengths.current.password) ?? ''
+      email: validateLoginField('email', values.email) ?? '',
+      password: validateLoginField('password', values.password) ?? ''
     }
-
     setErrors(newErrors)
 
     const hasErrors = Object.values(newErrors).some(Boolean)
@@ -147,6 +141,10 @@ const Login = (): JSX.Element => {
       const remainingTime = Math.max(MIN_LOADING_DURATION - duration, 0)
       setTimeout(() => setLoading(false), remainingTime) // Ensure minimum loading duration
     }
+  }
+
+  const handleCancel = () => {
+    window.close()
   }
 
   return (
@@ -183,8 +181,11 @@ const Login = (): JSX.Element => {
             <WinButton type="button" disabled={loading} onClick={() => navigate('/register')}>
               Register
             </WinButton>
+            <WinButton type="button" disabled={loading} onClick={handleCancel}>
+              Cancel
+            </WinButton>
             <WinButton type="submit" disabled={loading}>
-              {loading ? 'Loading...' : 'Submit'}
+              {loading ? 'Loading...' : 'OK'}
             </WinButton>
           </WinFormActions>
 
