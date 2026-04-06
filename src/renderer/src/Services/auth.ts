@@ -1,12 +1,8 @@
 import { jwtDecode } from 'jwt-decode'
 import { getLocalStorage, setLocalStorage, removeLocalStorage } from '../utils/localStorage'
-
-export interface DecodedToken {
-  exp: number
-  data: object
-  role?: string
-  username?: string
-}
+import { DecodedToken, SigninResponse, SigninPayload } from '../types/auth.type'
+import httpService from './http'
+import { AxiosResponse } from 'axios' // Import AxiosResponse if you're using axios
 
 let isRedirecting = false
 
@@ -50,8 +46,6 @@ export const forceLogout = (): void => {
   clearAuthSession()
 
   if (!isRedirecting) {
-    console.log('test')
-
     isRedirecting = true
     window.location.href = '/login'
   }
@@ -59,4 +53,46 @@ export const forceLogout = (): void => {
 
 export const resetRedirectFlag = (): void => {
   isRedirecting = false
+}
+
+export const getCurrentUser = (): DecodedToken | null => {
+  try {
+    const jwt = getAccessToken()
+    if (!jwt) {
+      return null
+    }
+
+    const decodedToken: DecodedToken = jwtDecode<DecodedToken>(jwt) // Use jwtDecode with the correct typing
+    setLocalStorage('user', decodedToken)
+    return decodedToken
+  } catch {
+    return null
+  }
+}
+
+export const logoutService = async (): Promise<void> => {
+  try {
+    await httpService.delete(`/auth/logout`)
+  } catch (error) {
+    throw error
+  }
+}
+
+export const signin = async (credentails: SigninPayload): Promise<SigninResponse> => {
+  const response: AxiosResponse<SigninResponse> = await httpService.post('/auth/login', credentails)
+
+  return response.data
+}
+
+export const refreshtoken = async (): Promise<string> => {
+  const response = await httpService.get<{ accessToken: string }>(
+    'http://localhost:8080/api/auth/refresh-token',
+    { withCredentials: true }
+  )
+
+  if (typeof response.data?.accessToken !== 'string') {
+    throw new Error('Invalid access token format')
+  }
+
+  return response.data.accessToken
 }

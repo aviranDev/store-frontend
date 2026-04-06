@@ -21,6 +21,7 @@ import {
 import AdminPanelItem from '../components/AdminPanelItem'
 import Win95Page from '../components/Win95Page'
 import usersIcon from '../assets/users-2.png'
+import FileMenu from '../components/FileMenu/FileMenu'
 
 type AdminEntry = {
   label: string
@@ -93,13 +94,20 @@ export default function AdminPanelPage(): React.JSX.Element {
     <Win95Page title="Admin Panel" width="920px" maxWidth="96vw">
       <AdminBody>
         <AdminMenuBar>
-          <AdminMenuItem type="button">File</AdminMenuItem>
-          <AdminMenuItem type="button">Edit</AdminMenuItem>
-          <AdminMenuItem type="button">View</AdminMenuItem>
-          <AdminMenuItem type="button">Help</AdminMenuItem>
-          <AdminMenuItem type="button" onClick={logout}>
-            Logout
-          </AdminMenuItem>
+          <FileMenu
+            onAccount={() => alert('Account')}
+            onLogout={logout}
+            onExit={() => window.close()}
+          />
+          <FileMenu
+            onAccount={() => alert('Account')}
+            onLogout={logout}
+            onExit={() => window.close()}
+          />
+          {/* <AdminMenuItem type="button">File</AdminMenuItem> */}
+          {/* <AdminMenuItem type="button">Edit</AdminMenuItem> */}
+          {/* <AdminMenuItem type="button">View</AdminMenuItem> */}
+          {/* <AdminMenuItem type="button">Help</AdminMenuItem> */}
         </AdminMenuBar>
 
         <AdminToolbar>

@@ -1,54 +1,25 @@
 import { useState } from 'react'
-import type { ChangeEvent } from 'react'
-import { WinButton, WinInput } from '../Win95Controls'
-import { ErrorMessage, InputContainer, InputRow } from './inputStyles'
+import { ErrorMessage, InputContainer, InputRow, WinInput, TogglePassword } from './inputStyles'
+import InputProps from './input.type'
 
-type InputProps = {
-  type?: string
-  name?: string
-  value?: string
-  placeholder?: string
-  errorMessage?: string | null
-  onChange?: (event: ChangeEvent<HTMLInputElement>) => void
-  onBlur?: (event: ChangeEvent<HTMLInputElement>) => void
-}
-
-const Input = ({
-  type = 'text',
-  name,
-  value = '',
-  onChange,
-  onBlur,
-  placeholder,
-  errorMessage
-}: InputProps) => {
+const Input = ({ type = 'text', errorMessage, ...props }: InputProps) => {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false)
   const isPasswordType = type === 'password'
+  const resolvedType = isPasswordType && isPasswordVisible ? 'text' : type
 
-  const handleTogglePasswordVisibility = (): void => {
+  const handleTogglePassword = (): void => {
     setIsPasswordVisible((prev) => !prev)
   }
 
   return (
     <InputContainer>
       <InputRow>
-        <WinInput
-          type={isPasswordType ? (isPasswordVisible ? 'text' : 'password') : type}
-          name={name}
-          value={value}
-          onChange={onChange}
-          onBlur={onBlur}
-          placeholder={placeholder}
-        />
+        <WinInput type={resolvedType} {...props} />
 
         {isPasswordType && (
-          <WinButton
-            type="button"
-            onClick={handleTogglePasswordVisibility}
-            style={{ minWidth: '52px', height: '26px', padding: '0 8px' }}
-          >
+          <TogglePassword type="button" onClick={handleTogglePassword}>
             {isPasswordVisible ? 'Hide' : 'View'}
-          </WinButton>
+          </TogglePassword>
         )}
       </InputRow>
 

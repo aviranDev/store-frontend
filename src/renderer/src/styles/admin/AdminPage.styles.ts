@@ -13,8 +13,8 @@ export const AdminTitleBar = styled(TitleBar)``
 export const AdminMenuBar = styled.div`
   display: flex;
   align-items: center;
-  gap: 18px;
-  padding: 4px 8px;
+  gap: 15px;
+  // padding: 4px 8px;
   background: ${({ theme }) => theme.colors.face};
   border-bottom: 1px solid ${({ theme }) => theme.colors.shadow};
   font-size: 14px;
