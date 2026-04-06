@@ -1,8 +1,13 @@
-// src/components/PublicRoute.tsx
 import { Navigate } from 'react-router-dom'
 import { useLogin } from './Store/LoginProvider'
+import { getDefaultRouteByRole } from './utils/routeHelpers'
 
 export default function PublicRoute({ children }: { children: React.ReactNode }) {
-  const { isLoggedIn } = useLogin()
-  return isLoggedIn ? <Navigate to="/" replace /> : <>{children}</>
+  const { isLoggedIn, user } = useLogin()
+
+  if (isLoggedIn) {
+    return <Navigate to={getDefaultRouteByRole(user?.role)} replace />
+  }
+
+  return <>{children}</>
 }

@@ -18,50 +18,7 @@ import { WinFormRow } from '../components/Win95Form'
 import validateLoginField from '../validation/validateLoginField'
 
 import keyIcon from '../assets/keys-5.png'
-import styled from 'styled-components'
-
-const HeaderRow = styled.div`
-  display: grid;
-  grid-template-columns: 70px 260px;
-  column-gap: 6px;
-  align-items: center;
-  justify-content: center;
-  width: fit-content;
-  margin: 0 auto 6px;
-`
-
-const HeaderIconWrap = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  height: 26px;
-`
-
-const HeaderText = styled.span`
-  display: flex;
-  align-items: center;
-  height: 26px;
-  font-weight: normal;
-`
-
-const Icon = styled.img`
-  width: 20px;
-  height: 20px;
-  image-rendering: pixelated;
-  flex-shrink: 0;
-  display: block;
-`
-
-function LoginHeader() {
-  return (
-    <HeaderRow>
-      <HeaderIconWrap>
-        <Icon src={keyIcon} alt="" />
-      </HeaderIconWrap>
-      <HeaderText>Please log in to your account</HeaderText>
-    </HeaderRow>
-  )
-}
+import IconComponent from '../components/IconComponent/Icon'
 
 type InputChangeEvent = React.ChangeEvent<HTMLInputElement>
 
@@ -125,15 +82,11 @@ const Login = (): JSX.Element => {
     const hasErrors = Object.values(newErrors).some(Boolean)
     if (hasErrors) return
 
-    // If there are validation errors, exit submit
-    if (hasErrors) return
-
     setLoading(true) // Start loading state
     const start = Date.now() // Track start time for minimum delay
 
     try {
-      const response = await login(values)
-      setApiMessage({ message: response.message, fulfill: true })
+      await login(values)
     } catch (error) {
       handleError(error) // Use centralized error handler
     } finally {
@@ -150,7 +103,7 @@ const Login = (): JSX.Element => {
   return (
     <Win95Page title="Login" width="470px" maxWidth="92vw">
       <Win95Card inset>
-        <LoginHeader />
+        <IconComponent keyIcon={keyIcon} text="Please log in to your account" />
 
         <WinForm onSubmit={handleSubmit}>
           <WinFormRow>

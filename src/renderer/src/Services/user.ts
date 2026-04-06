@@ -49,8 +49,6 @@ export const profile = async (): Promise<AxiosResponse<UserProfile>> => {
 export const registerCustomer = async (
   credentials: RegisterCustomerPayload
 ): Promise<RegisterCustomerResponse> => {
-  console.log(credentials)
-
   const response = await httpService.post<RegisterCustomerResponse>('/users/customers', credentials)
 
   return response.data

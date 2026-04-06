@@ -1,7 +1,6 @@
 import { useState, useCallback, JSX } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AxiosError } from 'axios'
-import styled from 'styled-components'
 import { WinFormRow } from '../components/Win95Form'
 
 import Input from '../components/Input/Input'
@@ -13,48 +12,7 @@ import validateRegisterField from '../validation/validateRegisterField'
 import { useLogin } from '../Store/LoginProvider'
 import keyIcon from '../assets/users_green-4.png'
 
-const HeaderRow = styled.div`
-  display: grid;
-  grid-template-columns: 70px 260px;
-  column-gap: 6px;
-  align-items: center;
-  justify-content: center;
-  width: fit-content;
-  margin: 0 auto 6px;
-`
-
-const HeaderIconWrap = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  height: 26px;
-`
-
-const HeaderText = styled.span`
-  display: flex;
-  align-items: center;
-  height: 26px;
-  font-weight: normal;
-`
-
-const Icon = styled.img`
-  width: 20px;
-  height: 20px;
-  image-rendering: pixelated;
-  flex-shrink: 0;
-  display: block;
-`
-
-function RegisterHeader() {
-  return (
-    <HeaderRow>
-      <HeaderIconWrap>
-        <Icon src={keyIcon} alt="" />
-      </HeaderIconWrap>
-      <HeaderText>Please log in to your account</HeaderText>
-    </HeaderRow>
-  )
-}
+import IconComponent from '../components/IconComponent/Icon'
 
 type RegisterData = {
   username: string
@@ -152,7 +110,7 @@ const Register = (): JSX.Element => {
   return (
     <Win95Page title="Register" width="470px" maxWidth="92vw">
       <Win95Card inset>
-        <RegisterHeader />
+        <IconComponent keyIcon={keyIcon} text="Please register for an account" />
 
         <WinForm onSubmit={handleSubmit}>
           <WinFormRow>

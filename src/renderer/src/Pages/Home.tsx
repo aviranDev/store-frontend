@@ -97,7 +97,7 @@ const Hint = styled.p`
 `
 
 export default function Home() {
-  const { logout, getProfile } = useLogin()
+  const { logout, getProfile, user } = useLogin()
 
   const handleGetProfile = async (): Promise<void> => {
     try {
@@ -107,7 +107,7 @@ export default function Home() {
       console.error('Failed to fetch profile:', error)
     }
   }
-
+  console.log('Current user:', user)
   return (
     <Win95Page title="Home" width="92vw" maxWidth="1400px" height="88vh" maxHeight="88vh">
       <Title id="home-title">Home</Title>
