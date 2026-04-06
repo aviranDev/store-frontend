@@ -39,15 +39,19 @@ export const TitleButton = styled.button`
   height: 18px;
   padding: 0;
   background: ${({ theme }) => theme.colors.face};
-  color: ${({ theme }) => theme.colors.text};
+  color: ${({ theme }) => theme.colors.black};
   border-top: 2px solid #ffffff;
   border-left: 2px solid #ffffff;
   border-right: 2px solid #404040;
   border-bottom: 2px solid #404040;
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  font-size: 11px;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
 
   &:active {
     border-top: 2px solid #404040;
@@ -55,6 +59,18 @@ export const TitleButton = styled.button`
     border-right: 2px solid #ffffff;
     border-bottom: 2px solid #ffffff;
   }
+`
+
+export const TitleButtonIcon = styled.span<{ $variant?: 'min' | 'max' | 'close' }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transform: ${({ $variant }) => {
+    if ($variant === 'min') return 'translateY(-2px)'
+    if ($variant === 'max') return 'translateY(-1px)'
+    return 'translateY(0)'
+  }};
 `
 
 export const WindowBody = styled.div`

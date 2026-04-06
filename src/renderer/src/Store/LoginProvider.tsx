@@ -51,8 +51,6 @@ const AuthProvider: React.FC<LoginProviderProps> = ({ children }) => {
     const response = await signin(data)
     const accessToken = response.accessToken
 
-    await delay(3000)
-
     const decodedUser = setAuthSession(accessToken)
 
     setUser(decodedUser)

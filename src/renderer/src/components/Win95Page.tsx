@@ -1,6 +1,14 @@
 import React from 'react'
 import styled from 'styled-components'
-import { Window, TitleBar, Title, TitleButtons, TitleButton, WindowBody } from './Win95Window'
+import {
+  Window,
+  TitleBar,
+  Title,
+  TitleButtons,
+  TitleButton,
+  WindowBody,
+  TitleButtonIcon
+} from './Win95Window'
 
 type Win95PageProps = {
   title: string
@@ -66,15 +74,15 @@ function Win95Page({
           {showWindowControls && (
             <TitleButtons>
               <TitleButton type="button" aria-label="Minimize window" onClick={handleMinimize}>
-                _
+                <TitleButtonIcon $variant="min">_</TitleButtonIcon>
               </TitleButton>
 
               <TitleButton type="button" aria-label="Maximize window" onClick={handleMaximize}>
-                □
+                <TitleButtonIcon $variant="max">□</TitleButtonIcon>
               </TitleButton>
 
               <TitleButton type="button" aria-label="Close window" onClick={handleClose}>
-                ×
+                <TitleButtonIcon $variant="close">×</TitleButtonIcon>
               </TitleButton>
             </TitleButtons>
           )}
