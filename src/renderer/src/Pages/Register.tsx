@@ -5,14 +5,14 @@ import { WinFormRow } from '../components/Win95Form'
 
 import Input from '../components/Input/Input'
 import Win95Page from '../components/Win95Page'
-import { WinButton } from '../components/Win95Controls'
 import { WinForm, WinFormLabel, WinFormActions, MessageArea } from '../components/Win95Form'
 import Win95Card from '../components/Win95Card'
 import validateRegisterField from '../validation/validateRegisterField'
 import { useLogin } from '../Store/LoginProvider'
 import keyIcon from '../assets/users_green-4.png'
+import WinButton from '../components/Button/WinButton'
 
-import IconComponent from '../components/IconComponent/Icon'
+import IconComponent from '@renderer/components/IconComponent/Icon'
 
 type RegisterData = {
   username: string

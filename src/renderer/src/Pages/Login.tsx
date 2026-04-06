@@ -5,7 +5,6 @@ import { Auth } from '../Services/user'
 import Input from '../components/Input/Input'
 import { AxiosError } from 'axios' // Import AxiosError
 import Win95Page from '../components/Win95Page'
-import { WinButton } from '../components/Win95Controls'
 import {
   WinForm,
   WinFormField,
@@ -19,6 +18,7 @@ import validateLoginField from '../validation/validateLoginField'
 
 import keyIcon from '../assets/keys-5.png'
 import IconComponent from '../components/IconComponent/Icon'
+import WinButton from '../components/Button/WinButton'
 
 type InputChangeEvent = React.ChangeEvent<HTMLInputElement>
 

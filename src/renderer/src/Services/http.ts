@@ -1,5 +1,5 @@
 import axios, { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from 'axios'
-import { refreshtoken } from './user'
+import { refreshtoken } from './auth'
 import { getAccessToken, isTokenExpired, setAuthSession, forceLogout } from './auth'
 
 axios.defaults.withCredentials = true

@@ -1,26 +1,20 @@
 import { useState, createContext, Fragment, ReactNode, useContext } from 'react'
+import { profile, registerCustomer } from '../Services/user'
 import {
-  signin,
-  Auth,
-  SigninResponse,
-  profile,
-  logoutService,
-  registerCustomer,
-  RegisterCustomerPayload,
-  RegisterCustomerResponse
-} from '../Services/user'
-import {
-  DecodedToken,
   getStoredUser,
   hasValidAccessToken,
   setAuthSession,
   clearAuthSession,
-  resetRedirectFlag
+  resetRedirectFlag,
+  logoutService,
+  signin
 } from '../Services/auth'
+import { DecodedToken, SigninResponse, SigninPayload } from '../types/auth.type'
+import { RegisterCustomerPayload, RegisterCustomerResponse } from '../types/user.type'
 
 export interface LoginContextProps {
   register: (data: RegisterCustomerPayload) => Promise<RegisterCustomerResponse>
-  login: (data: Auth) => Promise<SigninResponse>
+  login: (data: SigninPayload) => Promise<SigninResponse>
   logout: () => Promise<void>
   isLoggedIn: boolean
   user: DecodedToken | null
@@ -45,9 +39,7 @@ const AuthProvider: React.FC<LoginProviderProps> = ({ children }) => {
     resetRedirectFlag()
   }
 
-  const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
-
-  const login = async (data: Auth): Promise<SigninResponse> => {
+  const login = async (data: SigninPayload): Promise<SigninResponse> => {
     const response = await signin(data)
     const accessToken = response.accessToken
 
