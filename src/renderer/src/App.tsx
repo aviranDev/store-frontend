@@ -12,10 +12,11 @@ import { win95Theme } from './styles/theme'
 
 const Login = lazy(() => import('./Pages/Login'))
 const Register = lazy(() => import('./Pages/Register'))
-const AdminDashboard = lazy(() => import('./Pages/AdminDashboard'))
-const EmployeeDashboard = lazy(() => import('./Pages/EmployeeDashboard'))
-const CustomerDashboard = lazy(() => import('./Pages/CustomerDashboard'))
+const AdminDashboard = lazy(() => import('./Dashboards/AdminDashboard'))
+const EmployeeDashboard = lazy(() => import('./Dashboards/EmployeeDashboard'))
+const CustomerDashboard = lazy(() => import('./Dashboards/CustomerDashboard'))
 const Unauthorized = lazy(() => import('./Pages/Unauthorized'))
+const UserAccount = lazy(() => import('./Pages/UserAccount'))
 
 function LoadingScreen() {
   return <div>Loading...</div>
@@ -76,8 +77,16 @@ function App(): React.JSX.Element {
             <Route
               path="/customer"
               element={
-                <ProtectedRoute allowedRoles={['customer', 'admin']}>
+                <ProtectedRoute allowedRoles={['customer', 'employee', 'admin']}>
                   <CustomerDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/account"
+              element={
+                <ProtectedRoute allowedRoles={['customer', 'employee', 'admin']}>
+                  <UserAccount />
                 </ProtectedRoute>
               }
             />

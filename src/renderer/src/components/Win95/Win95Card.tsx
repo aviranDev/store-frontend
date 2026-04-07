@@ -1,6 +1,6 @@
 import React from 'react'
 import styled, { css } from 'styled-components'
-import { raisedBox, sunkenBox } from '../styles/mixins'
+import { raisedBox, sunkenBox } from '../../styles/mixins'
 
 type Win95CardProps = {
   title?: string

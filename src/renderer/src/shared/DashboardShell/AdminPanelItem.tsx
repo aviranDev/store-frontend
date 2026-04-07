@@ -1,6 +1,6 @@
 // src/components/AdminPanelItem.tsx
 import React from 'react'
-import { AdminItem, AdminItemLabel, AdminItemImage } from '../styles/admin/AdminPage.styles'
+import { AdminItem, AdminItemLabel, AdminItemImage } from '../../styles/admin/AdminPage.styles'
 
 type AdminPanelItemProps = {
   label: string

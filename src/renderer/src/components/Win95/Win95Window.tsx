@@ -1,6 +1,5 @@
-// components/Win95Window.tsx
 import styled from 'styled-components'
-import { raisedBox } from '../styles/mixins'
+import { raisedBox } from '../../styles/mixins'
 
 export const Window = styled.div`
   width: 720px;

@@ -1,6 +1,6 @@
 import styled from 'styled-components'
 import { raisedBox, sunkenBox } from '../mixins'
-import { Window, TitleBar, WindowBody } from '../../components/Win95Window'
+import { Window, TitleBar, WindowBody } from '../../components/Win95/Win95Window'
 
 export const AdminWindow = styled(Window)`
   width: 920px;

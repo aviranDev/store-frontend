@@ -1,12 +1,17 @@
 import { useState, useCallback, JSX } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AxiosError } from 'axios'
-import { WinFormRow } from '../components/Win95Form'
+import { WinFormRow } from '../components/Win95/Win95Form.style'
 
 import Input from '../components/Input/Input'
-import Win95Page from '../components/Win95Page'
-import { WinForm, WinFormLabel, WinFormActions, MessageArea } from '../components/Win95Form'
-import Win95Card from '../components/Win95Card'
+import Win95Page from '../components/Win95/Win95Page'
+import {
+  WinForm,
+  WinFormLabel,
+  WinFormActions,
+  MessageArea
+} from '../components/Win95/Win95Form.style'
+import Win95Card from '../components/Win95/Win95Card'
 import validateRegisterField from '../validation/validateRegisterField'
 import { useLogin } from '../Store/LoginProvider'
 import keyIcon from '../assets/users_green-4.png'

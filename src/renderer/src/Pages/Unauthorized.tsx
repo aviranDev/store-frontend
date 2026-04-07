@@ -1,8 +1,8 @@
 import { JSX } from 'react'
 import { Link } from 'react-router-dom'
-import Win95Page from '../components/Win95Page'
-import Win95Card from '../components/Win95Card'
-import { WinButton } from '../components/Win95Controls'
+import Win95Page from '../components/Win95/Win95Page'
+import Win95Card from '../components/Win95/Win95Card'
+import WinButton from '../components/Button/WinButton'
 import styled from 'styled-components'
 
 const Section = styled.div`
