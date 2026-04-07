@@ -1,5 +1,5 @@
 import { useState, createContext, Fragment, ReactNode, useContext } from 'react'
-import { profile, registerCustomer } from '../Services/user'
+import { registerCustomer } from '../Services/user'
 import {
   getStoredUser,
   hasValidAccessToken,
@@ -18,7 +18,6 @@ export interface LoginContextProps {
   logout: () => Promise<void>
   isLoggedIn: boolean
   user: DecodedToken | null
-  getProfile: () => Promise<any>
   clearAuthState: () => void
 }
 
@@ -57,11 +56,6 @@ const AuthProvider: React.FC<LoginProviderProps> = ({ children }) => {
     return response
   }
 
-  const getProfile = async (): Promise<any> => {
-    const response = await profile()
-    return response.data
-  }
-
   const logout = async (): Promise<void> => {
     try {
       await logoutService()
@@ -73,9 +67,7 @@ const AuthProvider: React.FC<LoginProviderProps> = ({ children }) => {
   }
 
   return (
-    <AuthContext.Provider
-      value={{ register, login, isLoggedIn, logout, user, getProfile, clearAuthState }}
-    >
+    <AuthContext.Provider value={{ register, login, isLoggedIn, logout, user, clearAuthState }}>
       <Fragment>{children}</Fragment>
     </AuthContext.Provider>
   )

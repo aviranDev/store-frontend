@@ -1,19 +1,19 @@
 import { useState, useCallback, JSX } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useLogin } from '../Store/LoginProvider'
-import { Auth } from '../Services/user'
+import { SigninPayload } from '../types/auth.type'
 import Input from '../components/Input/Input'
 import { AxiosError } from 'axios' // Import AxiosError
-import Win95Page from '../components/Win95Page'
+import Win95Page from '../components/Win95/Win95Page'
 import {
   WinForm,
   WinFormField,
   WinFormLabel,
   WinFormActions,
   MessageArea
-} from '../components/Win95Form'
-import Win95Card from '../components/Win95Card'
-import { WinFormRow } from '../components/Win95Form'
+} from '../components/Win95/Win95Form.style'
+import Win95Card from '../components/Win95/Win95Card'
+import { WinFormRow } from '../components/Win95/Win95Form.style'
 import validateLoginField from '../validation/validateLoginField'
 
 import keyIcon from '../assets/keys-5.png'
@@ -22,7 +22,7 @@ import WinButton from '../components/Button/WinButton'
 
 type InputChangeEvent = React.ChangeEvent<HTMLInputElement>
 
-const initialState: Auth = {
+const initialState: SigninPayload = {
   email: '',
   password: ''
 }
@@ -31,9 +31,9 @@ const Login = (): JSX.Element => {
   const { login } = useLogin()
   const navigate = useNavigate()
 
-  const [values, setValues] = useState<Auth>(initialState)
+  const [values, setValues] = useState<SigninPayload>(initialState)
 
-  const [errors, setErrors] = useState<Auth>(initialState)
+  const [errors, setErrors] = useState<SigninPayload>(initialState)
   const [loading, setLoading] = useState(false)
   const [apiMessage, setApiMessage] = useState<{ message: string; fulfill: boolean }>({
     message: '',
@@ -57,7 +57,7 @@ const Login = (): JSX.Element => {
 
   const handleChange = useCallback((e: InputChangeEvent): void => {
     const { name, value } = e.target
-    const fieldName = name as keyof Auth
+    const fieldName = name as keyof SigninPayload
 
     setValues((prevValues) => ({
       ...prevValues,
@@ -73,7 +73,7 @@ const Login = (): JSX.Element => {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault()
 
-    const newErrors: Auth = {
+    const newErrors: SigninPayload = {
       email: validateLoginField('email', values.email) ?? '',
       password: validateLoginField('password', values.password) ?? ''
     }

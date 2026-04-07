@@ -1,10 +1,14 @@
 import httpService from './http'
 import { AxiosResponse } from 'axios' // Import AxiosResponse if you're using axios
-import { RegisterCustomerPayload, RegisterCustomerResponse, UserProfile } from '../types/user.type'
+import {
+  RegisterCustomerPayload,
+  RegisterCustomerResponse,
+  UserProfileInterface
+} from '../types/user.type'
 
-export const profile = async (): Promise<AxiosResponse<UserProfile>> => {
+export const userProfile = async (): Promise<AxiosResponse<UserProfileInterface>> => {
   try {
-    return await httpService.get<UserProfile>(`users/user-profile`)
+    return await httpService.get<UserProfileInterface>(`users/user-profile`)
   } catch (error) {
     throw error
   }

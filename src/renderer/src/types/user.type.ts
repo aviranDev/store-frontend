@@ -5,9 +5,16 @@ export interface User {
   role: string
 }
 
-export interface UserProfile {
-  id: string
+export interface UserProfileInterface {
+  _id: string
   username: string
+  email: string
+  role: 'customer' | 'employee' | 'admin'
+  customerNumber?: string | null
+  companyName?: string | null
+  isVerified: boolean
+  verifiedAt: Date | null
+  createdAt: Date
 }
 
 export interface RegisterCustomerPayload {
