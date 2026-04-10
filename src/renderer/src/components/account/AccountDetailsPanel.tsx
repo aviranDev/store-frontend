@@ -1,10 +1,14 @@
 import styled from 'styled-components'
-
 import AccountActions from './AccountActions'
-import ProfileField from './ProfileField'
 import Win95GroupBox from '../Win95/Win95GroupBox'
-
+import { WinInput } from '../Input/inputStyles'
 import { UserProfileInterface } from '../../types/user.type'
+import {
+  WinForm,
+  WinFormRow,
+  WinFormLabel,
+  WinFormField
+} from '../../components/Win95/Win95Form.style'
 
 const Content = styled.div`
   display: flex;
@@ -12,17 +16,6 @@ const Content = styled.div`
   width: 100%;
   justify-content: space-between;
   flex: 1;
-`
-
-const ProfileGrid = styled.div`
-  display: grid;
-  grid-template-columns: 140px minmax(220px, 320px);
-  gap: 8px 12px;
-  align-items: center;
-
-  @media (max-width: 520px) {
-    grid-template-columns: 1fr;
-  }
 `
 
 const StatusText = styled.p`
@@ -35,6 +28,34 @@ const ErrorText = styled.p`
   font-weight: bold;
 `
 
+const DisplayInput = styled(WinInput).attrs({
+  readOnly: true
+})`
+  cursor: default;
+`
+
+type AccountValueFieldProps = {
+  value?: string | null
+  isEditing?: boolean
+  editable?: boolean
+  onChange?: (value: string) => void
+}
+
+const AccountValueField = ({
+  value,
+  isEditing = false,
+  editable = false,
+  onChange
+}: AccountValueFieldProps) => {
+  const resolvedValue = value && value.trim() ? value : '—'
+
+  if (isEditing && editable) {
+    return <WinInput value={value || ''} onChange={(e) => onChange?.(e.target.value)} />
+  }
+
+  return <DisplayInput value={resolvedValue} />
+}
+
 type AccountDetailsPanelProps = {
   formData: UserProfileInterface | null
   loading: boolean
@@ -45,6 +66,7 @@ type AccountDetailsPanelProps = {
   onEdit: () => void
   onCancel: () => void
   onUpdate: () => void
+  onDelete: () => void
 }
 
 const AccountDetailsPanel = ({
@@ -54,10 +76,10 @@ const AccountDetailsPanel = ({
   isEditing,
   saving,
   onChange,
-  // onBack,
   onEdit,
   onCancel,
-  onUpdate
+  onUpdate,
+  onDelete
 }: AccountDetailsPanelProps) => {
   return (
     <Win95GroupBox legend="Account Details">
@@ -67,45 +89,38 @@ const AccountDetailsPanel = ({
 
         {!loading && !error && formData && (
           <>
-            <ProfileGrid>
-              <ProfileField
-                label="Username"
-                value={formData.username}
-                isEditing={isEditing}
-                editable
-                onChange={(value) => onChange('username', value)}
-              />
-
-              <ProfileField
-                label="Email"
-                value={formData.email}
-                isEditing={isEditing}
-                editable
-                onChange={(value) => onChange('email', value)}
-              />
-
-              <ProfileField label="Role" value={formData.role} />
-
-              {formData.role === 'customer' && (
-                <>
-                  <ProfileField
-                    label="Customer Number"
-                    value={formData.customerNumber}
+            <WinForm as="div">
+              <WinFormRow>
+                <WinFormLabel>Username</WinFormLabel>
+                <WinFormField>
+                  <AccountValueField
+                    value={formData.username}
                     isEditing={isEditing}
                     editable
-                    onChange={(value) => onChange('customerNumber', value)}
+                    onChange={(value) => onChange('username', value)}
                   />
+                </WinFormField>
+              </WinFormRow>
 
-                  <ProfileField
-                    label="Company Name"
-                    value={formData.companyName}
+              <WinFormRow>
+                <WinFormLabel>Email</WinFormLabel>
+                <WinFormField>
+                  <AccountValueField
+                    value={formData.email}
                     isEditing={isEditing}
                     editable
-                    onChange={(value) => onChange('companyName', value)}
+                    onChange={(value) => onChange('email', value)}
                   />
-                </>
-              )}
-            </ProfileGrid>
+                </WinFormField>
+              </WinFormRow>
+
+              <WinFormRow>
+                <WinFormLabel>Role</WinFormLabel>
+                <WinFormField>
+                  <AccountValueField value={formData.role} />
+                </WinFormField>
+              </WinFormRow>
+            </WinForm>
 
             <AccountActions
               isEditing={isEditing}
@@ -113,6 +128,7 @@ const AccountDetailsPanel = ({
               onEdit={onEdit}
               onCancel={onCancel}
               onUpdate={onUpdate}
+              onDelete={onDelete}
             />
           </>
         )}

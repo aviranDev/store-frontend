@@ -1,27 +1,60 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import styled from 'styled-components'
 
 import Win95Page from '../components/Win95/Win95Page'
 import Win95Tabs, { TabItem } from '../components/Win95/Win95Tabs'
+import WinButton from '../components/Button/WinButton'
 
 import AccountDetailsPanel from '../components/account/AccountDetailsPanel'
-import AccountSummaryPanel from '../components/account/AccountSummaryPanel'
-import styled from 'styled-components'
+import SecurityPanel from '../components/account/SecurityPanel'
+import { forceLogout } from '../Services/auth'
+
 import { userProfile as fetchProfile } from '../Services/user'
 import { UserProfileInterface } from '../types/user.type'
-import WinButton from '../components/Button/WinButton'
+import { updatePasswordService } from '../Services/user'
 
 const TabContentLayout = styled.div`
   display: flex;
   flex-direction: column;
   gap: 12px;
   min-height: 100%;
+  height: 100%;
 `
 
 const TabFooter = styled.div`
   display: flex;
   justify-content: flex-start;
+  margin-top: auto;
 `
+
+const InfoContent = styled.div`
+  padding: 8px 2px;
+  color: ${({ theme }) => theme.colors.text};
+`
+
+const InfoTitle = styled.h4`
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  font-weight: bold;
+`
+
+const InfoText = styled.p`
+  margin: 0 0 8px 0;
+  line-height: 1.4;
+`
+
+type PasswordFormState = {
+  currentPassword: string
+  newPassword: string
+  confirmPassword: string
+}
+
+const initialPasswordForm: PasswordFormState = {
+  currentPassword: '',
+  newPassword: '',
+  confirmPassword: ''
+}
 
 const UserAccount = () => {
   const navigate = useNavigate()
@@ -33,6 +66,10 @@ const UserAccount = () => {
   const [error, setError] = useState('')
   const [isEditing, setIsEditing] = useState(false)
   const [activeTab, setActiveTab] = useState('general')
+
+  const [passwordForm, setPasswordForm] = useState<PasswordFormState>(initialPasswordForm)
+  const [savingPassword, setSavingPassword] = useState(false)
+  const [passwordMessage, setPasswordMessage] = useState('')
 
   useEffect(() => {
     let isMounted = true
@@ -110,8 +147,67 @@ const UserAccount = () => {
     }
   }
 
-  const handleSecurityClick = () => {
-    setActiveTab('security')
+  const handleDelete = async () => {
+    try {
+      setError('')
+      await Promise.resolve()
+      navigate('/dashboard')
+    } catch {
+      setError('Failed to delete account.')
+    }
+  }
+
+  const handlePasswordChange = async (field: keyof PasswordFormState, value: string) => {
+    setPasswordMessage('')
+    setPasswordForm((prev) => ({ ...prev, [field]: value }))
+  }
+
+  const handlePasswordCancel = () => {
+    setPasswordForm(initialPasswordForm)
+    setPasswordMessage('')
+  }
+
+  const handlePasswordSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+
+    if (
+      !passwordForm.currentPassword ||
+      !passwordForm.newPassword ||
+      !passwordForm.confirmPassword
+    ) {
+      setPasswordMessage('Please fill in all password fields.')
+      return
+    }
+
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setPasswordMessage('New password and confirm password must match.')
+      return
+    }
+
+    if (passwordForm.newPassword.length < 8) {
+      setPasswordMessage('New password must be at least 8 characters long.')
+      return
+    }
+
+    try {
+      setSavingPassword(true)
+      setPasswordMessage('')
+
+      await updatePasswordService({
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword
+      })
+
+      setPasswordForm(initialPasswordForm)
+      setPasswordMessage('Password updated successfully.')
+      forceLogout()
+    } catch (error: any) {
+      setPasswordMessage(
+        error?.response?.data?.message || error?.message || 'Failed to update password.'
+      )
+    } finally {
+      setSavingPassword(false)
+    }
   }
 
   const generalTabContent = (
@@ -126,6 +222,7 @@ const UserAccount = () => {
         onEdit={handleEdit}
         onCancel={handleCancel}
         onUpdate={handleUpdate}
+        onDelete={handleDelete}
       />
 
       <TabFooter>
@@ -136,7 +233,23 @@ const UserAccount = () => {
     </TabContentLayout>
   )
 
-  const securityTabContent = <div>Password and security settings here.</div>
+  const infoTabContent = (
+    <TabContentLayout>
+      <InfoContent>
+        <InfoTitle>Account Info</InfoTitle>
+        <InfoText>Here you can display other user information.</InfoText>
+        <InfoText>
+          For example: created date, last login, permissions, internal notes, or account activity.
+        </InfoText>
+      </InfoContent>
+
+      <TabFooter>
+        <WinButton type="button" onClick={handleDashboardNavigation}>
+          Back
+        </WinButton>
+      </TabFooter>
+    </TabContentLayout>
+  )
 
   const tabs: TabItem[] = useMemo(
     () => [
@@ -146,27 +259,13 @@ const UserAccount = () => {
         content: generalTabContent
       },
       {
-        id: 'security',
-        label: 'Security',
-        content: securityTabContent
+        id: 'info',
+        label: 'Info',
+        content: infoTabContent
       }
     ],
-    [generalTabContent, securityTabContent]
+    [generalTabContent, infoTabContent]
   )
-
-  const sidebar =
-    activeTab === 'general' ? (
-      <AccountSummaryPanel
-        username={formData?.username}
-        role={formData?.role}
-        email={formData?.email}
-        status="Active"
-        onSecurityClick={handleSecurityClick}
-        onPreferencesClick={() => {
-          // TODO: wire preferences action
-        }}
-      />
-    ) : null
 
   return (
     <Win95Page title="User Account" width="1100px" maxWidth="96vw" height="620px">
@@ -175,7 +274,18 @@ const UserAccount = () => {
         defaultTabId="general"
         activeTab={activeTab}
         onChange={setActiveTab}
-        sidebar={sidebar}
+        sidebar={
+          activeTab === 'general' ? (
+            <SecurityPanel
+              passwordForm={passwordForm}
+              savingPassword={savingPassword}
+              passwordMessage={passwordMessage}
+              onChange={handlePasswordChange}
+              onCancel={handlePasswordCancel}
+              onSubmit={handlePasswordSubmit}
+            />
+          ) : undefined
+        }
         sidebarWidth="345px"
       />
     </Win95Page>

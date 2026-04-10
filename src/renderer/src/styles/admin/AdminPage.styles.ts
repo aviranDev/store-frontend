@@ -14,7 +14,6 @@ export const AdminMenuBar = styled.div`
   display: flex;
   align-items: center;
   gap: 15px;
-  // padding: 4px 8px;
   background: ${({ theme }) => theme.colors.face};
   border-bottom: 1px solid ${({ theme }) => theme.colors.shadow};
   font-size: 14px;
@@ -45,9 +44,7 @@ export const AdminBody = styled(WindowBody)`
 export const AdminFrame = styled.div`
   background: #ffffff;
   margin: 8px;
-  // padding: 12px;
   ${sunkenBox};
-  // min-height: 500px;
   box-sizing: border-box;
 `
 

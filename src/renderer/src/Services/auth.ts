@@ -44,6 +44,7 @@ export const hasValidAccessToken = (): boolean => {
 
 export const forceLogout = (): void => {
   clearAuthSession()
+  console.log('test')
 
   if (!isRedirecting) {
     isRedirecting = true
