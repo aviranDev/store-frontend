@@ -73,7 +73,7 @@ export default function DashboardShell({
   }
 
   return (
-    <Win95Page title={title} width="1100px" maxWidth="96vw">
+    <Win95Page title="User Account" width="1100px" maxWidth="96vw" height="620px">
       <AdminBody>
         <AdminMenuBar>
           <FileMenu

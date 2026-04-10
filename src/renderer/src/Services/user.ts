@@ -6,12 +6,21 @@ import {
   UserProfileInterface
 } from '../types/user.type'
 
+type UpdatePasswordPayload = {
+  currentPassword: string
+  newPassword: string
+}
+
 export const userProfile = async (): Promise<AxiosResponse<UserProfileInterface>> => {
   try {
     return await httpService.get<UserProfileInterface>(`users/user-profile`)
   } catch (error) {
     throw error
   }
+}
+
+export const updatePasswordService = async (payload: UpdatePasswordPayload) => {
+  return httpService.post('/auth/update-password', payload)
 }
 
 export const registerCustomer = async (

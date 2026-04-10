@@ -1,39 +1,37 @@
-import styled from 'styled-components'
-
 import WinButton from '../Button/WinButton'
-
-const Actions = styled.div`
-  display: flex;
-  gap: 12px;
-  margin-top: auto;
-  padding-top: 24px;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-`
+import { WinFormActions } from '../../components/Win95/Win95Form.style'
 
 type AccountActionsProps = {
   isEditing: boolean
   saving: boolean
-  // onBack: () => void
+  deleting?: boolean
   onEdit: () => void
   onCancel: () => void
   onUpdate: () => void
+  onDelete: () => void
 }
 
 const AccountActions = ({
   isEditing,
   saving,
-  // onBack,
+  deleting = false,
   onEdit,
   onCancel,
-  onUpdate
+  onUpdate,
+  onDelete
 }: AccountActionsProps) => {
   return (
-    <Actions>
+    <WinFormActions>
       {!isEditing && (
-        <WinButton type="button" onClick={onEdit}>
-          Edit
-        </WinButton>
+        <>
+          <WinButton type="button" onClick={onEdit} disabled={deleting}>
+            Edit
+          </WinButton>
+
+          <WinButton type="button" onClick={onDelete} disabled={deleting}>
+            {deleting ? 'Deleting...' : 'Delete'}
+          </WinButton>
+        </>
       )}
 
       {isEditing && (
@@ -47,7 +45,7 @@ const AccountActions = ({
           </WinButton>
         </>
       )}
-    </Actions>
+    </WinFormActions>
   )
 }
 

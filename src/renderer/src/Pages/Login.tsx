@@ -10,10 +10,10 @@ import {
   WinFormField,
   WinFormLabel,
   WinFormActions,
-  MessageArea
+  MessageArea,
+  WinFormRow
 } from '../components/Win95/Win95Form.style'
 import Win95Card from '../components/Win95/Win95Card'
-import { WinFormRow } from '../components/Win95/Win95Form.style'
 import validateLoginField from '../validation/validateLoginField'
 
 import keyIcon from '../assets/keys-5.png'

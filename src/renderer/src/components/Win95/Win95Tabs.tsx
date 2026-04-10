@@ -68,18 +68,22 @@ const TabPanel = styled.div`
   border-left: 2px solid ${({ theme }) => theme.colors.light};
   border-right: 2px solid ${({ theme }) => theme.colors.dark};
   border-bottom: 2px solid ${({ theme }) => theme.colors.dark};
-  min-height: 500px;
+  min-height: 520px;
   box-sizing: border-box;
   display: flex;
 `
 const TabPanelLayout = styled.div<{ $hasSidebar: boolean; $sidebarWidth: string }>`
   display: grid;
-  grid-template-columns: ${({ $hasSidebar, $sidebarWidth }) =>
-    $hasSidebar ? `1fr ${$sidebarWidth}` : '1fr'};
+  grid-template-columns: ${({ $hasSidebar }) => ($hasSidebar ? '1fr 1fr' : '1fr')};
   gap: 16px;
   width: 100%;
   min-height: 100%;
   align-items: stretch;
+
+  & > div {
+    height: 100%;
+    min-height: 0;
+  }
 
   @media (max-width: 900px) {
     grid-template-columns: 1fr;
