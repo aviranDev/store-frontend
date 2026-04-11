@@ -10,7 +10,7 @@ type AdminPanelItemProps = {
   onLeave?: () => void
 }
 
-function AdminPanelItem({
+function PanelItem({
   label,
   image,
   onClick,
@@ -32,4 +32,4 @@ function AdminPanelItem({
   )
 }
 
-export default AdminPanelItem
+export default PanelItem
