@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import styled from 'styled-components'
+import { AxiosError } from 'axios'
 
 import Win95Page from '../../components/Win95/Win95Page'
 import Win95Tabs, { TabItem } from '../../components/Win95/Win95Tabs'
@@ -8,6 +9,28 @@ import WinButton from '../../components/Button/WinButton'
 import Win95GroupBox from '../../components/Win95/Win95GroupBox'
 import { WinForm, MessageArea } from '../../components/Win95/Win95Form.style'
 import deleteIcon from '../../assets/msg_error-1.png'
+import {
+  previewLoadPlan,
+  PreviewCargoItem,
+  PreviewLoadPlanData,
+  PreviewLoadPlanPayload
+} from '../../Services/loadPlan'
+
+const ContainerFrame = styled.div<{
+  $left: number
+  $top: number
+  $width: number
+  $height: number
+}>`
+  position: absolute;
+  left: ${({ $left }) => `${$left}px`};
+  top: ${({ $top }) => `${$top}px`};
+  width: ${({ $width }) => `${$width}px`};
+  height: ${({ $height }) => `${$height}px`};
+  border: 2px solid #000;
+  background: #fff;
+  box-sizing: border-box;
+`
 
 const CONTROL_HEIGHT = '28px'
 
@@ -195,6 +218,9 @@ const PreviewTop = styled.div`
 
 const PreviewBottom = styled.div`
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 `
 
 const PreviewViewport = styled.div`
@@ -205,16 +231,14 @@ const PreviewViewport = styled.div`
   border-left: 2px solid ${({ theme }) => theme.colors.dark};
   border-right: 2px solid ${({ theme }) => theme.colors.light};
   border-bottom: 2px solid ${({ theme }) => theme.colors.light};
-  display: flex;
-  align-items: center;
-  justify-content: center;
   padding: 10px;
   box-sizing: border-box;
+  overflow: auto;
 `
 
 const PlaceholderText = styled.div`
   text-align: center;
-  line-height: 1.4;
+  line-height: 1.45;
   color: ${({ theme }) => theme.colors.text};
   font-size: 13px;
 `
@@ -229,6 +253,74 @@ const SummaryRow = styled.div`
   justify-content: space-between;
   gap: 10px;
   font-size: 13px;
+`
+
+const MessagesList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+`
+
+const MessageItem = styled.div<{ $type: 'error' | 'warning' | 'normal' }>`
+  font-size: 12px;
+  line-height: 1.35;
+  color: ${({ $type, theme }) =>
+    $type === 'error'
+      ? theme.colors.error || theme.colors.text
+      : $type === 'warning'
+        ? theme.colors.text
+        : theme.colors.text};
+`
+
+const PlanCanvasWrap = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: 100%;
+`
+
+const PlanCanvas = styled.div`
+  position: relative;
+  width: 360px;
+  height: 220px;
+  background: #c0c0c0;
+  border: 1px solid ${({ theme }) => theme.colors.text};
+  overflow: hidden;
+  margin: 0 auto;
+`
+
+const PlanBlock = styled.div<{
+  $left: number
+  $top: number
+  $width: number
+  $height: number
+}>`
+  position: absolute;
+  left: ${({ $left }) => `${$left}px`};
+  top: ${({ $top }) => `${$top}px`};
+  width: ${({ $width }) => `${Math.max($width, 18)}px`};
+  height: ${({ $height }) => `${Math.max($height, 18)}px`};
+  border: 1px solid #000;
+  background: #c0c0c0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  text-align: center;
+  padding: 2px;
+  box-sizing: border-box;
+  overflow: hidden;
+`
+
+const PlanLegend = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+`
+
+const PlanLegendItem = styled.div`
+  font-size: 12px;
+  line-height: 1.35;
 `
 
 type ShapeType = 'pallet' | 'carton' | 'crate'
@@ -252,41 +344,122 @@ type LoadingPlanFormState = {
   containerType: string
 }
 
+type ContainerPlanPreviewProps = {
+  formData: LoadingPlanFormState
+  previewData: PreviewLoadPlanData | null
+}
+
 const createCargoItem = (id: number): CargoItem => ({
   id: String(id),
   shape: 'pallet',
-  quantity: '',
+  quantity: '1',
   length: '',
   width: '',
   height: '',
   dimensionUnit: 'cm',
-  weight: '',
+  weight: '0',
   weightUnit: 'kg'
 })
 
-const initialForm: LoadingPlanFormState = {
+const createInitialForm = (): LoadingPlanFormState => ({
   items: [createCargoItem(1)],
   containerType: '40HC'
+})
+
+const toCentimeters = (value: number, unit: DimensionUnit): number => {
+  return unit === 'in' ? value * 2.54 : value
 }
 
-type ContainerPlanPreviewProps = {
-  formData: LoadingPlanFormState
+const toKilograms = (value: number, unit: WeightUnit): number => {
+  return unit === 'lb' ? value * 0.45359237 : value
 }
 
-function ContainerPlanPreview({ formData }: ContainerPlanPreviewProps): React.JSX.Element {
-  const totalItems = formData.items.length
-  const totalQuantity = formData.items.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0)
+const mapShapeToApi = (shape: ShapeType): PreviewCargoItem['shape'] => {
+  if (shape === 'carton') return 'box'
+  if (shape === 'crate') return 'crate'
+  return 'pallet'
+}
+
+function ContainerPlanPreview({
+  formData,
+  previewData
+}: ContainerPlanPreviewProps): React.JSX.Element {
+  const warnings = previewData?.calculationSummary.calculationWarnings ?? []
+  const errors = previewData?.calculationSummary.calculationErrors ?? []
+
+  const canvasWidth = 360
+  const canvasHeight = 220
+
+  const containerLength = previewData?.containerType.dimensions.internalLengthCm ?? 1
+  const containerWidth = previewData?.containerType.dimensions.internalWidthCm ?? 1
+
+  const scale = Math.min(canvasWidth / containerLength, canvasHeight / containerWidth)
+
+  const scaledContainerWidth = containerLength * scale
+  const scaledContainerHeight = containerWidth * scale
+
+  const offsetX = (canvasWidth - scaledContainerWidth) / 2
+  const offsetY = (canvasHeight - scaledContainerHeight) / 2
 
   return (
     <PreviewWrap>
       <PreviewTop>
         <Win95GroupBox legend="3D Container Plan">
           <PreviewViewport>
-            <PlaceholderText>
-              3D container plan area
-              <br />
-              Here you will render the container and cargo layout
-            </PlaceholderText>
+            {previewData ? (
+              <PlanCanvasWrap>
+                <PlanCanvas>
+                  <ContainerFrame
+                    $left={offsetX}
+                    $top={offsetY}
+                    $width={scaledContainerWidth}
+                    $height={scaledContainerHeight}
+                  />
+
+                  {previewData.placedCargoItems.map((item, index) => {
+                    const left = offsetX + item.xCm * scale
+                    const top = offsetY + item.yCm * scale
+                    const width = item.placedLengthCm * scale
+                    const height = item.placedWidthCm * scale
+
+                    return (
+                      <PlanBlock
+                        key={`${item.cargoDescription}-${item.unitIndex}-${index}`}
+                        $left={left}
+                        $top={top}
+                        $width={width}
+                        $height={height}
+                        title={`${item.cargoDescription} #${item.unitIndex} | X:${item.xCm} Y:${item.yCm} | ${item.placedLengthCm}x${item.placedWidthCm}x${item.placedHeightCm}`}
+                      >
+                        {item.unitIndex}
+                      </PlanBlock>
+                    )
+                  })}
+                </PlanCanvas>
+
+                <PlanLegend>
+                  {previewData.placedCargoItems.length === 0 ? (
+                    <PlanLegendItem>No placed cargo items.</PlanLegendItem>
+                  ) : (
+                    previewData.placedCargoItems.map((item, index) => (
+                      <PlanLegendItem key={`legend-${index}`}>
+                        #{item.unitIndex} {item.cargoDescription} — X:{item.xCm}, Y:{item.yCm}, Z:
+                        {item.zCm}, Size: {item.placedLengthCm} × {item.placedWidthCm} ×{' '}
+                        {item.placedHeightCm}, Rotation: {item.rotationDeg}°
+                      </PlanLegendItem>
+                    ))
+                  )}
+                </PlanLegend>
+              </PlanCanvasWrap>
+            ) : (
+              <PlaceholderText>
+                3D container plan area
+                <br />
+                Here you will render the container and cargo layout
+                <br />
+                Container: {formData.containerType}
+              </PlaceholderText>
+            )}
           </PreviewViewport>
         </Win95GroupBox>
       </PreviewTop>
@@ -296,17 +469,73 @@ function ContainerPlanPreview({ formData }: ContainerPlanPreviewProps): React.JS
           <SummaryGrid>
             <SummaryRow>
               <span>Lines</span>
-              <strong>{totalItems}</strong>
+              <strong>{previewData?.cargoItems.length ?? formData.items.length}</strong>
             </SummaryRow>
+
             <SummaryRow>
               <span>Total Quantity</span>
-              <strong>{totalQuantity || '-'}</strong>
+              <strong>{previewData?.calculationSummary.totalCargoUnits ?? '-'}</strong>
             </SummaryRow>
+
             <SummaryRow>
               <span>Container</span>
-              <strong>{formData.containerType || '-'}</strong>
+              <strong>{previewData?.containerType.code ?? formData.containerType}</strong>
+            </SummaryRow>
+
+            <SummaryRow>
+              <span>Container Name</span>
+              <strong>{previewData?.containerType.name ?? '-'}</strong>
+            </SummaryRow>
+
+            <SummaryRow>
+              <span>Total Weight</span>
+              <strong>{previewData?.calculationSummary.totalWeightKg ?? '-'}</strong>
+            </SummaryRow>
+
+            <SummaryRow>
+              <span>Total Volume</span>
+              <strong>{previewData?.calculationSummary.totalVolumeM3 ?? '-'}</strong>
+            </SummaryRow>
+
+            <SummaryRow>
+              <span>Floor Use %</span>
+              <strong>{previewData?.calculationSummary.utilizationByFloorPercent ?? '-'}</strong>
+            </SummaryRow>
+
+            <SummaryRow>
+              <span>Weight Use %</span>
+              <strong>{previewData?.calculationSummary.utilizationByWeightPercent ?? '-'}</strong>
+            </SummaryRow>
+
+            <SummaryRow>
+              <span>Fit Possible</span>
+              <strong>
+                {previewData ? (previewData.calculationSummary.fitPossible ? 'Yes' : 'No') : '-'}
+              </strong>
             </SummaryRow>
           </SummaryGrid>
+        </Win95GroupBox>
+
+        <Win95GroupBox legend="Messages">
+          <MessagesList>
+            {!previewData && <MessageItem $type="normal">No preview calculated yet.</MessageItem>}
+
+            {previewData && errors.length === 0 && warnings.length === 0 && (
+              <MessageItem $type="normal">No warnings or errors.</MessageItem>
+            )}
+
+            {errors.map((error, index) => (
+              <MessageItem key={`error-${index}`} $type="error">
+                Error: {error}
+              </MessageItem>
+            ))}
+
+            {warnings.map((warning, index) => (
+              <MessageItem key={`warning-${index}`} $type="warning">
+                Warning: {warning}
+              </MessageItem>
+            ))}
+          </MessagesList>
         </Win95GroupBox>
       </PreviewBottom>
     </PreviewWrap>
@@ -317,14 +546,17 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
   const navigate = useNavigate()
 
   const [activeTab, setActiveTab] = useState('general')
-  const [formData, setFormData] = useState<LoadingPlanFormState>(initialForm)
+  const [formData, setFormData] = useState<LoadingPlanFormState>(createInitialForm())
   const [message, setMessage] = useState('')
+  const [isCalculating, setIsCalculating] = useState(false)
+  const [previewData, setPreviewData] = useState<PreviewLoadPlanData | null>(null)
 
   const handleContainerChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     setFormData((prev) => ({
       ...prev,
       containerType: event.target.value
     }))
+    setPreviewData(null)
     setMessage('')
   }
 
@@ -337,6 +569,7 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
           item.id === id ? { ...item, [field]: event.target.value } : item
         )
       }))
+      setPreviewData(null)
       setMessage('')
     }
 
@@ -345,6 +578,7 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
       ...prev,
       items: [...prev.items, createCargoItem(prev.items.length + 1)]
     }))
+    setPreviewData(null)
     setMessage('')
   }
 
@@ -357,16 +591,92 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
         items: prev.items.filter((item) => item.id !== id)
       }
     })
+    setPreviewData(null)
     setMessage('')
   }
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const buildPreviewPayload = (): PreviewLoadPlanPayload => {
+    const cargoItems: PreviewCargoItem[] = formData.items.map((item, index) => {
+      const quantity = Number(item.quantity)
+      const length = Number(item.length)
+      const width = Number(item.width)
+      const height = Number(item.height)
+      const weight = Number(item.weight)
+
+      if (!quantity || quantity < 1) {
+        throw new Error(`Row ${index + 1}: quantity must be at least 1`)
+      }
+
+      if (!length || !width || !height) {
+        throw new Error(`Row ${index + 1}: length, width, and height are required`)
+      }
+
+      return {
+        description:
+          item.shape === 'carton' ? 'Carton' : item.shape === 'crate' ? 'Crate' : 'Pallet',
+        quantity,
+        shape: mapShapeToApi(item.shape),
+        dimensions: {
+          lengthCm: Number(toCentimeters(length, item.dimensionUnit).toFixed(2)),
+          widthCm: Number(toCentimeters(width, item.dimensionUnit).toFixed(2)),
+          heightCm: Number(toCentimeters(height, item.dimensionUnit).toFixed(2))
+        },
+        unitWeightKg: Number(toKilograms(weight || 0, item.weightUnit).toFixed(2)),
+        restrictions: {
+          mustStayVertical: false,
+          stackable: false,
+          rotatable: true,
+          tiltAllowed: false,
+          topLoadOnly: false
+        }
+      }
+    })
+
+    return {
+      selectedContainerCode: formData.containerType,
+      cargoItems
+    }
+  }
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    setMessage('Loading plan data prepared successfully.')
+
+    try {
+      setIsCalculating(true)
+      setMessage('')
+
+      const payload = buildPreviewPayload()
+      const data = await previewLoadPlan(payload)
+      console.log(data.containerType)
+
+      setPreviewData(data)
+
+      if (data.calculationSummary.calculationErrors.length > 0) {
+        setMessage('Preview calculated with errors.')
+      } else if (data.calculationSummary.calculationWarnings.length > 0) {
+        setMessage('Preview calculated with warnings.')
+      } else {
+        setMessage('Load plan preview calculated successfully.')
+      }
+    } catch (error) {
+      setPreviewData(null)
+
+      if (error instanceof Error) {
+        setMessage(error.message)
+      } else if ((error as AxiosError)?.response?.data) {
+        const axiosError = error as AxiosError<{ message?: string }>
+        setMessage(axiosError.response?.data?.message || 'Failed to calculate preview.')
+      } else {
+        setMessage('Failed to calculate preview.')
+      }
+    } finally {
+      setIsCalculating(false)
+    }
   }
 
   const handleReset = () => {
-    setFormData(initialForm)
+    setFormData(createInitialForm())
+    setPreviewData(null)
     setMessage('Form reset.')
   }
 
@@ -477,10 +787,16 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
                 <option value="20GP">20GP</option>
                 <option value="40GP">40GP</option>
                 <option value="40HC">40HC</option>
+                <option value="45HC">45HC</option>
+                <option value="20OT">20OT</option>
+                <option value="40OT">40OT</option>
+                <option value="20FR">20FR</option>
                 <option value="40FR">40FR</option>
               </NativeSelect>
 
-              <WinButton type="submit">Calculate</WinButton>
+              <WinButton type="submit" disabled={isCalculating}>
+                {isCalculating ? 'Calculating...' : 'Calculate'}
+              </WinButton>
 
               <WinButton type="button" onClick={handleReset}>
                 Reset
@@ -518,7 +834,11 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
         defaultTabId="general"
         activeTab={activeTab}
         onChange={setActiveTab}
-        sidebar={activeTab === 'general' ? <ContainerPlanPreview formData={formData} /> : undefined}
+        sidebar={
+          activeTab === 'general' ? (
+            <ContainerPlanPreview formData={formData} previewData={previewData} />
+          ) : undefined
+        }
         sidebarWidth="460px"
       />
     </Win95Page>
