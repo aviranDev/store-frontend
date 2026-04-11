@@ -1,9 +1,9 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import DashboardShell from '../shared/DashboardShell/DashboardShell'
-import AdminPanelItem from '../shared/DashboardShell/AdminPanelItem'
+import PanelItem from '../components/PanelItem/PanelItem'
 import { AdminGrid } from '../styles/admin/AdminPage.styles'
-import usersIcon from '../assets/users-2.png'
+import containerIcon from '../assets/container.png'
 
 export default function EmployeeDashboard(): React.JSX.Element {
   const navigate = useNavigate()
@@ -11,24 +11,10 @@ export default function EmployeeDashboard(): React.JSX.Element {
   return (
     <DashboardShell title="Employee Dashboard" activePanel="employee">
       <AdminGrid>
-        <AdminPanelItem
-          image={usersIcon}
-          label="Tasks"
-          onClick={() => alert('Tasks')}
-          onHover={() => {}}
-        />
-
-        <AdminPanelItem
-          image={usersIcon}
-          label="Schedule"
-          onClick={() => alert('Schedule')}
-          onHover={() => {}}
-        />
-
-        <AdminPanelItem
-          image={usersIcon}
-          label="Customer Area"
-          onClick={() => navigate('/customer')}
+        <PanelItem
+          image={containerIcon}
+          label="LoadingPlan"
+          onClick={() => navigate('/EmployeeLoadingPlan')}
           onHover={() => {}}
         />
       </AdminGrid>
