@@ -112,6 +112,12 @@ const DimensionsHeader = styled.div`
   min-width: 0;
 `
 
+const CargoCard = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+`
+
 const CargoRow = styled.div`
   display: grid;
   grid-template-columns: ${TableGrid};
@@ -122,6 +128,26 @@ const CargoRow = styled.div`
     min-width: 0;
     margin: 0;
   }
+`
+
+const RestrictionsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, minmax(140px, 1fr));
+  gap: 6px 10px;
+  padding: 8px 10px;
+  background: ${({ theme }) => theme.colors.inputBg};
+  border-top: 2px solid ${({ theme }) => theme.colors.shadow};
+  border-left: 2px solid ${({ theme }) => theme.colors.shadow};
+  border-right: 2px solid ${({ theme }) => theme.colors.light};
+  border-bottom: 2px solid ${({ theme }) => theme.colors.light};
+  box-shadow: inset 1px 1px 0 ${({ theme }) => theme.colors.black};
+`
+
+const RestrictionItem = styled.label`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
 `
 
 const DimSeparator = styled.span`
@@ -265,11 +291,7 @@ const MessageItem = styled.div<{ $type: 'error' | 'warning' | 'normal' }>`
   font-size: 12px;
   line-height: 1.35;
   color: ${({ $type, theme }) =>
-    $type === 'error'
-      ? theme.colors.error || theme.colors.text
-      : $type === 'warning'
-        ? theme.colors.text
-        : theme.colors.text};
+    $type === 'error' ? theme.colors.error || theme.colors.text : theme.colors.text};
 `
 
 const PlanCanvasWrap = styled.div`
@@ -294,22 +316,48 @@ const PlanBlock = styled.div<{
   $top: number
   $width: number
   $height: number
+  $isStacked: boolean
+  $isPallet: boolean
 }>`
   position: absolute;
   left: ${({ $left }) => `${$left}px`};
   top: ${({ $top }) => `${$top}px`};
-  width: ${({ $width }) => `${Math.max($width, 18)}px`};
-  height: ${({ $height }) => `${Math.max($height, 18)}px`};
+  width: ${({ $width }) => `${Math.max($width, 6)}px`};
+  height: ${({ $height }) => `${Math.max($height, 6)}px`};
   border: 1px solid #000;
-  background: #c0c0c0;
+  background: ${({ $isPallet, $isStacked }) => {
+    if ($isPallet) return '#d6d6d6'
+    if ($isStacked) return '#ffffff'
+    return '#bfbfbf'
+  }};
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
+  font-size: 9px;
   text-align: center;
-  padding: 2px;
+  padding: 0;
   box-sizing: border-box;
   overflow: hidden;
+`
+
+const StackBadge = styled.div<{
+  $left: number
+  $top: number
+}>`
+  position: absolute;
+  left: ${({ $left }) => `${$left}px`};
+  top: ${({ $top }) => `${$top}px`};
+  min-width: 16px;
+  height: 14px;
+  padding: 0 3px;
+  border: 1px solid #000;
+  background: #fff;
+  font-size: 9px;
+  line-height: 12px;
+  text-align: center;
+  box-sizing: border-box;
+  z-index: 20;
+  pointer-events: none;
 `
 
 const PlanLegend = styled.div`
@@ -337,6 +385,13 @@ type CargoItem = {
   dimensionUnit: DimensionUnit
   weight: string
   weightUnit: WeightUnit
+  mustStayVertical: boolean
+  unstackable: boolean
+  rotatable: boolean
+  tiltAllowed: boolean
+  topLoadOnly: boolean
+  fragile: boolean
+  canBePlacedOnPallet: boolean
 }
 
 type LoadingPlanFormState = {
@@ -358,7 +413,14 @@ const createCargoItem = (id: number): CargoItem => ({
   height: '',
   dimensionUnit: 'cm',
   weight: '0',
-  weightUnit: 'kg'
+  weightUnit: 'kg',
+  mustStayVertical: false,
+  unstackable: false,
+  rotatable: true,
+  tiltAllowed: false,
+  topLoadOnly: false,
+  fragile: false,
+  canBePlacedOnPallet: false
 })
 
 const createInitialForm = (): LoadingPlanFormState => ({
@@ -401,10 +463,16 @@ function ContainerPlanPreview({
   const offsetX = (canvasWidth - scaledContainerWidth) / 2
   const offsetY = (canvasHeight - scaledContainerHeight) / 2
 
+  const sortedItems = [...(previewData?.placedCargoItems ?? [])].sort((a, b) => {
+    if (a.zCm !== b.zCm) return a.zCm - b.zCm
+    if (a.yCm !== b.yCm) return a.yCm - b.yCm
+    return a.xCm - b.xCm
+  })
+
   return (
     <PreviewWrap>
       <PreviewTop>
-        <Win95GroupBox legend="3D Container Plan">
+        <Win95GroupBox legend="2D Container Plan">
           <PreviewViewport>
             {previewData ? (
               <PlanCanvasWrap>
@@ -416,36 +484,43 @@ function ContainerPlanPreview({
                     $height={scaledContainerHeight}
                   />
 
-                  {previewData.placedCargoItems.map((item, index) => {
+                  {sortedItems.map((item, index) => {
                     const left = offsetX + item.xCm * scale
                     const top = offsetY + item.yCm * scale
                     const width = item.placedLengthCm * scale
                     const height = item.placedWidthCm * scale
 
+                    const isStacked = item.zCm > 0
+                    const isPallet = item.shape === 'pallet'
+
                     return (
-                      <PlanBlock
-                        key={`${item.cargoDescription}-${item.unitIndex}-${index}`}
-                        $left={left}
-                        $top={top}
-                        $width={width}
-                        $height={height}
-                        title={`${item.cargoDescription} #${item.unitIndex} | X:${item.xCm} Y:${item.yCm} | ${item.placedLengthCm}x${item.placedWidthCm}x${item.placedHeightCm}`}
-                      >
-                        {item.unitIndex}
-                      </PlanBlock>
+                      <div key={`${item.cargoDescription}-${item.unitIndex}-${index}`}>
+                        <PlanBlock
+                          $left={left}
+                          $top={top}
+                          $width={width}
+                          $height={height}
+                          $isStacked={isStacked}
+                          $isPallet={isPallet}
+                          title={`${item.cargoDescription} #${item.unitIndex} | X:${item.xCm} Y:${item.yCm} Z:${item.zCm} | ${item.placedLengthCm}x${item.placedWidthCm}x${item.placedHeightCm} | ${item.placementMode}`}
+                        >
+                          {width >= 14 && height >= 12 ? item.unitIndex : ''}
+                        </PlanBlock>
+                      </div>
                     )
                   })}
                 </PlanCanvas>
 
                 <PlanLegend>
-                  {previewData.placedCargoItems.length === 0 ? (
+                  {sortedItems.length === 0 ? (
                     <PlanLegendItem>No placed cargo items.</PlanLegendItem>
                   ) : (
-                    previewData.placedCargoItems.map((item, index) => (
+                    sortedItems.map((item, index) => (
                       <PlanLegendItem key={`legend-${index}`}>
                         #{item.unitIndex} {item.cargoDescription} — X:{item.xCm}, Y:{item.yCm}, Z:
                         {item.zCm}, Size: {item.placedLengthCm} × {item.placedWidthCm} ×{' '}
-                        {item.placedHeightCm}, Rotation: {item.rotationDeg}°
+                        {item.placedHeightCm}, Rotation: {item.rotationDeg}°, Mode:{' '}
+                        {item.placementMode}
                       </PlanLegendItem>
                     ))
                   )}
@@ -453,7 +528,7 @@ function ContainerPlanPreview({
               </PlanCanvasWrap>
             ) : (
               <PlaceholderText>
-                3D container plan area
+                2D container plan area
                 <br />
                 Here you will render the container and cargo layout
                 <br />
@@ -573,6 +648,29 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
       setMessage('')
     }
 
+  const handleCheckboxChange =
+    (
+      id: string,
+      field:
+        | 'mustStayVertical'
+        | 'unstackable'
+        | 'rotatable'
+        | 'tiltAllowed'
+        | 'topLoadOnly'
+        | 'fragile'
+        | 'canBePlacedOnPallet'
+    ) =>
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setFormData((prev) => ({
+        ...prev,
+        items: prev.items.map((item) =>
+          item.id === id ? { ...item, [field]: event.target.checked } : item
+        )
+      }))
+      setPreviewData(null)
+      setMessage('')
+    }
+
   const handleAddRow = () => {
     setFormData((prev) => ({
       ...prev,
@@ -623,11 +721,17 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
         },
         unitWeightKg: Number(toKilograms(weight || 0, item.weightUnit).toFixed(2)),
         restrictions: {
-          mustStayVertical: false,
-          stackable: false,
-          rotatable: true,
-          tiltAllowed: false,
-          topLoadOnly: false
+          mustStayVertical: item.mustStayVertical,
+          stackable: !item.unstackable,
+          rotatable: item.rotatable,
+          tiltAllowed: item.tiltAllowed,
+          topLoadOnly: item.topLoadOnly,
+          ...(item.shape !== 'pallet'
+            ? {
+                fragile: item.fragile,
+                canBePlacedOnPallet: item.canBePlacedOnPallet
+              }
+            : {})
         }
       }
     })
@@ -647,7 +751,6 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
 
       const payload = buildPreviewPayload()
       const data = await previewLoadPlan(payload)
-      console.log(data.containerType)
 
       setPreviewData(data)
 
@@ -696,80 +799,158 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
             </CargoHeader>
 
             <CargoTable>
-              {formData.items.map((item) => (
-                <CargoRow key={item.id}>
-                  <NativeSelect value={item.shape} onChange={handleItemChange(item.id, 'shape')}>
-                    <option value="pallet">Pallet</option>
-                    <option value="carton">Carton</option>
-                    <option value="crate">Crate</option>
-                  </NativeSelect>
+              {formData.items.map((item) => {
+                const showCartonOptions = item.shape !== 'pallet'
 
-                  <CargoInput
-                    type="text"
-                    value={item.quantity}
-                    onChange={handleItemChange(item.id, 'quantity')}
-                    placeholder="1"
-                  />
+                return (
+                  <CargoCard key={item.id}>
+                    <CargoRow>
+                      <NativeSelect
+                        value={item.shape}
+                        onChange={handleItemChange(item.id, 'shape')}
+                      >
+                        <option value="pallet">Pallet</option>
+                        <option value="carton">Carton</option>
+                        <option value="crate">Crate</option>
+                      </NativeSelect>
 
-                  <CargoInput
-                    type="text"
-                    value={item.length}
-                    onChange={handleItemChange(item.id, 'length')}
-                    placeholder="L"
-                  />
+                      <CargoInput
+                        type="text"
+                        value={item.quantity}
+                        onChange={handleItemChange(item.id, 'quantity')}
+                        placeholder="1"
+                      />
 
-                  <DimSeparator>x</DimSeparator>
+                      <CargoInput
+                        type="text"
+                        value={item.length}
+                        onChange={handleItemChange(item.id, 'length')}
+                        placeholder="L"
+                      />
 
-                  <CargoInput
-                    type="text"
-                    value={item.width}
-                    onChange={handleItemChange(item.id, 'width')}
-                    placeholder="W"
-                  />
+                      <DimSeparator>x</DimSeparator>
 
-                  <DimSeparator>x</DimSeparator>
+                      <CargoInput
+                        type="text"
+                        value={item.width}
+                        onChange={handleItemChange(item.id, 'width')}
+                        placeholder="W"
+                      />
 
-                  <CargoInput
-                    type="text"
-                    value={item.height}
-                    onChange={handleItemChange(item.id, 'height')}
-                    placeholder="H"
-                  />
+                      <DimSeparator>x</DimSeparator>
 
-                  <NativeSelect
-                    value={item.dimensionUnit}
-                    onChange={handleItemChange(item.id, 'dimensionUnit')}
-                  >
-                    <option value="cm">cm</option>
-                    <option value="in">in</option>
-                  </NativeSelect>
+                      <CargoInput
+                        type="text"
+                        value={item.height}
+                        onChange={handleItemChange(item.id, 'height')}
+                        placeholder="H"
+                      />
 
-                  <CargoInput
-                    type="text"
-                    value={item.weight}
-                    onChange={handleItemChange(item.id, 'weight')}
-                    placeholder="0"
-                  />
+                      <NativeSelect
+                        value={item.dimensionUnit}
+                        onChange={handleItemChange(item.id, 'dimensionUnit')}
+                      >
+                        <option value="cm">cm</option>
+                        <option value="in">in</option>
+                      </NativeSelect>
 
-                  <NativeSelect
-                    value={item.weightUnit}
-                    onChange={handleItemChange(item.id, 'weightUnit')}
-                  >
-                    <option value="kg">kg</option>
-                    <option value="lb">lb</option>
-                  </NativeSelect>
+                      <CargoInput
+                        type="text"
+                        value={item.weight}
+                        onChange={handleItemChange(item.id, 'weight')}
+                        placeholder="0"
+                      />
 
-                  <DeleteButton
-                    type="button"
-                    onClick={() => handleRemoveRow(item.id)}
-                    disabled={formData.items.length === 1}
-                    aria-label="Delete row"
-                    title="Delete row"
-                  >
-                    <DeleteIcon src={deleteIcon} alt="" />
-                  </DeleteButton>
-                </CargoRow>
-              ))}
+                      <NativeSelect
+                        value={item.weightUnit}
+                        onChange={handleItemChange(item.id, 'weightUnit')}
+                      >
+                        <option value="kg">kg</option>
+                        <option value="lb">lb</option>
+                      </NativeSelect>
+
+                      <DeleteButton
+                        type="button"
+                        onClick={() => handleRemoveRow(item.id)}
+                        disabled={formData.items.length === 1}
+                        aria-label="Delete row"
+                        title="Delete row"
+                      >
+                        <DeleteIcon src={deleteIcon} alt="" />
+                      </DeleteButton>
+                    </CargoRow>
+
+                    <RestrictionsGrid>
+                      <RestrictionItem>
+                        <input
+                          type="checkbox"
+                          checked={item.mustStayVertical}
+                          onChange={handleCheckboxChange(item.id, 'mustStayVertical')}
+                        />
+                        Must stay vertical
+                      </RestrictionItem>
+
+                      <RestrictionItem>
+                        <input
+                          type="checkbox"
+                          checked={item.unstackable}
+                          onChange={handleCheckboxChange(item.id, 'unstackable')}
+                        />
+                        Unstackable
+                      </RestrictionItem>
+
+                      <RestrictionItem>
+                        <input
+                          type="checkbox"
+                          checked={item.rotatable}
+                          onChange={handleCheckboxChange(item.id, 'rotatable')}
+                        />
+                        Rotatable
+                      </RestrictionItem>
+
+                      <RestrictionItem>
+                        <input
+                          type="checkbox"
+                          checked={item.tiltAllowed}
+                          onChange={handleCheckboxChange(item.id, 'tiltAllowed')}
+                        />
+                        Tilt allowed
+                      </RestrictionItem>
+
+                      <RestrictionItem>
+                        <input
+                          type="checkbox"
+                          checked={item.topLoadOnly}
+                          onChange={handleCheckboxChange(item.id, 'topLoadOnly')}
+                        />
+                        Top load only
+                      </RestrictionItem>
+
+                      {showCartonOptions && (
+                        <>
+                          <RestrictionItem>
+                            <input
+                              type="checkbox"
+                              checked={item.fragile}
+                              onChange={handleCheckboxChange(item.id, 'fragile')}
+                            />
+                            Fragile
+                          </RestrictionItem>
+
+                          <RestrictionItem>
+                            <input
+                              type="checkbox"
+                              checked={item.canBePlacedOnPallet}
+                              onChange={handleCheckboxChange(item.id, 'canBePlacedOnPallet')}
+                            />
+                            Can be placed on pallet
+                          </RestrictionItem>
+                        </>
+                      )}
+                    </RestrictionsGrid>
+                  </CargoCard>
+                )
+              })}
             </CargoTable>
 
             <ControlsGrid>

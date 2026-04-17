@@ -6,6 +6,8 @@ export type PreviewCargoRestriction = {
   rotatable: boolean
   tiltAllowed: boolean
   topLoadOnly: boolean
+  fragile?: boolean
+  canBePlacedOnPallet?: boolean
 }
 
 export type PreviewCargoItem = {
@@ -26,14 +28,17 @@ export type PreviewCargoItem = {
 export type PreviewPlacedCargoItem = {
   cargoDescription: string
   unitIndex: number
-  shape: string
+  shape: 'box' | 'pallet' | 'crate' | 'cylinder' | 'machine'
   xCm: number
   yCm: number
   zCm: number
   placedLengthCm: number
   placedWidthCm: number
   placedHeightCm: number
-  rotationDeg: 0 | 90 | 180 | 270
+  rotationDeg: number
+  placementMode: 'floor' | 'stacked_on_carton' | 'stacked_on_pallet' | 'top_load'
+  stackedOnUnitIndex: number | null
+  stackedOnCargoDescription: string | null
 }
 
 export type PreviewCalculationSummary = {
