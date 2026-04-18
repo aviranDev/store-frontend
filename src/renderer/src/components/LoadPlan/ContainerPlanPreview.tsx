@@ -9,8 +9,6 @@ import {
   PlaceholderText,
   SummaryGrid,
   SummaryRow,
-  MessagesList,
-  MessageItem,
   PlanCanvasWrap,
   PlanCanvas,
   PlanBlock
@@ -20,11 +18,8 @@ const ContainerPlanPreview = ({
   formData,
   previewData
 }: ContainerPlanPreviewProps): React.JSX.Element => {
-  const warnings = previewData?.calculationSummary.calculationWarnings ?? []
-  const errors = previewData?.calculationSummary.calculationErrors ?? []
-
-  const canvasWidth = 450
-  const canvasHeight = 220
+  const canvasWidth = 550
+  const canvasHeight = 280
 
   const containerLength = previewData?.containerType.dimensions.internalLengthCm ?? 1
   const containerWidth = previewData?.containerType.dimensions.internalWidthCm ?? 1
@@ -148,28 +143,6 @@ const ContainerPlanPreview = ({
               </strong>
             </SummaryRow>
           </SummaryGrid>
-        </Win95GroupBox>
-
-        <Win95GroupBox legend="Messages">
-          <MessagesList>
-            {!previewData && <MessageItem $type="normal">No preview calculated yet.</MessageItem>}
-
-            {previewData && errors.length === 0 && warnings.length === 0 && (
-              <MessageItem $type="normal">No warnings or errors.</MessageItem>
-            )}
-
-            {errors.map((error, index) => (
-              <MessageItem key={`error-${index}`} $type="error">
-                Error: {error}
-              </MessageItem>
-            ))}
-
-            {warnings.map((warning, index) => (
-              <MessageItem key={`warning-${index}`} $type="warning">
-                Warning: {warning}
-              </MessageItem>
-            ))}
-          </MessagesList>
         </Win95GroupBox>
       </PreviewBottom>
     </PreviewWrap>

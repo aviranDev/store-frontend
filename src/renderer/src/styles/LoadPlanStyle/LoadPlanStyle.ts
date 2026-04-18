@@ -1,6 +1,20 @@
 import styled from 'styled-components'
 import WinButton from '../../components/Button/WinButton'
 
+/* 
+
+  TabContentLayout,
+  TabFooter,
+  FormPanel,
+  CargoTable,
+  CargoHeader,
+  HeaderCell,
+  DimensionsHeader,
+  ControlsGrid,
+  SectionLabel,
+  NativeSelect
+
+*/
 const CONTROL_HEIGHT = '28px'
 
 const TableGrid = `
@@ -57,6 +71,9 @@ export const TabContentLayout = styled.div`
   gap: 12px;
   min-height: 100%;
   height: 100%;
+  width: 100%;
+  max-width: 600px;
+  min-width: 0;
 `
 
 export const TabFooter = styled.div`
@@ -288,7 +305,7 @@ export const PlanCanvasWrap = styled.div`
 
 export const PlanCanvas = styled.div`
   position: relative;
-  width: 450px;
+  width: 550px;
   overflow: hidden;
   margin: 0 auto;
 `
@@ -320,4 +337,64 @@ export const PlanBlock = styled.div<{
   padding: 0;
   box-sizing: border-box;
   overflow: hidden;
+`
+export const RightPanelsLayout = styled.div`
+  display: grid;
+  grid-template-columns: 580px 360px;
+  gap: 12px;
+  align-items: stretch;
+  height: 100%;
+`
+
+export const AssistantPanelWrap = styled.div`
+  display: grid;
+  grid-template-rows: 1fr 150px;
+  gap: 12px;
+  height: 100%;
+  min-height: 0;
+`
+
+export const AssistantTop = styled.div`
+  min-height: 0;
+`
+
+export const AssistantBottom = styled.div`
+  min-height: 0;
+`
+
+export const AgentMessages = styled.div`
+  height: 100%;
+  min-height: 280px;
+  overflow-y: auto;
+  padding: 8px;
+  background: #ffffff;
+  border: 2px inset #c0c0c0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`
+
+export const AgentMessageBubble = styled.div<{ $role: 'user' | 'assistant' }>`
+  align-self: ${({ $role }) => ($role === 'user' ? 'flex-end' : 'flex-start')};
+  max-width: 90%;
+  padding: 6px 8px;
+  border: 2px outset #c0c0c0;
+  background: ${({ $role }) => ($role === 'user' ? '#dcdcdc' : '#efefef')};
+  font-size: 12px;
+  line-height: 1.4;
+`
+
+export const AgentInputRow = styled.div`
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  margin-top: 8px;
+`
+
+export const AgentInput = styled.input`
+  min-width: 0;
+  padding: 6px 8px;
+  border: 2px inset #c0c0c0;
+  background: #ffffff;
+  font-size: 12px;
 `

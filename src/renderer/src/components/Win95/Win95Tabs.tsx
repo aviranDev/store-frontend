@@ -22,6 +22,8 @@ const TabsWrapper = styled.div`
   display: flex;
   flex-direction: column;
   width: 100%;
+  min-height: 0;
+  flex: 1;
 `
 
 const TabList = styled.div`
@@ -30,6 +32,7 @@ const TabList = styled.div`
   gap: 1px;
   position: relative;
   z-index: 2;
+  flex-wrap: wrap;
 `
 
 const TabButton = styled.button<{ $active: boolean }>`
@@ -61,32 +64,47 @@ const TabButton = styled.button<{ $active: boolean }>`
 `
 
 const TabPanel = styled.div`
-  margin-top: -2px;
   padding: 12px;
   background: ${({ theme }) => theme.colors.face};
   border-top: 2px solid ${({ theme }) => theme.colors.light};
   border-left: 2px solid ${({ theme }) => theme.colors.light};
   border-right: 2px solid ${({ theme }) => theme.colors.dark};
   border-bottom: 2px solid ${({ theme }) => theme.colors.dark};
-  min-height: 520px;
   box-sizing: border-box;
   display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 `
 const TabPanelLayout = styled.div<{ $hasSidebar: boolean; $sidebarWidth: string }>`
   display: grid;
-  grid-template-columns: ${({ $hasSidebar }) => ($hasSidebar ? '1fr 1fr' : '1fr')};
+  grid-template-columns: ${({ $hasSidebar, $sidebarWidth }) =>
+    $hasSidebar ? `minmax(0, 1fr) minmax(280px, ${$sidebarWidth})` : 'minmax(0, 1fr)'};
   gap: 16px;
   width: 100%;
-  min-height: 100%;
+  min-height: 665px;
   align-items: stretch;
 
   & > div {
-    height: 100%;
+    min-width: 0;
     min-height: 0;
+    overflow: hidden;
   }
 
-  @media (max-width: 900px) {
+  @media (max-width: 1600px) {
+    min-height: 590px;
+  }
+
+  @media (max-width: 1400px) {
+    min-height: 540px;
+    grid-template-columns: ${({ $hasSidebar }) =>
+      $hasSidebar ? 'minmax(0, 1.2fr) minmax(260px, 0.8fr)' : 'minmax(0, 1fr)'};
+  }
+
+  @media (max-width: 1100px) {
     grid-template-columns: 1fr;
+    grid-auto-rows: minmax(0, auto);
+    min-height: auto;
   }
 `
 

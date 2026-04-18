@@ -14,6 +14,8 @@ import {
   createCargoItem,
   createInitialForm
 } from '../utils/loadPlanPage.utils'
+import LoadPlanAssistantPanel from '../components/LoadPlan/LoadPlanAssistantPanel'
+import { RightPanelsLayout } from '../styles/LoadPlanStyle/LoadPlanStyle'
 
 const EmployeeLoadingPlanPage = (): React.JSX.Element => {
   const navigate = useNavigate()
@@ -159,8 +161,11 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
     [generalTabContent]
   )
 
+  const warnings = previewData?.calculationSummary.calculationWarnings ?? []
+  const errors = previewData?.calculationSummary.calculationErrors ?? []
+
   return (
-    <Win95Page title="Loading Plan" width="1200px" maxWidth="96vw" height="800px">
+    <Win95Page title="Loading Plan">
       <Win95Tabs
         items={tabs}
         defaultTabId="general"
@@ -168,10 +173,19 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
         onChange={setActiveTab}
         sidebar={
           activeTab === 'general' ? (
-            <ContainerPlanPreview formData={formData} previewData={previewData} />
+            <RightPanelsLayout>
+              <ContainerPlanPreview formData={formData} previewData={previewData} />
+
+              <LoadPlanAssistantPanel
+                message={message}
+                previewDataExists={!!previewData}
+                warnings={warnings}
+                errors={errors}
+              />
+            </RightPanelsLayout>
           ) : undefined
         }
-        sidebarWidth="460px"
+        sidebarWidth="940px"
       />
     </Win95Page>
   )

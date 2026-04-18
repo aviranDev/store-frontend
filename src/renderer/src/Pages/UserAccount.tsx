@@ -268,7 +268,7 @@ const UserAccount = () => {
   )
 
   return (
-    <Win95Page title="User Account" width="1200px" maxWidth="96vw" height="800px">
+    <Win95Page title="User Account">
       <Win95Tabs
         items={tabs}
         defaultTabId="general"
