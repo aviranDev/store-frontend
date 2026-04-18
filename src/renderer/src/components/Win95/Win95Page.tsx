@@ -10,6 +10,13 @@ import {
   TitleButtonIcon
 } from './Win95Window'
 
+const WIN95_PAGE_SIZE = {
+  width: '1650px',
+  maxWidth: '96vw',
+  height: '800px',
+  maxHeight: '90vh'
+} as const
+
 type Win95PageProps = {
   title: string
   children: React.ReactNode
@@ -28,7 +35,12 @@ const Desktop = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: clamp(8px, 2vw, 24px);
+
+  @media (max-width: 900px) {
+    align-items: stretch;
+    padding: 8px;
+  }
 `
 
 const PageWindow = styled(Window)<{
@@ -41,15 +53,22 @@ const PageWindow = styled(Window)<{
   max-width: ${({ $maxWidth }) => $maxWidth};
   height: ${({ $height }) => $height};
   max-height: ${({ $maxHeight }) => $maxHeight};
+  min-height: 0;
+
+  @media (max-width: 900px) {
+    width: 100%;
+    height: calc(100vh - 16px);
+    max-height: calc(100vh - 16px);
+  }
 `
 
 function Win95Page({
   title,
   children,
-  width = '420px',
-  maxWidth = '95vw',
-  height = 'auto',
-  maxHeight = '90vh',
+  width = WIN95_PAGE_SIZE.width,
+  maxWidth = WIN95_PAGE_SIZE.maxWidth,
+  height = WIN95_PAGE_SIZE.height,
+  maxHeight = WIN95_PAGE_SIZE.maxHeight,
   className,
   showWindowControls = true
 }: Win95PageProps): React.JSX.Element {

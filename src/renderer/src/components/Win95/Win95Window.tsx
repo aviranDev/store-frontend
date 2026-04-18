@@ -8,6 +8,7 @@ export const Window = styled.div`
   ${raisedBox};
   display: flex;
   flex-direction: column;
+  min-height: 0;
 `
 
 export const TitleBar = styled.div`

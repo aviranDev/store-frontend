@@ -16,7 +16,7 @@ const Message = styled.p`
 
 function Unauthorized(): JSX.Element {
   return (
-    <Win95Page title="Unauthorized" width="500px" maxWidth="92vw">
+    <Win95Page title="Unauthorized">
       <Win95Card inset>
         <Section>
           <h2>Access Denied</h2>
