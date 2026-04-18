@@ -10,7 +10,7 @@ import PublicRoute from './PublicRoute'
 import { GlobalStyles } from './styles/GlobalStyles'
 import { win95Theme } from './styles/theme'
 
-const EmployeeLoadingPlanPage = lazy(() => import('./Pages/employee/EmployeeLoadingPlanPage'))
+const LoadingPlanPage = lazy(() => import('./Pages/LoadingPlanPage'))
 const Login = lazy(() => import('./Pages/Login'))
 const Register = lazy(() => import('./Pages/Register'))
 const AdminDashboard = lazy(() => import('./Dashboards/AdminDashboard'))
@@ -63,7 +63,7 @@ function App(): React.JSX.Element {
               path="/EmployeeLoadingPlan"
               element={
                 <ProtectedRoute allowedRoles={['employee', 'admin']}>
-                  <EmployeeLoadingPlanPage />
+                  <LoadingPlanPage />
                 </ProtectedRoute>
               }
             />
