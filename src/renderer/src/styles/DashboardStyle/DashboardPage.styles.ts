@@ -52,7 +52,7 @@ export const AdminWorkspace = styled.div`
   background: #ffffff;
   border: 1px solid ${({ theme }) => theme.colors.shadow};
   padding: 18px 20px 24px;
-  min-height: 460px;
+  min-height: 599px;
   box-sizing: border-box;
 `
 

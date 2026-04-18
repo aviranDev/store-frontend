@@ -18,7 +18,7 @@ import {
   PanelSelectLabel,
   PanelSelectText,
   PanelSelectWrap
-} from '../../styles/admin/AdminPage.styles'
+} from '../../styles/DashboardStyle/DashboardPage.styles'
 
 export type UserRole = 'admin' | 'employee' | 'customer'
 export type PanelType = 'admin' | 'employee' | 'customer'
@@ -73,7 +73,7 @@ export default function DashboardShell({
   }
 
   return (
-    <Win95Page title="User Account" width="1200px" maxWidth="96vw" height="620px">
+    <Win95Page title="User Account" width="1200px" maxWidth="96vw" height="800px">
       <AdminBody>
         <AdminMenuBar>
           <FileMenu
