@@ -48,7 +48,7 @@ const allowedPanelsByRole: Record<UserRole, PanelType[]> = {
 }
 
 export default function DashboardShell({
-  title,
+  // title,
   activePanel,
   children
 }: DashboardShellProps): React.JSX.Element {
