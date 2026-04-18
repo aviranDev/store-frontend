@@ -9,7 +9,6 @@ import {
 } from '../../styles/LoadPlanStyle/LoadPlanStyle'
 
 type PreviewData = NonNullable<ContainerPlanPreviewProps['previewData']>
-type PlacedItem = PreviewData['placedCargoItems'][number]
 
 const SCALE = 0.01 // 1 cm = 0.01 scene units
 
@@ -55,7 +54,7 @@ const KeyboardCameraControls = ({
   containerLength
 }: {
   containerLength: number
-}): React.JSX.Element => {
+}): React.JSX.Element | null => {
   const { camera } = useThree()
   const pressedKeys = useRef<Set<string>>(new Set())
 
@@ -66,7 +65,8 @@ const KeyboardCameraControls = ({
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      const keys = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Shift']
+      const keys = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Shift', '+', '=', '-', '_']
+
       if (keys.includes(event.key)) {
         event.preventDefault()
         pressedKeys.current.add(event.key)
@@ -90,6 +90,17 @@ const KeyboardCameraControls = ({
     const rotationSpeed = 1.4
     const panSpeed = 4.5
     const tiltSpeed = 0.9
+    const zoomSpeed = 8
+
+    if (pressedKeys.current.has('+') || pressedKeys.current.has('=')) {
+      radiusRef.current -= zoomSpeed * delta
+    }
+
+    if (pressedKeys.current.has('-') || pressedKeys.current.has('_')) {
+      radiusRef.current += zoomSpeed * delta
+    }
+
+    radiusRef.current = Math.max(3, Math.min(containerLength * 2, radiusRef.current))
 
     const isShiftPressed = pressedKeys.current.has('Shift')
 
