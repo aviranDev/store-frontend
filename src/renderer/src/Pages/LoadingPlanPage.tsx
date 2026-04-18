@@ -25,6 +25,7 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
   const [message, setMessage] = useState('')
   const [isCalculating, setIsCalculating] = useState(false)
   const [previewData, setPreviewData] = useState<PreviewLoadPlanData | null>(null)
+  const [previewMode, setPreviewMode] = useState<'2d' | '3d'>('2d')
 
   const handleContainerChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     setFormData((prev) => ({
@@ -174,7 +175,12 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
         sidebar={
           activeTab === 'general' ? (
             <RightPanelsLayout>
-              <ContainerPlanPreview formData={formData} previewData={previewData} />
+              <ContainerPlanPreview
+                formData={formData}
+                previewData={previewData}
+                previewMode={previewMode}
+                onPreviewModeChange={setPreviewMode}
+              />
 
               <LoadPlanAssistantPanel
                 message={message}

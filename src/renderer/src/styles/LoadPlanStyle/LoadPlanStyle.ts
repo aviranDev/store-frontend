@@ -398,3 +398,66 @@ export const AgentInput = styled.input`
   background: #ffffff;
   font-size: 12px;
 `
+export const PreviewHeaderRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+`
+
+export const PreviewHeaderTitle = styled.div`
+  font-size: 14px;
+  font-weight: bold;
+`
+
+export const PreviewHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+`
+
+export const PreviewModeButtons = styled.div`
+  display: inline-flex;
+  gap: 6px;
+`
+
+export const PreviewModeButton = styled(WinButton)<{ $active: boolean }>`
+  min-width: 46px;
+  padding: 0 10px;
+  font-weight: ${({ $active }) => ($active ? 'bold' : 'normal')};
+`
+
+export const SceneWrap = styled.div`
+  width: 100%;
+  height: 340px;
+  min-height: 340px;
+  background: #f8f8f8;
+  border: 2px inset #c0c0c0;
+  overflow: hidden;
+`
+
+export const SceneLegend = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  margin-top: 8px;
+  font-size: 12px;
+`
+
+export const LegendItem = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+`
+
+export const LegendSwatch = styled.span<{ $color: string; $border?: string }>`
+  width: 12px;
+  height: 12px;
+  display: inline-block;
+  background: ${({ $color }) => $color};
+  border: 1px solid ${({ $border }) => $border ?? '#666'};
+  box-sizing: border-box;
+`

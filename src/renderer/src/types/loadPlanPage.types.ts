@@ -3,6 +3,7 @@ import { PreviewLoadPlanData } from '../Services/loadPlan'
 export type ShapeType = 'pallet' | 'carton' | 'crate'
 export type DimensionUnit = 'cm' | 'in'
 export type WeightUnit = 'kg' | 'lb'
+export type PreviewMode = '2d' | '3d'
 
 export type CargoItem = {
   id: string
@@ -31,4 +32,6 @@ export type LoadingPlanFormState = {
 export type ContainerPlanPreviewProps = {
   formData: LoadingPlanFormState
   previewData: PreviewLoadPlanData | null
+  previewMode: PreviewMode
+  onPreviewModeChange: (mode: PreviewMode) => void
 }
