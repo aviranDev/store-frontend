@@ -277,7 +277,7 @@ export const MessageItem = styled.div<{ $type: 'error' | 'warning' | 'normal' }>
   font-size: 12px;
   line-height: 1.35;
   color: ${({ $type, theme }) =>
-    $type === 'error' ? theme.colors.error || theme.colors.text : theme.colors.text};
+    $type === 'error' ? theme.colors.text || theme.colors.text : theme.colors.text};
 `
 
 export const PlanCanvasWrap = styled.div`
