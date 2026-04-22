@@ -48,7 +48,7 @@ export const forceLogout = (): void => {
 
   if (!isRedirecting) {
     isRedirecting = true
-    window.location.href = '/login'
+    window.location.hash = '#/login'
   }
 }
 
