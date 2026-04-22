@@ -1,20 +1,6 @@
 import styled from 'styled-components'
 import WinButton from '../../components/Button/WinButton'
 
-/* 
-
-  TabContentLayout,
-  TabFooter,
-  FormPanel,
-  CargoTable,
-  CargoHeader,
-  HeaderCell,
-  DimensionsHeader,
-  ControlsGrid,
-  SectionLabel,
-  NativeSelect
-
-*/
 const CONTROL_HEIGHT = '28px'
 
 const TableGrid = `
@@ -43,7 +29,11 @@ export const ContainerFrame = styled.div<{
   width: ${({ $width }) => `${$width}px`};
   height: ${({ $height }) => `${$height}px`};
   border: 2px solid #000;
-  background: #fff;
+  background-color: #ffffff;
+  background-image:
+    linear-gradient(to right, #d9d9d9 1px, transparent 1px),
+    linear-gradient(to bottom, #d9d9d9 1px, transparent 1px);
+  background-size: 20px 20px;
   box-sizing: border-box;
 `
 
@@ -253,14 +243,14 @@ export const PreviewBottom = styled.div`
 `
 
 export const PreviewViewport = styled.div`
-  min-height: 220px;
+  min-height: 320px;
   height: 100%;
   background: #f3f3f3;
   border-top: 2px solid ${({ theme }) => theme.colors.dark};
   border-left: 2px solid ${({ theme }) => theme.colors.dark};
   border-right: 2px solid ${({ theme }) => theme.colors.light};
   border-bottom: 2px solid ${({ theme }) => theme.colors.light};
-  padding: 4px;
+  padding: 6px;
   box-sizing: border-box;
   overflow: auto;
 `
@@ -301,11 +291,17 @@ export const PlanCanvasWrap = styled.div`
   height: 100%;
   display: flex;
   min-height: 0;
+  align-items: center;
+  justify-content: center;
 `
 
-export const PlanCanvas = styled.div`
+export const PlanCanvas = styled.div<{
+  $width?: number
+  $height?: number
+}>`
   position: relative;
-  width: 550px;
+  width: ${({ $width = 550 }) => `${$width}px`};
+  height: ${({ $height = 320 }) => `${$height}px`};
   overflow: hidden;
   margin: 0 auto;
 `
@@ -317,6 +313,7 @@ export const PlanBlock = styled.div<{
   $height: number
   $isStacked: boolean
   $isPallet: boolean
+  $color: string
 }>`
   position: absolute;
   left: ${({ $left }) => `${$left}px`};
@@ -324,11 +321,8 @@ export const PlanBlock = styled.div<{
   width: ${({ $width }) => `${Math.max($width, 6)}px`};
   height: ${({ $height }) => `${Math.max($height, 6)}px`};
   border: 1px solid #000;
-  background: ${({ $isPallet, $isStacked }) => {
-    if ($isPallet) return '#d6d6d6'
-    if ($isStacked) return '#ffffff'
-    return '#bfbfbf'
-  }};
+  background: ${({ $color }) => $color};
+  opacity: ${({ $isStacked }) => ($isStacked ? 0.88 : 1)};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -337,7 +331,10 @@ export const PlanBlock = styled.div<{
   padding: 0;
   box-sizing: border-box;
   overflow: hidden;
+  color: #111111;
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.35);
 `
+
 export const RightPanelsLayout = styled.div`
   display: grid;
   grid-template-columns: 580px 360px;
@@ -398,6 +395,7 @@ export const AgentInput = styled.input`
   background: #ffffff;
   font-size: 12px;
 `
+
 export const PreviewHeaderRow = styled.div`
   display: flex;
   align-items: center;
@@ -432,8 +430,8 @@ export const PreviewModeButton = styled(WinButton)<{ $active: boolean }>`
 
 export const SceneWrap = styled.div`
   width: 100%;
-  height: 340px;
-  min-height: 340px;
+  height: 380px;
+  min-height: 380px;
   background: #f8f8f8;
   border: 2px inset #c0c0c0;
   overflow: hidden;
