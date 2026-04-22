@@ -13,6 +13,8 @@ const instance = axios.create({
 let refreshPromise: Promise<string> | null = null
 
 const refreshAccessToken = async (): Promise<string> => {
+  window.api?.debug?.openDevTools()
+
   if (!refreshPromise) {
     refreshPromise = (async () => {
       const newToken = await refreshtoken()

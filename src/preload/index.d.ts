@@ -9,6 +9,9 @@ declare global {
         maximize: () => void
         close: () => void
       }
+      debug?: {
+        openDevTools: () => void
+      }
     }
   }
 }
