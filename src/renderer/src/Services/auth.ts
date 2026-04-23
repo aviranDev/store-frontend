@@ -44,11 +44,10 @@ export const hasValidAccessToken = (): boolean => {
 
 export const forceLogout = (): void => {
   clearAuthSession()
-  console.log('test')
 
   if (!isRedirecting) {
     isRedirecting = true
-    window.location.hash = '#/login'
+    window.dispatchEvent(new Event('auth:logout'))
   }
 }
 

@@ -1,4 +1,4 @@
-import { useState, createContext, Fragment, ReactNode, useContext } from 'react'
+import { useState, createContext, Fragment, ReactNode, useContext, useEffect } from 'react'
 import { registerCustomer } from '../Services/user'
 import {
   getStoredUser,
@@ -37,6 +37,20 @@ const AuthProvider: React.FC<LoginProviderProps> = ({ children }) => {
     setIsLoggedIn(false)
     resetRedirectFlag()
   }
+
+  useEffect(() => {
+    const handleForcedLogout = () => {
+      setUser(null)
+      setIsLoggedIn(false)
+      resetRedirectFlag()
+    }
+
+    window.addEventListener('auth:logout', handleForcedLogout)
+
+    return () => {
+      window.removeEventListener('auth:logout', handleForcedLogout)
+    }
+  }, [])
 
   const login = async (data: SigninPayload): Promise<SigninResponse> => {
     const response = await signin(data)
