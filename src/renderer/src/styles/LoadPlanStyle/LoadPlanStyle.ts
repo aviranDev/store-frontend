@@ -429,7 +429,7 @@ export const AssistantPanelWrap = styled.div`
 `
 
 export const AssistantTop = styled.div`
-   flex: 1;
+  flex: 1;
   min-height: 0;
   overflow: hidden;
   display: flex;
@@ -442,7 +442,7 @@ export const AssistantBottom = styled.div`
 `
 
 export const AgentMessages = styled.div`
-   flex: 1;
+  flex: 1;
   min-height: 420px;
   overflow-y: auto;
   padding: 8px;
@@ -469,7 +469,7 @@ export const AgentMessageBubble = styled.div<{ $role: 'user' | 'assistant' }>`
 `
 
 export const AgentInputRow = styled.div`
-   display: grid;
+  display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: end;
   gap: 8px;
@@ -477,7 +477,7 @@ export const AgentInputRow = styled.div`
   flex-shrink: 0;
 `
 
-export const AgentInput = styled.input`
+export const AgentInput = styled.textarea`
   min-width: 0;
   width: 100%;
   min-height: 30px;
