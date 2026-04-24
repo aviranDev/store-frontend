@@ -39,13 +39,19 @@ const ContainerPlanPreview2D = ({
   formData,
   previewData
 }: Pick<ContainerPlanPreviewProps, 'formData' | 'previewData'>): React.JSX.Element => {
-  const canvasWidth = 550
-  const canvasHeight = 320
+  const canvasWidth = 620
+  const canvasHeight = 260
+
+  const safePaddingX = 34
+  const safePaddingY = 26
+
+  const usableWidth = canvasWidth - safePaddingX * 2
+  const usableHeight = canvasHeight - safePaddingY * 2
 
   const containerLength = previewData?.containerType.dimensions.internalLengthCm ?? 1
   const containerWidth = previewData?.containerType.dimensions.internalWidthCm ?? 1
 
-  const scale = Math.min(canvasWidth / containerLength, canvasHeight / containerWidth)
+  const scale = Math.min(usableWidth / containerLength, usableHeight / containerWidth)
 
   const scaledContainerWidth = containerLength * scale
   const scaledContainerHeight = containerWidth * scale

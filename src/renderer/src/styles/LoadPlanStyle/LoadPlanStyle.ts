@@ -4,7 +4,7 @@ import WinButton from '../../components/Button/WinButton'
 const CONTROL_HEIGHT = '28px'
 
 const TableGrid = `
-  92px
+   92px
   48px
   52px
   12px
@@ -14,6 +14,20 @@ const TableGrid = `
   62px
   58px
   62px
+  28px
+`
+
+const CompactTableGrid = `
+  72px
+  38px
+  46px
+  8px
+  46px
+  8px
+  46px
+  52px
+  44px
+  44px
   28px
 `
 
@@ -62,7 +76,7 @@ export const TabContentLayout = styled.div`
   min-height: 100%;
   height: 100%;
   width: 100%;
-  max-width: 600px;
+  max-width: none;
   min-width: 0;
 `
 
@@ -76,12 +90,14 @@ export const FormPanel = styled.div`
   display: flex;
   flex-direction: column;
   gap: 12px;
+  min-width: 0;
 `
 
 export const CargoTable = styled.div`
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-width: 0;
 `
 
 export const CargoHeader = styled.div`
@@ -92,6 +108,13 @@ export const CargoHeader = styled.div`
   font-weight: bold;
   font-size: 13px;
   margin-bottom: 2px;
+  min-width: 0;
+
+  @media (max-width: 1500px) {
+    grid-template-columns: ${CompactTableGrid};
+    column-gap: 4px;
+    font-size: 12px;
+  }
 `
 
 export const HeaderCell = styled.div`
@@ -108,6 +131,7 @@ export const CargoCard = styled.div`
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
 `
 
 export const CargoRow = styled.div`
@@ -115,16 +139,22 @@ export const CargoRow = styled.div`
   grid-template-columns: ${TableGrid};
   column-gap: 6px;
   align-items: center;
+  min-width: 0;
 
   > * {
     min-width: 0;
     margin: 0;
   }
+
+  @media (max-width: 1500px) {
+    grid-template-columns: ${CompactTableGrid};
+    column-gap: 4px;
+  }
 `
 
 export const RestrictionsGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(3, minmax(140px, 1fr));
+  grid-template-columns: repeat(3, minmax(120px, 1fr));
   gap: 6px 10px;
   padding: 8px 10px;
   background: ${({ theme }) => theme.colors.windowBg};
@@ -133,6 +163,13 @@ export const RestrictionsGrid = styled.div`
   border-right: 2px solid ${({ theme }) => theme.colors.light};
   border-bottom: 2px solid ${({ theme }) => theme.colors.light};
   box-shadow: inset 1px 1px 0 ${({ theme }) => theme.colors.black};
+  min-width: 0;
+
+  @media (max-width: 1500px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px 8px;
+    padding: 7px 8px;
+  }
 `
 
 export const RestrictionItem = styled.label`
@@ -140,6 +177,7 @@ export const RestrictionItem = styled.label`
   align-items: center;
   gap: 6px;
   font-size: 12px;
+  min-width: 0;
 `
 
 export const DimSeparator = styled.span`
@@ -150,6 +188,10 @@ export const DimSeparator = styled.span`
   height: ${CONTROL_HEIGHT};
   font-size: 14px;
   line-height: 1;
+
+  @media (max-width: 1500px) {
+    width: 8px;
+  }
 `
 
 export const NativeSelect = styled.select`
@@ -175,6 +217,11 @@ export const NativeSelect = styled.select`
   &:focus {
     outline: 1px dotted ${({ theme }) => theme.colors.text};
     outline-offset: -4px;
+  }
+
+  @media (max-width: 1500px) {
+    font-size: 12px;
+    padding: 0 2px;
   }
 `
 
@@ -207,6 +254,11 @@ export const CargoInput = styled.input`
     outline: 1px dotted ${({ theme }) => theme.colors.text};
     outline-offset: -4px;
   }
+
+  @media (max-width: 1500px) {
+    font-size: 12px;
+    padding: 0 4px;
+  }
 `
 
 export const ControlsGrid = styled.div`
@@ -215,6 +267,13 @@ export const ControlsGrid = styled.div`
   align-items: center;
   gap: 10px;
   width: fit-content;
+  min-width: 0;
+
+  @media (max-width: 1500px) {
+    grid-template-columns: auto auto minmax(130px, 1fr) auto auto;
+    gap: 6px;
+    width: 100%;
+  }
 `
 
 export const SectionLabel = styled.label`
@@ -223,27 +282,26 @@ export const SectionLabel = styled.label`
 `
 
 export const PreviewWrap = styled.div`
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
   gap: 10px;
   height: 100%;
   min-height: 0;
+  width: 100%;
 `
 
 export const PreviewTop = styled.div`
-  flex: 1;
   min-height: 0;
+  overflow: hidden;
 `
 
 export const PreviewBottom = styled.div`
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  min-height: 0;
+  overflow: hidden;
 `
 
 export const PreviewViewport = styled.div`
-  min-height: 320px;
+  min-height: 0;
   height: 100%;
   background: #f3f3f3;
   border-top: 2px solid ${({ theme }) => theme.colors.dark};
@@ -265,6 +323,10 @@ export const PlaceholderText = styled.div`
 export const SummaryGrid = styled.div`
   display: grid;
   gap: 8px;
+
+  @media (max-height: 760px) {
+    gap: 5px;
+  }
 `
 
 export const SummaryRow = styled.div`
@@ -272,6 +334,10 @@ export const SummaryRow = styled.div`
   justify-content: space-between;
   gap: 10px;
   font-size: 13px;
+
+  @media (max-height: 760px) {
+    font-size: 12px;
+  }
 `
 
 export const MessagesList = styled.div`
@@ -291,8 +357,10 @@ export const PlanCanvasWrap = styled.div`
   height: 100%;
   display: flex;
   min-height: 0;
+  min-width: 0;
   align-items: center;
   justify-content: center;
+  overflow: auto;
 `
 
 export const PlanCanvas = styled.div<{
@@ -300,10 +368,11 @@ export const PlanCanvas = styled.div<{
   $height?: number
 }>`
   position: relative;
-  width: ${({ $width = 550 }) => `${$width}px`};
-  height: ${({ $height = 320 }) => `${$height}px`};
+  width: ${({ $width = 620 }) => `${$width}px`};
+  height: ${({ $height = 260 }) => `${$height}px`};
   overflow: hidden;
   margin: 0 auto;
+  flex: 0 0 auto;
 `
 
 export const PlanBlock = styled.div<{
@@ -337,31 +406,44 @@ export const PlanBlock = styled.div<{
 
 export const RightPanelsLayout = styled.div`
   display: grid;
-  grid-template-columns: 580px 360px;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
   gap: 12px;
   align-items: stretch;
   height: 100%;
+  min-height: 0;
+  width: 100%;
+
+  @media (max-width: 1280px) {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(360px, 1fr) minmax(260px, auto);
+    overflow-y: auto;
+  }
 `
 
 export const AssistantPanelWrap = styled.div`
   display: grid;
-  grid-template-rows: 1fr 150px;
+  grid-template-rows: minmax(0, 1fr) minmax(120px, 150px);
   gap: 12px;
   height: 100%;
   min-height: 0;
 `
 
 export const AssistantTop = styled.div`
+   flex: 1;
   min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 `
 
 export const AssistantBottom = styled.div`
   min-height: 0;
+  overflow: hidden;
 `
 
 export const AgentMessages = styled.div`
-  height: 100%;
-  min-height: 280px;
+   flex: 1;
+  min-height: 420px;
   overflow-y: auto;
   padding: 8px;
   background: #ffffff;
@@ -369,6 +451,11 @@ export const AgentMessages = styled.div`
   display: flex;
   flex-direction: column;
   gap: 8px;
+  box-sizing: border-box;
+
+  @media (max-height: 760px) {
+    min-height: 340px;
+  }
 `
 
 export const AgentMessageBubble = styled.div<{ $role: 'user' | 'assistant' }>`
@@ -382,18 +469,28 @@ export const AgentMessageBubble = styled.div<{ $role: 'user' | 'assistant' }>`
 `
 
 export const AgentInputRow = styled.div`
-  display: grid;
-  grid-template-columns: 1fr auto;
+   display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
   gap: 8px;
   margin-top: 8px;
+  flex-shrink: 0;
 `
 
 export const AgentInput = styled.input`
   min-width: 0;
+  width: 100%;
+  min-height: 30px;
+  max-height: 260px;
   padding: 6px 8px;
   border: 2px inset #c0c0c0;
   background: #ffffff;
   font-size: 12px;
+  font-family: inherit;
+  line-height: 1.35;
+  resize: vertical;
+  overflow-y: auto;
+  box-sizing: border-box;
 `
 
 export const PreviewHeaderRow = styled.div`
@@ -402,6 +499,7 @@ export const PreviewHeaderRow = styled.div`
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 8px;
+  min-width: 0;
 `
 
 export const PreviewHeaderTitle = styled.div`
@@ -420,6 +518,7 @@ export const PreviewHeader = styled.div`
 export const PreviewModeButtons = styled.div`
   display: inline-flex;
   gap: 6px;
+  flex-shrink: 0;
 `
 
 export const PreviewModeButton = styled(WinButton)<{ $active: boolean }>`
@@ -430,11 +529,12 @@ export const PreviewModeButton = styled(WinButton)<{ $active: boolean }>`
 
 export const SceneWrap = styled.div`
   width: 100%;
-  height: 380px;
-  min-height: 380px;
+  height: 100%;
+  min-height: 0;
   background: #f8f8f8;
   border: 2px inset #c0c0c0;
   overflow: hidden;
+  box-sizing: border-box;
 `
 
 export const SceneLegend = styled.div`

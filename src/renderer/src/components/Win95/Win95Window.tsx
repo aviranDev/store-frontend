@@ -78,4 +78,6 @@ export const WindowBody = styled.div`
   display: flex;
   flex-direction: column;
   gap: 10px;
+  flex: 1;
+  min-height: 0;
 `

@@ -48,14 +48,13 @@ const allowedPanelsByRole: Record<UserRole, PanelType[]> = {
 }
 
 export default function DashboardShell({
-  // title,
   activePanel,
   children
 }: DashboardShellProps): React.JSX.Element {
   const navigate = useNavigate()
   const { logout, user } = useLogin()
 
-  const [statusText, setStatusText] = useState('Ready.')
+  const [statusText, setStatusText] = useState(`${panelLabels[activePanel]} ready.`)
   const [isPanelMenuOpen, setIsPanelMenuOpen] = useState(false)
 
   const role = (user?.role ?? 'customer') as UserRole
@@ -73,7 +72,13 @@ export default function DashboardShell({
   }
 
   return (
-    <Win95Page title="User Account">
+    <Win95Page
+      title="User Account"
+      width="clamp(980px, 82vw, 1500px)"
+      maxWidth="calc(100vw - 24px)"
+      height="clamp(560px, 68vh, 760px)"
+      maxHeight="calc(100vh - 24px)"
+    >
       <AdminBody>
         <AdminMenuBar>
           <FileMenu

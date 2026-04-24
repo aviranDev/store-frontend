@@ -20,6 +20,8 @@ const TabContentLayout = styled.div`
   gap: 12px;
   min-height: 100%;
   height: 100%;
+  width: 100%;
+  min-width: 0;
 `
 
 const TabFooter = styled.div`
@@ -268,7 +270,13 @@ const UserAccount = () => {
   )
 
   return (
-    <Win95Page title="User Account">
+    <Win95Page
+      title="User Account"
+      width="clamp(1120px, 84vw, 1500px)"
+      maxWidth="calc(100vw - 24px)"
+      height="clamp(560px, 72vh, 760px)"
+      maxHeight="calc(100vh - 24px)"
+    >
       <Win95Tabs
         items={tabs}
         defaultTabId="general"
@@ -286,7 +294,7 @@ const UserAccount = () => {
             />
           ) : undefined
         }
-        sidebarWidth="345px"
+        sidebarWidth="minmax(430px, 1fr)"
       />
     </Win95Page>
   )

@@ -38,7 +38,6 @@ const Desktop = styled.div`
   padding: clamp(8px, 2vw, 24px);
 
   @media (max-width: 900px) {
-    align-items: stretch;
     padding: 8px;
   }
 `
@@ -55,11 +54,15 @@ const PageWindow = styled(Window)<{
   max-height: ${({ $maxHeight }) => $maxHeight};
   min-height: 0;
 
-  @media (max-width: 900px) {
-    width: 100%;
-    height: calc(100vh - 16px);
-    max-height: calc(100vh - 16px);
-  }
+  ${({ $stretchOnSmallScreens }) =>
+    $stretchOnSmallScreens &&
+    css`
+      @media (max-width: 900px) {
+        width: 100%;
+        height: calc(100vh - 16px);
+        max-height: calc(100vh - 16px);
+      }
+    `}
 `
 
 function Win95Page({

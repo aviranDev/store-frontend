@@ -101,7 +101,14 @@ const Login = (): JSX.Element => {
   }
 
   return (
-    <Win95Page title="Login" width="470px" height="auto">
+    <Win95Page title="Login" 
+  width="470px"
+  maxWidth="calc(100vw - 24px)"
+  height="auto"
+  maxHeight="calc(100vh - 24px)"
+  stretchOnSmallScreens={false}
+    
+    >
       <Win95Card inset>
         <IconComponent keyIcon={keyIcon} text="Please log in to your account" />
 
