@@ -1,11 +1,11 @@
-import { useMemo, useState } from 'react'
+import { ReactNode, useMemo, useState } from 'react'
 import styled, { css } from 'styled-components'
 
 export type TabItem = {
   id: string
   label: string
   disabled?: boolean
-  content: React.ReactNode
+  content: ReactNode
 }
 
 type Win95TabsProps = {
@@ -14,7 +14,7 @@ type Win95TabsProps = {
   activeTab?: string
   onChange?: (tabId: string) => void
   className?: string
-  sidebar?: React.ReactNode
+  sidebar?: ReactNode
   sidebarWidth?: string
 }
 
@@ -64,7 +64,7 @@ const TabButton = styled.button<{ $active: boolean }>`
 `
 
 const TabPanel = styled.div`
-  padding: 12px;
+  padding: clamp(6px, 0.8vw, 12px);
   background: ${({ theme }) => theme.colors.face};
   border-top: 2px solid ${({ theme }) => theme.colors.light};
   border-left: 2px solid ${({ theme }) => theme.colors.light};
@@ -74,15 +74,20 @@ const TabPanel = styled.div`
   display: flex;
   flex: 1;
   min-height: 0;
-  overflow: hidden;
+  overflow: auto;
 `
+
 const TabPanelLayout = styled.div<{ $hasSidebar: boolean; $sidebarWidth: string }>`
   display: grid;
   grid-template-columns: ${({ $hasSidebar, $sidebarWidth }) =>
-    $hasSidebar ? `minmax(0, 1fr) minmax(280px, ${$sidebarWidth})` : 'minmax(0, 1fr)'};
-  gap: 16px;
+    $hasSidebar
+      ? `clamp(610px, 34vw, 620px) ${$sidebarWidth}`
+      : 'minmax(0, 1fr)'};
+
+  gap: clamp(8px, 0.8vw, 14px);
   width: 100%;
-  min-height: 665px;
+  height: 100%;
+  min-height: 0;
   align-items: stretch;
 
   & > div {
@@ -91,39 +96,56 @@ const TabPanelLayout = styled.div<{ $hasSidebar: boolean; $sidebarWidth: string 
     overflow: hidden;
   }
 
-  @media (max-width: 1600px) {
-    min-height: 590px;
+  @media (max-width: 1450px) {
+    grid-template-columns: ${({ $hasSidebar, $sidebarWidth }) =>
+      $hasSidebar
+        ? `minmax(520px, 560px) ${$sidebarWidth}`
+        : 'minmax(0, 1fr)'};
+
+    gap: 10px;
   }
 
-  @media (max-width: 1400px) {
-    min-height: 540px;
-    grid-template-columns: ${({ $hasSidebar }) =>
-      $hasSidebar ? 'minmax(0, 1.2fr) minmax(260px, 0.8fr)' : 'minmax(0, 1fr)'};
+  @media (max-width: 1280px) {
+    grid-template-columns: ${({ $hasSidebar, $sidebarWidth }) =>
+      $hasSidebar
+        ? `minmax(500px, 540px) ${$sidebarWidth}`
+        : 'minmax(0, 1fr)'};
+
+    gap: 8px;
   }
 
-  @media (max-width: 1100px) {
+  @media (max-width: 1120px) {
     grid-template-columns: 1fr;
-    grid-auto-rows: minmax(0, auto);
-    min-height: auto;
+    grid-template-rows: minmax(360px, auto) minmax(500px, 1fr);
+    overflow-y: auto;
+
+    & > div {
+      overflow: visible;
+    }
   }
 `
 
 const Win95Tabs = ({
   items,
   defaultTabId,
+  activeTab: controlledActiveTab,
   onChange,
   className,
   sidebar,
-  sidebarWidth = '320px'
+  sidebarWidth = '1fr'
 }: Win95TabsProps) => {
   const firstEnabledTab = useMemo(() => items.find((item) => !item.disabled)?.id ?? '', [items])
 
-  const [activeTab, setActiveTab] = useState<string>(defaultTabId || firstEnabledTab)
+  const [uncontrolledActiveTab, setUncontrolledActiveTab] = useState<string>(
+    defaultTabId || firstEnabledTab
+  )
+
+  const activeTab = controlledActiveTab ?? uncontrolledActiveTab
 
   const currentTab = items.find((item) => item.id === activeTab) || items[0]
 
   const handleTabChange = (tabId: string) => {
-    setActiveTab(tabId)
+    setUncontrolledActiveTab(tabId)
     onChange?.(tabId)
   }
 

@@ -3,9 +3,11 @@ import { raisedBox, sunkenBox } from '../mixins'
 import { Window, TitleBar, WindowBody } from '../../components/Win95/Win95Window'
 
 export const AdminWindow = styled(Window)`
-  width: 920px;
-  max-width: 96vw;
-  min-height: 575px;
+  width: clamp(980px, 82vw, 1500px);
+  max-width: calc(100vw - 24px);
+  height: clamp(560px, 68vh, 760px);
+  max-height: calc(100vh - 24px);
+  min-height: 0;
 `
 
 export const AdminTitleBar = styled(TitleBar)``
@@ -17,6 +19,7 @@ export const AdminMenuBar = styled.div`
   background: ${({ theme }) => theme.colors.face};
   border-bottom: 1px solid ${({ theme }) => theme.colors.shadow};
   font-size: 14px;
+  flex-shrink: 0;
 `
 
 export const AdminMenuItem = styled.button`
@@ -39,6 +42,9 @@ export const AdminBody = styled(WindowBody)`
   flex-direction: column;
   gap: 0;
   padding: 0;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 `
 
 export const AdminFrame = styled.div`
@@ -46,21 +52,32 @@ export const AdminFrame = styled.div`
   margin: 8px;
   ${sunkenBox};
   box-sizing: border-box;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 `
 
 export const AdminWorkspace = styled.div`
   background: #ffffff;
   border: 1px solid ${({ theme }) => theme.colors.shadow};
-  padding: 18px 20px 24px;
-  min-height: 599px;
+  padding: clamp(18px, 2vw, 28px);
+  height: 100%;
+  min-height: 0;
   box-sizing: border-box;
+  overflow: auto;
 `
 
 export const AdminGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fit, 110px);
+  grid-auto-rows: minmax(90px, auto);
   gap: 22px 26px;
   justify-content: center;
+  align-content: start;
+  width: 100%;
+  min-height: 100%;
+  padding-top: 10px;
+  box-sizing: border-box;
 `
 
 export const AdminItem = styled.button`
@@ -106,7 +123,10 @@ export const AdminStatusBar = styled.div`
   min-height: 24px;
   display: flex;
   align-items: center;
+  flex-shrink: 0;
+  margin: 0 8px 8px;
 `
+
 export const AdminToolbar = styled.div`
   display: flex;
   align-items: center;
@@ -115,6 +135,7 @@ export const AdminToolbar = styled.div`
   background: ${({ theme }) => theme.colors.face};
   border-top: 1px solid ${({ theme }) => theme.colors.light};
   border-bottom: 1px solid ${({ theme }) => theme.colors.shadow};
+  flex-shrink: 0;
 `
 
 export const PanelSelectWrap = styled.div`
@@ -127,6 +148,7 @@ export const PanelSelectLabel = styled.span`
   font-size: 12px;
   color: ${({ theme }) => theme.colors.text};
 `
+
 export const PanelSelectBox = styled.div`
   position: relative;
   width: 190px;
@@ -186,6 +208,7 @@ export const PanelSelectArrow = styled.div`
   border-right: 1px solid ${({ theme }) => theme.colors.shadow};
   border-bottom: 1px solid ${({ theme }) => theme.colors.shadow};
 `
+
 export const PanelOptionsList = styled.div`
   position: absolute;
   top: 100%;
@@ -200,6 +223,7 @@ export const PanelOptionsList = styled.div`
   border-right: 2px solid ${({ theme }) => theme.colors.shadow};
   border-bottom: 2px solid ${({ theme }) => theme.colors.shadow};
 `
+
 export const PanelOption = styled.button<{ $active?: boolean }>`
   width: 100%;
   min-height: 24px;
@@ -221,6 +245,7 @@ export const PanelOption = styled.button<{ $active?: boolean }>`
     color: #ffffff;
   }
 `
+
 export const AdminItemImage = styled.img`
   width: 36px;
   height: 36px;

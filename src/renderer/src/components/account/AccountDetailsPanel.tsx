@@ -3,18 +3,38 @@ import AccountActions from './AccountActions'
 import Win95GroupBox from '../Win95/Win95GroupBox'
 import { WinInput } from '../Input/inputStyles'
 import { UserProfileInterface } from '../../types/user.type'
-import {
-  WinForm,
-  WinFormRow,
-  WinFormLabel,
-  WinFormField
-} from '../../components/Win95/Win95Form.style'
+import { WinForm } from '../../components/Win95/Win95Form.style'
 
 const Content = styled.div`
   display: flex;
   flex-direction: column;
   width: 100%;
   flex: 1;
+  min-width: 0;
+  min-height: 0;
+`
+
+const FormCenter = styled.div`
+  width: min(430px, 100%);
+  margin: 26px auto 0;
+`
+
+const AccountRow = styled.div`
+  display: grid;
+  grid-template-columns: 90px minmax(0, 1fr);
+  column-gap: 10px;
+  align-items: center;
+  width: 100%;
+`
+
+const AccountLabel = styled.label`
+  font-size: 14px;
+  color: ${({ theme }) => theme.colors.text};
+  white-space: nowrap;
+`
+
+const AccountField = styled.div`
+  min-width: 0;
 `
 
 const StatusText = styled.p`
@@ -87,38 +107,38 @@ const AccountDetailsPanel = ({
         {!loading && error && <ErrorText>{error}</ErrorText>}
 
         {!loading && !error && formData && (
-          <>
+          <FormCenter>
             <WinForm as="div">
-              <WinFormRow>
-                <WinFormLabel>Username</WinFormLabel>
-                <WinFormField>
+              <AccountRow>
+                <AccountLabel>Username</AccountLabel>
+                <AccountField>
                   <AccountValueField
                     value={formData.username}
                     isEditing={isEditing}
                     editable
                     onChange={(value) => onChange('username', value)}
                   />
-                </WinFormField>
-              </WinFormRow>
+                </AccountField>
+              </AccountRow>
 
-              <WinFormRow>
-                <WinFormLabel>Email</WinFormLabel>
-                <WinFormField>
+              <AccountRow>
+                <AccountLabel>Email</AccountLabel>
+                <AccountField>
                   <AccountValueField
                     value={formData.email}
                     isEditing={isEditing}
                     editable
                     onChange={(value) => onChange('email', value)}
                   />
-                </WinFormField>
-              </WinFormRow>
+                </AccountField>
+              </AccountRow>
 
-              <WinFormRow>
-                <WinFormLabel>Role</WinFormLabel>
-                <WinFormField>
+              <AccountRow>
+                <AccountLabel>Role</AccountLabel>
+                <AccountField>
                   <AccountValueField value={formData.role} />
-                </WinFormField>
-              </WinFormRow>
+                </AccountField>
+              </AccountRow>
             </WinForm>
 
             <AccountActions
@@ -129,7 +149,7 @@ const AccountDetailsPanel = ({
               onUpdate={onUpdate}
               onDelete={onDelete}
             />
-          </>
+          </FormCenter>
         )}
       </Content>
     </Win95GroupBox>

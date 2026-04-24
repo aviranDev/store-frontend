@@ -150,7 +150,14 @@ const Register = (): JSX.Element => {
   }
 
   return (
-    <Win95Page title="Register" width="470px" height="auto">
+    <Win95Page 
+     title="Register"
+  width="540px"
+  maxWidth="calc(100vw - 24px)"
+  height="auto"
+  maxHeight="calc(100vh - 24px)"
+  stretchOnSmallScreens={false}
+    >
       <Win95Card inset>
         <IconComponent keyIcon={keyIcon} text="Please register for an account" />
 
