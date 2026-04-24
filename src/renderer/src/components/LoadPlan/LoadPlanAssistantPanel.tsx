@@ -19,16 +19,16 @@ type Props = {
   onBack: () => void
 }
 
-const LoadPlanAssistantPanel = (_props: Props): React.JSX.Element => {
+const LoadPlanAssistantPanel = ({ onBack }: Props): React.JSX.Element => {
   const [input, setInput] = useState('')
   const inputRef = useRef<HTMLTextAreaElement | null>(null)
 
-  const resizeInput = (element: HTMLTextAreaElement) => {
+  const resizeInput = (element: HTMLTextAreaElement): void => {
     element.style.height = 'auto'
-    element.style.height = `${Math.min(element.scrollHeight, 150)}px`
+    element.style.height = `${Math.min(element.scrollHeight, 260)}px`
   }
 
-  const handleInputChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
+  const handleInputChange = (event: ChangeEvent<HTMLTextAreaElement>): void => {
     setInput(event.target.value)
     resizeInput(event.target)
   }
@@ -64,7 +64,7 @@ const LoadPlanAssistantPanel = (_props: Props): React.JSX.Element => {
       </AssistantTop>
 
       <TabFooter>
-        <WinButton type="button" onClick={_props.onBack}>
+        <WinButton type="button" onClick={onBack}>
           Back
         </WinButton>
       </TabFooter>

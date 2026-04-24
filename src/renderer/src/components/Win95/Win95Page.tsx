@@ -1,5 +1,5 @@
 import React from 'react'
-import styled from 'styled-components'
+import styled, { css } from 'styled-components'
 import {
   Window,
   TitleBar,
@@ -26,6 +26,7 @@ type Win95PageProps = {
   maxHeight?: string
   className?: string
   showWindowControls?: boolean
+  stretchOnSmallScreens?: boolean
 }
 
 const Desktop = styled.div`
@@ -47,6 +48,7 @@ const PageWindow = styled(Window)<{
   $maxWidth: string
   $height: string
   $maxHeight: string
+  $stretchOnSmallScreens: boolean
 }>`
   width: ${({ $width }) => $width};
   max-width: ${({ $maxWidth }) => $maxWidth};
@@ -73,7 +75,8 @@ function Win95Page({
   height = WIN95_PAGE_SIZE.height,
   maxHeight = WIN95_PAGE_SIZE.maxHeight,
   className,
-  showWindowControls = true
+  showWindowControls = true,
+  stretchOnSmallScreens = true
 }: Win95PageProps): React.JSX.Element {
   const handleMinimize = (): void => {
     window.api?.windowControls?.minimize()
@@ -89,7 +92,13 @@ function Win95Page({
 
   return (
     <Desktop className={className}>
-      <PageWindow $width={width} $maxWidth={maxWidth} $height={height} $maxHeight={maxHeight}>
+      <PageWindow
+        $width={width}
+        $maxWidth={maxWidth}
+        $height={height}
+        $maxHeight={maxHeight}
+        $stretchOnSmallScreens={stretchOnSmallScreens}
+      >
         <TitleBar>
           <Title>{title}</Title>
 
