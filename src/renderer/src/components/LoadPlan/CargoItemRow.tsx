@@ -33,6 +33,8 @@ type Props = {
   onRemoveRow: (id: string) => void
 }
 
+const MAX_SUPPORTED_WEIGHT_OPTIONS = Array.from({ length: 100 }, (_, index) => index + 1)
+
 const CargoItemRow = ({
   item,
   itemsLength,
@@ -155,6 +157,24 @@ const CargoItemRow = ({
             onChange={onCheckboxChange(item.id, 'topLoadOnly')}
           />
           Top load only
+        </RestrictionItem>
+
+        <RestrictionItem>
+          Max support kg
+          <NativeSelect
+            value={item.maxSupportedWeightKg}
+            onChange={onItemChange(item.id, 'maxSupportedWeightKg')}
+            disabled={item.unstackable}
+            title="Maximum weight this item can support on top"
+          >
+            <option value="">None</option>
+
+            {MAX_SUPPORTED_WEIGHT_OPTIONS.map((value) => (
+              <option key={value} value={String(value)}>
+                {value}
+              </option>
+            ))}
+          </NativeSelect>
         </RestrictionItem>
 
         {showCartonOptions && (

@@ -22,6 +22,12 @@ export type CargoItem = {
   topLoadOnly: boolean
   fragile: boolean
   canBePlacedOnPallet: boolean
+
+  /**
+   * Max weight this cargo item can support on top of itself.
+   * Empty string means no specific limit was provided.
+   */
+  maxSupportedWeightKg: string
 }
 
 export type LoadingPlanFormState = {

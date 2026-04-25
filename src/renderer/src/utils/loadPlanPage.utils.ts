@@ -23,7 +23,8 @@ export const createCargoItem = (id: number): CargoItem => ({
   tiltAllowed: false,
   topLoadOnly: false,
   fragile: false,
-  canBePlacedOnPallet: false
+  canBePlacedOnPallet: false,
+  maxSupportedWeightKg: ''
 })
 
 export const createInitialForm = (): LoadingPlanFormState => ({
@@ -45,6 +46,20 @@ export const mapShapeToApi = (shape: ShapeType): PreviewCargoItem['shape'] => {
   return 'pallet'
 }
 
+const parseOptionalPositiveNumber = (value: string): number | undefined => {
+  if (value.trim() === '') {
+    return undefined
+  }
+
+  const parsed = Number(value)
+
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return undefined
+  }
+
+  return parsed
+}
+
 export const buildPreviewPayload = (formData: LoadingPlanFormState): PreviewLoadPlanPayload => {
   const cargoItems: PreviewCargoItem[] = formData.items.map((item, index) => {
     const quantity = Number(item.quantity)
@@ -60,6 +75,8 @@ export const buildPreviewPayload = (formData: LoadingPlanFormState): PreviewLoad
     if (!length || !width || !height) {
       throw new Error(`Row ${index + 1}: length, width, and height are required`)
     }
+
+    const maxSupportedWeightKg = parseOptionalPositiveNumber(item.maxSupportedWeightKg)
 
     return {
       description: item.shape === 'carton' ? 'Carton' : item.shape === 'crate' ? 'Crate' : 'Pallet',
@@ -77,6 +94,13 @@ export const buildPreviewPayload = (formData: LoadingPlanFormState): PreviewLoad
         rotatable: item.rotatable,
         tiltAllowed: item.tiltAllowed,
         topLoadOnly: item.topLoadOnly,
+
+        ...(maxSupportedWeightKg !== undefined
+          ? {
+              maxSupportedWeightKg
+            }
+          : {}),
+
         ...(item.shape !== 'pallet'
           ? {
               fragile: item.fragile,
