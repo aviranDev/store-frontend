@@ -144,7 +144,15 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
       setFormData((prev) => ({
         ...prev,
         items: prev.items.map((item) =>
-          item.id === id ? { ...item, [field]: event.target.checked } : item
+          item.id === id
+            ? {
+                ...item,
+                [field]: event.target.checked,
+                ...(field === 'unstackable' && event.target.checked
+                  ? { maxSupportedWeightKg: '' }
+                  : {})
+              }
+            : item
         )
       }))
       setPreviewData(null)
