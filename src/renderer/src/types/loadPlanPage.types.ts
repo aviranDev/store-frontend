@@ -7,6 +7,8 @@ export type PreviewMode = '2d' | '3d'
 
 export type CargoItem = {
   id: string
+  poNumber: string
+  color: string
   shape: ShapeType
   quantity: string
   length: string
