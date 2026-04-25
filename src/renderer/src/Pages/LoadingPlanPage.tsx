@@ -6,7 +6,12 @@ import styled from 'styled-components'
 import Win95Page from '../components/Win95/Win95Page'
 import Win95Tabs, { TabItem } from '../components/Win95/Win95Tabs'
 import WinButton from '../components/Button/WinButton'
-import { previewLoadPlan, PreviewLoadPlanData } from '../Services/loadPlan'
+import {
+  previewLoadPlan,
+  PreviewLoadPlanData,
+  saveLoadPlan,
+  ShipmentType
+} from '../Services/loadPlan'
 
 import LoadPlanForm from '../components/LoadPlan/LoadPlanForm'
 import ContainerPlanPreview from '../components/LoadPlan/ContainerPlanPreview'
@@ -22,6 +27,41 @@ import { MessageItem, MessagesList } from '../styles/LoadPlanStyle/LoadPlanStyle
 type ErrorPopupState = {
   message: string
   errors: string[]
+}
+
+type SavePlanFormState = {
+  name: string
+  customer: string
+  shipmentType: ShipmentType
+  notes: string
+}
+
+const createDefaultSaveForm = (formData: LoadingPlanFormState): SavePlanFormState => {
+  const firstPoNumber = formData.items.map((item) => item.poNumber.trim()).find(Boolean)
+  const today = new Date().toISOString().slice(0, 10)
+
+  return {
+    name: firstPoNumber
+      ? `${firstPoNumber} - ${formData.containerType} load plan`
+      : `${formData.containerType} load plan - ${today}`,
+    customer: '',
+    shipmentType: 'other',
+    notes: ''
+  }
+}
+
+const getErrorMessage = (error: unknown, fallback: string): string => {
+  const axiosError = error as AxiosError<{ message?: string }>
+
+  if (axiosError.response?.data?.message) {
+    return axiosError.response.data.message
+  }
+
+  if (error instanceof Error) {
+    return error.message
+  }
+
+  return fallback
 }
 
 const MessagesPopupBackdrop = styled.div`
@@ -93,6 +133,92 @@ const MessagesPopupActions = styled.div`
   padding: 0 10px 10px;
 `
 
+const SavePopupForm = styled.form`
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+`
+
+const SavePopupFields = styled.div`
+  display: grid;
+  gap: 10px;
+  margin: 10px;
+  padding: 10px;
+  background: ${({ theme }) => theme.colors.face};
+  border-top: 2px solid ${({ theme }) => theme.colors.dark};
+  border-left: 2px solid ${({ theme }) => theme.colors.dark};
+  border-right: 2px solid ${({ theme }) => theme.colors.light};
+  border-bottom: 2px solid ${({ theme }) => theme.colors.light};
+  box-sizing: border-box;
+`
+
+const SavePopupField = styled.label`
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+`
+
+const SavePopupInput = styled.input`
+  width: 100%;
+  min-width: 0;
+  height: 28px;
+  box-sizing: border-box;
+  padding: 0 6px;
+  background: ${({ theme }) => theme.colors.inputBg};
+  color: ${({ theme }) => theme.colors.text};
+  border-top: 2px solid ${({ theme }) => theme.colors.shadow};
+  border-left: 2px solid ${({ theme }) => theme.colors.shadow};
+  border-right: 2px solid ${({ theme }) => theme.colors.light};
+  border-bottom: 2px solid ${({ theme }) => theme.colors.light};
+  box-shadow: inset 1px 1px 0 ${({ theme }) => theme.colors.black};
+  font-family: inherit;
+  font-size: 13px;
+`
+
+const SavePopupSelect = styled.select`
+  width: 100%;
+  min-width: 0;
+  height: 28px;
+  box-sizing: border-box;
+  padding: 0 4px;
+  background: ${({ theme }) => theme.colors.inputBg};
+  color: ${({ theme }) => theme.colors.text};
+  border-top: 2px solid ${({ theme }) => theme.colors.shadow};
+  border-left: 2px solid ${({ theme }) => theme.colors.shadow};
+  border-right: 2px solid ${({ theme }) => theme.colors.light};
+  border-bottom: 2px solid ${({ theme }) => theme.colors.light};
+  box-shadow: inset 1px 1px 0 ${({ theme }) => theme.colors.black};
+  font-family: inherit;
+  font-size: 13px;
+`
+
+const SavePopupTextArea = styled.textarea`
+  width: 100%;
+  min-width: 0;
+  min-height: 72px;
+  resize: vertical;
+  box-sizing: border-box;
+  padding: 6px;
+  background: ${({ theme }) => theme.colors.inputBg};
+  color: ${({ theme }) => theme.colors.text};
+  border-top: 2px solid ${({ theme }) => theme.colors.shadow};
+  border-left: 2px solid ${({ theme }) => theme.colors.shadow};
+  border-right: 2px solid ${({ theme }) => theme.colors.light};
+  border-bottom: 2px solid ${({ theme }) => theme.colors.light};
+  box-shadow: inset 1px 1px 0 ${({ theme }) => theme.colors.black};
+  font-family: inherit;
+  font-size: 13px;
+`
+
+const SavePopupError = styled.div`
+  margin: 0 10px 10px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: ${({ theme }) => theme.colors.text};
+`
+
 const EmployeeLoadingPlanPage = (): React.JSX.Element => {
   const navigate = useNavigate()
 
@@ -103,6 +229,12 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
   const [previewData, setPreviewData] = useState<PreviewLoadPlanData | null>(null)
   const [previewMode, setPreviewMode] = useState<'2d' | '3d'>('2d')
   const [errorPopup, setErrorPopup] = useState<ErrorPopupState | null>(null)
+  const [isSavePopupOpen, setIsSavePopupOpen] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
+  const [saveForm, setSaveForm] = useState<SavePlanFormState>(() =>
+    createDefaultSaveForm(createInitialForm())
+  )
 
   const handleContainerChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     setFormData((prev) => ({
@@ -217,14 +349,7 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
     } catch (error) {
       setPreviewData(null)
 
-      let nextMessage = 'Failed to calculate preview.'
-
-      if (error instanceof Error) {
-        nextMessage = error.message
-      } else if ((error as AxiosError)?.response?.data) {
-        const axiosError = error as AxiosError<{ message?: string }>
-        nextMessage = axiosError.response?.data?.message || 'Failed to calculate preview.'
-      }
+      const nextMessage = getErrorMessage(error, 'Failed to calculate preview.')
 
       setMessage(nextMessage)
       setErrorPopup({
@@ -241,6 +366,96 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
     setPreviewData(null)
     setMessage('Form reset.')
     setErrorPopup(null)
+    setIsSavePopupOpen(false)
+    setSaveError('')
+  }
+
+  const canSavePreview = !!previewData?.calculationSummary.fitPossible
+
+  const handleOpenSavePopup = () => {
+    if (!previewData) {
+      const nextMessage = 'Please calculate a preview before saving.'
+
+      setMessage(nextMessage)
+      setErrorPopup({
+        message: nextMessage,
+        errors: []
+      })
+      return
+    }
+
+    if (!previewData.calculationSummary.fitPossible) {
+      const nextMessage = 'This load plan cannot be saved because the preview is not fit possible.'
+
+      setMessage(nextMessage)
+      setErrorPopup({
+        message: nextMessage,
+        errors: previewData.calculationSummary.calculationErrors
+      })
+      return
+    }
+
+    setSaveForm(createDefaultSaveForm(formData))
+    setSaveError('')
+    setIsSavePopupOpen(true)
+  }
+
+  const handleSaveFormChange =
+    (field: keyof SavePlanFormState) =>
+    (event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+      const { value } = event.target
+
+      setSaveForm((prev) => {
+        if (field === 'name') return { ...prev, name: value }
+        if (field === 'customer') return { ...prev, customer: value }
+        if (field === 'shipmentType') return { ...prev, shipmentType: value as ShipmentType }
+
+        return { ...prev, notes: value }
+      })
+
+      setSaveError('')
+    }
+
+  const handleSavePlan = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+
+    if (!previewData?.calculationSummary.fitPossible) {
+      setSaveError('Please calculate a valid preview before saving.')
+      return
+    }
+
+    const name = saveForm.name.trim()
+
+    if (!name) {
+      setSaveError('Plan name is required.')
+      return
+    }
+
+    try {
+      setIsSaving(true)
+      setSaveError('')
+
+      const previewPayload = buildPreviewPayload(formData)
+
+      const savedPlan = await saveLoadPlan({
+        ...previewPayload,
+        name,
+        customer: saveForm.customer.trim(),
+        shipmentType: saveForm.shipmentType,
+        notes: saveForm.notes.trim()
+      })
+
+      setIsSavePopupOpen(false)
+      setMessage(
+        savedPlan._id
+          ? `Load plan saved successfully. ID: ${savedPlan._id}`
+          : 'Load plan saved successfully.'
+      )
+    } catch (error) {
+      setSaveError(getErrorMessage(error, 'Failed to save load plan.'))
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const warnings = previewData?.calculationSummary.calculationWarnings ?? []
@@ -251,6 +466,8 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
       formData={formData}
       message={message}
       isCalculating={isCalculating}
+      isSaving={isSaving}
+      canSavePreview={canSavePreview}
       onSubmit={handleSubmit}
       onAddRow={handleAddRow}
       onReset={handleReset}
@@ -259,6 +476,7 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
       onItemChange={handleItemChange}
       onCheckboxChange={handleCheckboxChange}
       onRemoveRow={handleRemoveRow}
+      onOpenSavePlan={handleOpenSavePopup}
     />
   )
 
@@ -311,6 +529,92 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
         }
         sidebarWidth="minmax(760px, 1fr)"
       />
+
+      {isSavePopupOpen && (
+        <MessagesPopupBackdrop onMouseDown={() => setIsSavePopupOpen(false)}>
+          <MessagesPopupWindow
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="save-load-plan-title"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <SavePopupForm onSubmit={handleSavePlan}>
+              <MessagesPopupTitleBar>
+                <span id="save-load-plan-title">Save Load Plan</span>
+
+                <MessagesPopupCloseButton
+                  type="button"
+                  onClick={() => setIsSavePopupOpen(false)}
+                  disabled={isSaving}
+                >
+                  ×
+                </MessagesPopupCloseButton>
+              </MessagesPopupTitleBar>
+
+              <SavePopupFields>
+                <SavePopupField>
+                  Plan name
+                  <SavePopupInput
+                    type="text"
+                    value={saveForm.name}
+                    onChange={handleSaveFormChange('name')}
+                    placeholder="Required"
+                    autoFocus
+                  />
+                </SavePopupField>
+
+                <SavePopupField>
+                  Customer
+                  <SavePopupInput
+                    type="text"
+                    value={saveForm.customer}
+                    onChange={handleSaveFormChange('customer')}
+                    placeholder="Optional"
+                  />
+                </SavePopupField>
+
+                <SavePopupField>
+                  Shipment type
+                  <SavePopupSelect
+                    value={saveForm.shipmentType}
+                    onChange={handleSaveFormChange('shipmentType')}
+                  >
+                    <option value="import">Import</option>
+                    <option value="export">Export</option>
+                    <option value="cross-trade">Cross-trade</option>
+                    <option value="other">Other</option>
+                  </SavePopupSelect>
+                </SavePopupField>
+
+                <SavePopupField style={{ alignItems: 'start' }}>
+                  Notes
+                  <SavePopupTextArea
+                    value={saveForm.notes}
+                    onChange={handleSaveFormChange('notes')}
+                    placeholder="Optional notes"
+                  />
+                </SavePopupField>
+              </SavePopupFields>
+
+              {saveError && <SavePopupError>{saveError}</SavePopupError>}
+
+              <MessagesPopupActions>
+                <WinButton
+                  type="button"
+                  onClick={() => setIsSavePopupOpen(false)}
+                  disabled={isSaving}
+                >
+                  Cancel
+                </WinButton>
+
+                <WinButton type="submit" disabled={isSaving}>
+                  {isSaving ? 'Saving...' : 'Save'}
+                </WinButton>
+              </MessagesPopupActions>
+            </SavePopupForm>
+          </MessagesPopupWindow>
+        </MessagesPopupBackdrop>
+      )}
 
       {errorPopup && (
         <MessagesPopupBackdrop onMouseDown={() => setErrorPopup(null)}>

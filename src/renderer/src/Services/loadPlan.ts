@@ -159,6 +159,16 @@ export type PreviewLoadPlanPayload = {
   cargoItems: PreviewCargoItem[]
 }
 
+export type ShipmentType = 'import' | 'export' | 'cross-trade' | 'other'
+
+export type SaveLoadPlanPayload = PreviewLoadPlanPayload & {
+  name: string
+  customer?: string
+  shipmentType?: ShipmentType
+  notes?: string
+  createdBy?: string
+}
+
 export type PreviewLoadPlanData = {
   selectedContainerCode: string
   containerType: PreviewContainerType
@@ -173,10 +183,36 @@ type PreviewLoadPlanResponse = {
   data: PreviewLoadPlanData
 }
 
+export type SavedLoadPlanData = {
+  _id?: string
+  name: string
+  customer?: string
+  shipmentType: ShipmentType
+  selectedContainerCode: string
+  cargoItems: PreviewCargoItem[]
+  placedCargoItems: PreviewPlacedCargoItem[]
+  calculationSummary: PreviewCalculationSummary
+  notes?: string
+  createdAt?: string
+  updatedAt?: string
+}
+
+type SaveLoadPlanResponse = {
+  success: boolean
+  message: string
+  data: SavedLoadPlanData
+}
+
 export const previewLoadPlan = async (
   payload: PreviewLoadPlanPayload
 ): Promise<PreviewLoadPlanData> => {
   const response = await httpService.post<PreviewLoadPlanResponse>('/load-plans/preview', payload)
+
+  return response.data.data
+}
+
+export const saveLoadPlan = async (payload: SaveLoadPlanPayload): Promise<SavedLoadPlanData> => {
+  const response = await httpService.post<SaveLoadPlanResponse>('/load-plans', payload)
 
   return response.data.data
 }

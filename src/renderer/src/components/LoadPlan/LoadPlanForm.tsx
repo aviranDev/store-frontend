@@ -20,6 +20,8 @@ type Props = {
   formData: LoadingPlanFormState
   message: string
   isCalculating: boolean
+  isSaving: boolean
+  canSavePreview: boolean
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void
   onAddRow: () => void
   onReset: () => void
@@ -41,12 +43,15 @@ type Props = {
       | 'canBePlacedOnPallet'
   ) => (event: React.ChangeEvent<HTMLInputElement>) => void
   onRemoveRow: (id: string) => void
+  onOpenSavePlan: () => void
 }
 
 const LoadPlanForm = ({
   formData,
   message,
   isCalculating,
+  isSaving,
+  canSavePreview,
   onSubmit,
   onAddRow,
   onReset,
@@ -54,7 +59,8 @@ const LoadPlanForm = ({
   onContainerChange,
   onItemChange,
   onCheckboxChange,
-  onRemoveRow
+  onRemoveRow,
+  onOpenSavePlan
 }: Props): React.JSX.Element => {
   return (
     <TabContentLayout>
@@ -121,9 +127,22 @@ const LoadPlanForm = ({
       </Win95GroupBox>
 
       <TabFooter>
-        <WinButton type="button" onClick={onBack}>
-          Back
-        </WinButton>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <WinButton type="button" onClick={onBack}>
+            Back
+          </WinButton>
+
+          <WinButton
+            type="button"
+            onClick={onOpenSavePlan}
+            disabled={!canSavePreview || isSaving}
+            title={
+              canSavePreview ? 'Save this load plan' : 'Calculate a valid preview before saving'
+            }
+          >
+            {isSaving ? 'Saving...' : 'Save Plan'}
+          </WinButton>
+        </div>
       </TabFooter>
     </TabContentLayout>
   )
