@@ -35,6 +35,18 @@ type Props = {
 
 const MAX_SUPPORTED_WEIGHT_OPTIONS = Array.from({ length: 100 }, (_, index) => index + 1)
 
+const COLOR_OPTIONS = [
+  { label: 'Auto', value: '' },
+  { label: 'Blue', value: '#1E88E5' },
+  { label: 'Green', value: '#43A047' },
+  { label: 'Orange', value: '#FB8C00' },
+  { label: 'Purple', value: '#8E24AA' },
+  { label: 'Red', value: '#E53935' },
+  { label: 'Teal', value: '#00897B' },
+  { label: 'Brown', value: '#8D6E63' },
+  { label: 'Yellow', value: '#FDD835' }
+]
+
 const CargoItemRow = ({
   item,
   itemsLength,
@@ -114,6 +126,32 @@ const CargoItemRow = ({
       </CargoRow>
 
       <RestrictionsGrid>
+        <RestrictionItem>
+          PO
+          <CargoInput
+            type="text"
+            value={item.poNumber}
+            onChange={onItemChange(item.id, 'poNumber')}
+            placeholder="PO"
+            title="Purchase order / reference number"
+          />
+        </RestrictionItem>
+
+        <RestrictionItem>
+          Color
+          <NativeSelect
+            value={item.color}
+            onChange={onItemChange(item.id, 'color')}
+            title="Color used to recognize this item in the plan preview"
+          >
+            {COLOR_OPTIONS.map((option) => (
+              <option key={option.value || 'auto'} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </NativeSelect>
+        </RestrictionItem>
+
         <RestrictionItem>
           <input
             type="checkbox"

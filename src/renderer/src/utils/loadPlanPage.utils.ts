@@ -9,6 +9,8 @@ import {
 
 export const createCargoItem = (id: number): CargoItem => ({
   id: String(id),
+  poNumber: '',
+  color: '',
   shape: 'pallet',
   quantity: '1',
   length: '',
@@ -77,8 +79,13 @@ export const buildPreviewPayload = (formData: LoadingPlanFormState): PreviewLoad
     }
 
     const maxSupportedWeightKg = parseOptionalPositiveNumber(item.maxSupportedWeightKg)
+    const poNumber = item.poNumber.trim()
+    const color = item.color.trim()
 
     return {
+      ...(poNumber ? { poNumber } : {}),
+      ...(color ? { color } : {}),
+
       description: item.shape === 'carton' ? 'Carton' : item.shape === 'crate' ? 'Crate' : 'Pallet',
       quantity,
       shape: mapShapeToApi(item.shape),

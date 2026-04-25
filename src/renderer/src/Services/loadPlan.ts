@@ -6,11 +6,22 @@ export type PreviewCargoRestriction = {
   rotatable: boolean
   tiltAllowed: boolean
   topLoadOnly: boolean
+
   fragile?: boolean
   canBePlacedOnPallet?: boolean
+  canBeStackedOnSameItem?: boolean
+
+  maxStackCount?: number
+  loadingPriority?: number
+  maxSupportedWeightKg?: number
+  minSupportCoveragePercent?: number
+  allowBridging?: boolean
+  maxOverhangCm?: number
 }
 
 export type PreviewCargoItem = {
+  poNumber?: string
+  color?: string
   description: string
   quantity: number
   shape: 'box' | 'cylinder' | 'pallet' | 'crate' | 'machine'
@@ -25,31 +36,105 @@ export type PreviewCargoItem = {
   notes?: string
 }
 
+export type PreviewSupportAllocation = {
+  supportType: 'floor' | 'carton' | 'pallet'
+  cargoDescription?: string
+  unitIndex?: number
+  sharePercent: number
+  allocatedWeightKg: number
+}
+
+export type PreviewPlacedCargoBaseRules = {
+  stackable: boolean
+  topLoadOnly: boolean
+  fragile?: boolean
+  canBePlacedOnPallet?: boolean
+  canBeStackedOnSameItem?: boolean
+  maxStackCount?: number
+  maxSupportedWeightKg?: number
+  minSupportCoveragePercent?: number
+  allowBridging?: boolean
+  maxOverhangCm?: number
+}
+
 export type PreviewPlacedCargoItem = {
+  cargoItemRef?: string
+  poNumber?: string
   cargoDescription: string
   unitIndex: number
   shape: 'box' | 'pallet' | 'crate' | 'cylinder' | 'machine'
+
   xCm: number
   yCm: number
   zCm: number
+
   placedLengthCm: number
   placedWidthCm: number
   placedHeightCm: number
-  rotationDeg: number
-  placementMode: 'floor' | 'stacked_on_carton' | 'stacked_on_pallet' | 'top_load'
-  stackedOnUnitIndex: number | null
-  stackedOnCargoDescription: string | null
+  rotationDeg: 0 | 90 | 180 | 270
+
+  color?: string
+
+  placementMode?: 'floor' | 'stacked_on_carton' | 'stacked_on_pallet' | 'top_load'
+  stackedOnUnitIndex?: number | null
+  stackedOnCargoDescription?: string | null
+
+  placedWeightKg: number
+  supportCoveragePercent?: number
+  supportedBy?: PreviewSupportAllocation[]
+
+  baseRules?: PreviewPlacedCargoBaseRules
+}
+
+export type PreviewWeightBalanceSummary = {
+  totalWeightKg: number
+
+  centerOfGravityXCm: number
+  centerOfGravityYCm: number
+  centerOfGravityXPercent: number
+  centerOfGravityYPercent: number
+
+  frontWeightKg: number
+  rearWeightKg: number
+  leftWeightKg: number
+  rightWeightKg: number
+
+  frontRearImbalancePercent: number
+  leftRightImbalancePercent: number
+
+  status: 'not_calculated' | 'balanced' | 'acceptable' | 'needs_review'
+  conclusion: string
+  scoringApplied: boolean
+
+  warnings: string[]
 }
 
 export type PreviewCalculationSummary = {
   fitPossible: boolean
+
   totalCargoUnits: number
   totalWeightKg: number
   totalVolumeM3: number
+
   usedFloorAreaCm2: number
   containerFloorAreaCm2: number
   utilizationByFloorPercent: number
   utilizationByWeightPercent: number
+
+  requestedCargoUnits?: number
+  requestedWeightKg?: number
+  requestedVolumeM3?: number
+
+  placedCargoUnits?: number
+  placedWeightKg?: number
+  placedVolumeM3?: number
+
+  unplacedCargoUnits?: number
+  unplacedWeightKg?: number
+  unplacedVolumeM3?: number
+
+  weightBalance?: PreviewWeightBalanceSummary
+
   calculationWarnings: string[]
   calculationErrors: string[]
 }

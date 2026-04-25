@@ -395,12 +395,16 @@ export const PlanBlock = styled.div<{
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 9px;
+  font-size: 8px;
+  font-weight: bold;
   text-align: center;
-  padding: 0;
+  padding: 1px;
   box-sizing: border-box;
   overflow: hidden;
   color: #111111;
+  line-height: 1;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.35);
 `
 

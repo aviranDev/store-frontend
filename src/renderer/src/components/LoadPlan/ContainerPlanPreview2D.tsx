@@ -104,7 +104,17 @@ const ContainerPlanPreview2D = ({
               const isStacked = item.zCm > 0
               const normalizedShape = item.shape === 'box' ? 'carton' : item.shape
               const isPallet = normalizedShape === 'pallet'
-              const color = groupColorMap.get(getGroupKey(item)) ?? '#6fa85b'
+              const color = item.color || groupColorMap.get(getGroupKey(item)) || '#6fa85b'
+
+              const titleParts = [
+                item.poNumber ? `PO: ${item.poNumber}` : null,
+                `${item.cargoDescription} #${item.unitIndex}`,
+                `Shape: ${normalizedShape}`,
+                `X:${item.xCm}`,
+                `Y:${item.yCm}`,
+                `Z:${item.zCm}`,
+                `${item.placedLengthCm}x${item.placedWidthCm}x${item.placedHeightCm}`
+              ].filter(Boolean)
 
               return (
                 <div key={`${item.cargoDescription}-${item.unitIndex}-${index}`}>
@@ -116,9 +126,9 @@ const ContainerPlanPreview2D = ({
                     $isStacked={isStacked}
                     $isPallet={isPallet}
                     $color={color}
-                    title={`${item.cargoDescription} #${item.unitIndex} | Shape: ${normalizedShape} | X:${item.xCm} Y:${item.yCm} Z:${item.zCm} | ${item.placedLengthCm}x${item.placedWidthCm}x${item.placedHeightCm}`}
+                    title={titleParts.join(' | ')}
                   >
-                    {width >= 14 && height >= 12 ? item.unitIndex : ''}
+                    {width >= 18 && height >= 12 ? item.poNumber || item.unitIndex : ''}
                   </PlanBlock>
                 </div>
               )
