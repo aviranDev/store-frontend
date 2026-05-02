@@ -78,6 +78,8 @@ export const TabContentLayout = styled.div`
   width: 100%;
   max-width: none;
   min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
 `
 
 export const TabFooter = styled.div`
@@ -87,10 +89,28 @@ export const TabFooter = styled.div`
 `
 
 export const FormPanel = styled.div`
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
   gap: 12px;
+  height: 100%;
+  min-height: 0;
   min-width: 0;
+`
+
+export const CargoRowsScroll = styled.div`
+  min-height: 0;
+  max-height: calc(100vh - 300px);
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  /* move scrollbar more to the right */
+  width: calc(100% + 14px);
+  margin-right: -14px;
+
+  /* keep some space between rows and scrollbar */
+  padding-right: 6px;
+
+  box-sizing: border-box;
 `
 
 export const CargoTable = styled.div`
@@ -438,6 +458,8 @@ export const AssistantTop = styled.div`
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
 `
 
 export const AssistantBottom = styled.div`
@@ -456,8 +478,7 @@ export const AgentMessages = styled.div`
   flex-direction: column;
   gap: 8px;
   box-sizing: border-box;
-
-  @media (max-height: 760px) {
+  AgentMessages @media (max-height: 760px) {
     min-height: 340px;
   }
 `

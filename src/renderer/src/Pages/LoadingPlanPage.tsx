@@ -2,13 +2,16 @@ import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AxiosError } from 'axios'
 import styled from 'styled-components'
+import LoadPlansCardsPanel from '../components/LoadPlan/LoadPlansCardsPanel'
 
 import Win95Page from '../components/Win95/Win95Page'
 import Win95Tabs, { TabItem } from '../components/Win95/Win95Tabs'
 import WinButton from '../components/Button/WinButton'
 import {
   previewLoadPlan,
+  PreviewCargoItem,
   PreviewLoadPlanData,
+  PreviewLoadPlanPayload,
   saveLoadPlan,
   ShipmentType
 } from '../Services/loadPlan'
@@ -34,6 +37,43 @@ type SavePlanFormState = {
   customer: string
   shipmentType: ShipmentType
   notes: string
+}
+
+const toUiShape = (shape: PreviewCargoItem['shape']): CargoItem['shape'] => {
+  if (shape === 'pallet') return 'pallet'
+  if (shape === 'box') return 'carton'
+
+  return 'crate'
+}
+
+const payloadToFormState = (payload: PreviewLoadPlanPayload): LoadingPlanFormState => {
+  return {
+    containerType: payload.selectedContainerCode,
+    items: payload.cargoItems.map((item, index) => ({
+      id: `${index + 1}`,
+      poNumber: item.poNumber ?? '',
+      color: item.color ?? '',
+      shape: toUiShape(item.shape),
+      quantity: String(item.quantity ?? 1),
+      length: String(item.dimensions.lengthCm ?? item.dimensions.diameterCm ?? ''),
+      width: String(item.dimensions.widthCm ?? item.dimensions.diameterCm ?? ''),
+      height: String(item.dimensions.heightCm ?? ''),
+      dimensionUnit: 'cm',
+      weight: String(item.unitWeightKg ?? 0),
+      weightUnit: 'kg',
+      mustStayVertical: item.restrictions.mustStayVertical,
+      unstackable: !item.restrictions.stackable,
+      rotatable: item.restrictions.rotatable,
+      tiltAllowed: item.restrictions.tiltAllowed,
+      topLoadOnly: item.restrictions.topLoadOnly,
+      fragile: item.restrictions.fragile ?? false,
+      canBePlacedOnPallet: item.restrictions.canBePlacedOnPallet ?? false,
+      maxSupportedWeightKg:
+        item.restrictions.maxSupportedWeightKg === undefined
+          ? ''
+          : String(item.restrictions.maxSupportedWeightKg)
+    }))
+  }
 }
 
 const createDefaultSaveForm = (formData: LoadingPlanFormState): SavePlanFormState => {
@@ -222,6 +262,67 @@ const SavePopupError = styled.div`
 const EmployeeLoadingPlanPage = (): React.JSX.Element => {
   const navigate = useNavigate()
 
+  const handleApplyGeneratedPayload = async (payload: PreviewLoadPlanPayload): Promise<void> => {
+    try {
+      setIsCalculating(true)
+      setErrorPopup(null)
+      setMessage('AI created the form. Running your loading algorithm...')
+
+      const nextFormData = payloadToFormState(payload)
+
+      setFormData(nextFormData)
+
+      // Important: use the same path as the manual Loading Details tab
+      const finalPayload = buildPreviewPayload(nextFormData)
+
+      const data = await previewLoadPlan(finalPayload)
+
+      setPreviewData(data)
+
+      if (data.calculationSummary.calculationErrors.length > 0) {
+        const nextMessage = 'AI created the form and the loading algorithm returned errors.'
+
+        setMessage(nextMessage)
+        setErrorPopup({
+          message: nextMessage,
+          errors: data.calculationSummary.calculationErrors
+        })
+
+        return
+      }
+
+      if (data.calculationSummary.calculationWarnings.length > 0) {
+        setMessage('AI created the form and the loading algorithm returned warnings.')
+        setErrorPopup(null)
+        return
+      }
+
+      setMessage(
+        'AI created the form and the loading algorithm calculated the preview successfully.'
+      )
+      setErrorPopup(null)
+    } catch (error) {
+      setPreviewData(null)
+
+      const nextMessage = getErrorMessage(
+        error,
+        'AI created the form, but the loading algorithm could not calculate the preview.'
+      )
+
+      setMessage(nextMessage)
+      setErrorPopup({
+        message: nextMessage,
+        errors: []
+      })
+
+      throw error
+    } finally {
+      setIsCalculating(false)
+
+      // Stay on AI Agent tab
+      setActiveTab('ai-agent')
+    }
+  }
   const [activeTab, setActiveTab] = useState('loading-details')
   const [formData, setFormData] = useState<LoadingPlanFormState>(createInitialForm())
   const [message, setMessage] = useState('')
@@ -483,10 +584,19 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
   const aiAgentTabContent = (
     <LoadPlanAssistantPanel
       message={message}
+      previewData={previewData}
       previewDataExists={!!previewData}
       warnings={warnings}
       errors={errors}
       onBack={() => navigate('/employee')}
+      onApplyGeneratedPayload={handleApplyGeneratedPayload}
+    />
+  )
+
+  const savedLoadPlansTabContent = (
+    <LoadPlansCardsPanel
+      onBack={() => navigate('/employee')}
+      onOpenPlan={(planId) => navigate(`/employee/load-plans/${planId}`)}
     />
   )
 
@@ -501,9 +611,14 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
         id: 'ai-agent',
         label: 'AI Agent',
         content: aiAgentTabContent
+      },
+      {
+        id: 'saved-load-plans',
+        label: 'Saved Plans',
+        content: savedLoadPlansTabContent
       }
     ],
-    [loadingDetailsTabContent, aiAgentTabContent]
+    [loadingDetailsTabContent, aiAgentTabContent, savedLoadPlansTabContent]
   )
 
   return (
@@ -520,12 +635,14 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
         activeTab={activeTab}
         onChange={setActiveTab}
         sidebar={
-          <ContainerPlanPreview
-            formData={formData}
-            previewData={previewData}
-            previewMode={previewMode}
-            onPreviewModeChange={setPreviewMode}
-          />
+          activeTab === 'saved-load-plans' ? undefined : (
+            <ContainerPlanPreview
+              formData={formData}
+              previewData={previewData}
+              previewMode={previewMode}
+              onPreviewModeChange={setPreviewMode}
+            />
+          )
         }
         sidebarWidth="minmax(760px, 1fr)"
       />
