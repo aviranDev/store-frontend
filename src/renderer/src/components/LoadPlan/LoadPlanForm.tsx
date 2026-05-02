@@ -7,6 +7,7 @@ import {
   TabContentLayout,
   TabFooter,
   FormPanel,
+  CargoRowsScroll,
   CargoTable,
   CargoHeader,
   HeaderCell,
@@ -77,18 +78,20 @@ const LoadPlanForm = ({
               <HeaderCell />
             </CargoHeader>
 
-            <CargoTable>
-              {formData.items.map((item) => (
-                <CargoItemRow
-                  key={item.id}
-                  item={item}
-                  itemsLength={formData.items.length}
-                  onItemChange={onItemChange}
-                  onCheckboxChange={onCheckboxChange}
-                  onRemoveRow={onRemoveRow}
-                />
-              ))}
-            </CargoTable>
+            <CargoRowsScroll>
+              <CargoTable>
+                {formData.items.map((item) => (
+                  <CargoItemRow
+                    key={item.id}
+                    item={item}
+                    itemsLength={formData.items.length}
+                    onItemChange={onItemChange}
+                    onCheckboxChange={onCheckboxChange}
+                    onRemoveRow={onRemoveRow}
+                  />
+                ))}
+              </CargoTable>
+            </CargoRowsScroll>
 
             <ControlsGrid>
               <WinButton type="button" onClick={onAddRow}>

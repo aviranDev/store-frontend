@@ -197,6 +197,62 @@ export type SavedLoadPlanData = {
   updatedAt?: string
 }
 
+export type LoadPlansListData = {
+  items: SavedLoadPlanData[]
+  total: number
+  page: number
+  limit: number
+  totalPages: number
+  count: number
+}
+
+type LoadPlansListResponse = {
+  success: boolean
+  total: number
+  page: number
+  limit: number
+  totalPages: number
+  count: number
+  data: SavedLoadPlanData[]
+}
+
+export const getMyLoadPlans = async (
+  page: number = 1,
+  limit: number = 20
+): Promise<LoadPlansListData> => {
+  const response = await httpService.get<LoadPlansListResponse>('/load-plans/my', {
+    params: {
+      page,
+      limit
+    }
+  })
+
+  return {
+    items: response.data.data,
+    total: response.data.total,
+    page: response.data.page,
+    limit: response.data.limit,
+    totalPages: response.data.totalPages,
+    count: response.data.count
+  }
+}
+
+export type LoadPlanDetailsData = SavedLoadPlanData & {
+  containerType: PreviewContainerType
+  containerTypeId?: PreviewContainerType | string
+}
+
+type LoadPlanDetailsResponse = {
+  success: boolean
+  data: LoadPlanDetailsData
+}
+
+export const getLoadPlanById = async (id: string): Promise<LoadPlanDetailsData> => {
+  const response = await httpService.get<LoadPlanDetailsResponse>(`/load-plans/${id}`)
+
+  return response.data.data
+}
+
 type SaveLoadPlanResponse = {
   success: boolean
   message: string

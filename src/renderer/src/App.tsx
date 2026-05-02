@@ -10,6 +10,7 @@ import PublicRoute from './PublicRoute'
 import { GlobalStyles } from './styles/GlobalStyles'
 import { win95Theme } from './styles/theme'
 
+const LoadPlanDetailsPage = lazy(() => import('./Pages/LoadPlanDetailsPage'))
 const LoadingPlanPage = lazy(() => import('./Pages/LoadingPlanPage'))
 const Login = lazy(() => import('./Pages/Login'))
 const Register = lazy(() => import('./Pages/Register'))
@@ -101,6 +102,14 @@ function App(): React.JSX.Element {
             />
             <Route path="/unauthorized" element={<Unauthorized />} />
 
+            <Route
+              path="/employee/load-plans/:id"
+              element={
+                <ProtectedRoute allowedRoles={['employee', 'admin']}>
+                  <LoadPlanDetailsPage />
+                </ProtectedRoute>
+              }
+            />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
