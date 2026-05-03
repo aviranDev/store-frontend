@@ -24,6 +24,10 @@ type ChatMessage = {
   text: string
 }
 
+type RequestAgentResult =
+  | Extract<AskLoadPlanAgentResult, { action: 'build_request' }>
+  | Extract<AskLoadPlanAgentResult, { action: 'modify_request' }>
+
 type Props = {
   message: string
   previewData: PreviewLoadPlanData | null
@@ -79,9 +83,7 @@ const formatAgentResult = (result: AskLoadPlanAgentResult): string => {
   return lines.join('\n')
 }
 
-const formatBuildRequestMessage = (
-  result: Extract<AskLoadPlanAgentResult, { action: 'build_request' }>
-): string => {
+const formatBuildRequestMessage = (result: RequestAgentResult): string => {
   const lines: string[] = [
     result.answer,
     '',
@@ -108,6 +110,26 @@ const LoadPlanAssistantPanel = ({
 }: Props): JSX.Element => {
   const [input, setInput] = useState('')
   const [isSending, setIsSending] = useState(false)
+
+  /**
+   * Important:
+   * This keeps the draft request returned by the backend.
+   *
+   * Example:
+   * User: "please use container 20GP"
+   * Backend returns draftRequest: { selectedContainerCode: '20GP', cargoItems: [] }
+   * Frontend stores it here.
+   *
+   * Next user message:
+   * "3 cartons 120x115x100..."
+   *
+   * Frontend sends currentRequest back to backend,
+   * so backend keeps 20GP instead of falling back to 40HC.
+   */
+  const [currentAgentRequest, setCurrentAgentRequest] = useState<PreviewLoadPlanPayload | null>(
+    null
+  )
+
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: createId(),
@@ -165,9 +187,15 @@ const LoadPlanAssistantPanel = ({
     }
 
     if (result.action === 'ask_clarification') {
+      if (result.draftRequest) {
+        setCurrentAgentRequest(result.draftRequest)
+      }
+
       addMessage('assistant', formatAgentResult(result))
       return
     }
+
+    setCurrentAgentRequest(result.request)
 
     addMessage('assistant', formatBuildRequestMessage(result))
 
@@ -204,7 +232,8 @@ const LoadPlanAssistantPanel = ({
 
       const result = await askLoadPlanAgent({
         question,
-        loadPlanResult: shouldSendPreviewData ? previewData : null
+        loadPlanResult: shouldSendPreviewData ? previewData : null,
+        currentRequest: currentAgentRequest ?? undefined
       })
 
       await handleAgentResult(result)
@@ -226,7 +255,8 @@ const LoadPlanAssistantPanel = ({
       addMessage('user', text)
 
       const result = await askLoadPlanAgent({
-        question: text
+        question: text,
+        currentRequest: currentAgentRequest ?? undefined
       })
 
       await handleAgentResult(result)
