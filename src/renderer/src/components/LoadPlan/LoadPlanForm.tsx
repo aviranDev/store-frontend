@@ -24,6 +24,7 @@ type Props = {
   isSaving: boolean
   canSavePreview: boolean
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void
+  onClosingPreview: () => void
   onAddRow: () => void
   onReset: () => void
   onBack: () => void
@@ -54,6 +55,7 @@ const LoadPlanForm = ({
   isSaving,
   canSavePreview,
   onSubmit,
+  onClosingPreview,
   onAddRow,
   onReset,
   onBack,
@@ -117,6 +119,10 @@ const LoadPlanForm = ({
 
               <WinButton type="submit" disabled={isCalculating}>
                 {isCalculating ? 'Calculating...' : 'Calculate'}
+              </WinButton>
+
+              <WinButton type="button" onClick={onClosingPreview} disabled={isCalculating}>
+                {isCalculating ? 'Calculating...' : 'Closing Plan'}
               </WinButton>
 
               <WinButton type="button" onClick={onReset}>

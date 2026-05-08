@@ -9,6 +9,7 @@ import Win95Tabs, { TabItem } from '../components/Win95/Win95Tabs'
 import WinButton from '../components/Button/WinButton'
 import {
   previewLoadPlan,
+  previewClosingLoadPlan,
   PreviewCargoItem,
   PreviewLoadPlanData,
   PreviewLoadPlanPayload,
@@ -336,6 +337,9 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
   const [saveForm, setSaveForm] = useState<SavePlanFormState>(() =>
     createDefaultSaveForm(createInitialForm())
   )
+  const [activeCalculationMode, setActiveCalculationMode] = useState<'standard' | 'closing'>(
+    'standard'
+  )
 
   const handleContainerChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     setFormData((prev) => ({
@@ -427,6 +431,8 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
 
       const payload = buildPreviewPayload(formData)
       const data = await previewLoadPlan(payload)
+      setPreviewData(data)
+      setActiveCalculationMode('standard')
 
       setPreviewData(data)
 
@@ -462,6 +468,51 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
     }
   }
 
+  const handleClosingPreview = async () => {
+    try {
+      setIsCalculating(true)
+      setMessage('')
+      setErrorPopup(null)
+
+      const payload = buildPreviewPayload(formData)
+      const data = await previewClosingLoadPlan(payload)
+      setPreviewData(data)
+      setActiveCalculationMode('closing')
+
+      setPreviewData(data)
+
+      const calculationErrors = data.calculationSummary.calculationErrors
+
+      if (calculationErrors.length > 0) {
+        const nextMessage = 'Closing preview calculated with errors.'
+
+        setMessage(nextMessage)
+        setErrorPopup({
+          message: nextMessage,
+          errors: calculationErrors
+        })
+      } else if (data.calculationSummary.calculationWarnings.length > 0) {
+        setMessage('Closing preview calculated with warnings.')
+        setErrorPopup(null)
+      } else {
+        setMessage('Closing container preview calculated successfully.')
+        setErrorPopup(null)
+      }
+    } catch (error) {
+      setPreviewData(null)
+
+      const nextMessage = getErrorMessage(error, 'Failed to calculate closing preview.')
+
+      setMessage(nextMessage)
+      setErrorPopup({
+        message: nextMessage,
+        errors: []
+      })
+    } finally {
+      setIsCalculating(false)
+    }
+  }
+
   const handleReset = () => {
     setFormData(createInitialForm())
     setPreviewData(null)
@@ -469,6 +520,7 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
     setErrorPopup(null)
     setIsSavePopupOpen(false)
     setSaveError('')
+    setActiveCalculationMode('standard')
   }
 
   const canSavePreview = !!previewData?.calculationSummary.fitPossible
@@ -543,7 +595,8 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
         name,
         customer: saveForm.customer.trim(),
         shipmentType: saveForm.shipmentType,
-        notes: saveForm.notes.trim()
+        notes: saveForm.notes.trim(),
+        calculationMode: activeCalculationMode
       })
 
       setIsSavePopupOpen(false)
@@ -570,6 +623,7 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
       isSaving={isSaving}
       canSavePreview={canSavePreview}
       onSubmit={handleSubmit}
+      onClosingPreview={handleClosingPreview}
       onAddRow={handleAddRow}
       onReset={handleReset}
       onBack={() => navigate('/employee')}
