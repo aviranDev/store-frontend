@@ -46,6 +46,8 @@ type Props = {
   ) => (event: React.ChangeEvent<HTMLInputElement>) => void
   onRemoveRow: (id: string) => void
   onOpenSavePlan: () => void
+  saveButtonLabel?: string
+  saveButtonTitle?: string
 }
 
 const LoadPlanForm = ({
@@ -63,7 +65,9 @@ const LoadPlanForm = ({
   onItemChange,
   onCheckboxChange,
   onRemoveRow,
-  onOpenSavePlan
+  onOpenSavePlan,
+  saveButtonLabel = 'Save Plan',
+  saveButtonTitle
 }: Props): React.JSX.Element => {
   return (
     <TabContentLayout>
@@ -146,10 +150,11 @@ const LoadPlanForm = ({
             onClick={onOpenSavePlan}
             disabled={!canSavePreview || isSaving}
             title={
-              canSavePreview ? 'Save this load plan' : 'Calculate a valid preview before saving'
+              saveButtonTitle ??
+              (canSavePreview ? 'Save this load plan' : 'Calculate a valid preview before saving')
             }
           >
-            {isSaving ? 'Saving...' : 'Save Plan'}
+            {isSaving ? 'Saving...' : saveButtonLabel}
           </WinButton>
         </div>
       </TabFooter>

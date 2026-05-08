@@ -11,6 +11,16 @@ export type SaveLoadPlanPayload = PreviewLoadPlanPayload & {
   calculationMode?: LoadPlanCalculationMode
 }
 
+export type UpdateLoadPlanPayload = {
+  name?: string
+  customer?: string
+  shipmentType?: ShipmentType
+  selectedContainerCode?: string
+  cargoItems?: PreviewCargoItem[]
+  notes?: string
+  calculationMode?: LoadPlanCalculationMode
+}
+
 export type PreviewCargoRestriction = {
   mustStayVertical: boolean
   stackable: boolean
@@ -172,16 +182,9 @@ export type PreviewLoadPlanPayload = {
 
 export type ShipmentType = 'import' | 'export' | 'cross-trade' | 'other'
 
-/* export type SaveLoadPlanPayload = PreviewLoadPlanPayload & {
-  name: string
-  customer?: string
-  shipmentType?: ShipmentType
-  notes?: string
-  createdBy?: string
-} */
-
 export type PreviewLoadPlanData = {
   selectedContainerCode: string
+  calculationMode?: LoadPlanCalculationMode
   containerType: PreviewContainerType
   cargoItems: PreviewCargoItem[]
   placedCargoItems: PreviewPlacedCargoItem[]
@@ -197,6 +200,7 @@ type PreviewLoadPlanResponse = {
 export type SavedLoadPlanData = {
   _id?: string
   name: string
+  calculationMode?: LoadPlanCalculationMode
   customer?: string
   shipmentType: ShipmentType
   selectedContainerCode: string
@@ -293,4 +297,27 @@ export const saveLoadPlan = async (payload: SaveLoadPlanPayload): Promise<SavedL
   const response = await httpService.post<SaveLoadPlanResponse>('/load-plans', payload)
 
   return response.data.data
+}
+
+export const updateLoadPlan = async (
+  id: string,
+  payload: UpdateLoadPlanPayload
+): Promise<SavedLoadPlanData> => {
+  const response = await httpService.patch<SaveLoadPlanResponse>(`/load-plans/${id}`, payload)
+
+  return response.data.data
+}
+
+type DeleteLoadPlanResponse = {
+  success: boolean
+  message: string
+  data?: {
+    deletedId?: string
+  }
+}
+
+export const deleteLoadPlan = async (id: string): Promise<DeleteLoadPlanResponse> => {
+  const response = await httpService.delete<DeleteLoadPlanResponse>(`/load-plans/${id}`)
+
+  return response.data
 }

@@ -25,6 +25,8 @@ import {
   TabFooter
 } from '../styles/LoadPlanStyle/LoadPlanStyle'
 
+const LOADING_PLAN_ROUTE = '/EmployeeLoadingPlan'
+
 const DetailsPanel = styled.div`
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
@@ -297,6 +299,9 @@ const LoadPlanDetailsPage = (): React.JSX.Element => {
                 <MetaLabel>Container</MetaLabel>
                 <MetaValue>{plan.selectedContainerCode}</MetaValue>
 
+                <MetaLabel>Mode</MetaLabel>
+                <MetaValue>{plan.calculationMode ?? 'standard'}</MetaValue>
+
                 <MetaLabel>Notes</MetaLabel>
                 <MetaValue>{plan.notes || '-'}</MetaValue>
               </MetaGrid>
@@ -348,9 +353,28 @@ const LoadPlanDetailsPage = (): React.JSX.Element => {
       </Win95GroupBox>
 
       <TabFooter>
-        <WinButton type="button" onClick={() => navigate('/employee/loading-plan')}>
-          Back
-        </WinButton>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <WinButton type="button" onClick={() => navigate('/employee/loading-plan')}>
+            Back
+          </WinButton>
+
+          <WinButton
+            type="button"
+            disabled={!plan}
+            onClick={() => {
+              if (!plan) return
+
+              navigate(LOADING_PLAN_ROUTE, {
+                state: {
+                  activeTab: 'loading-details',
+                  editLoadPlan: plan
+                }
+              })
+            }}
+          >
+            Update Plan
+          </WinButton>
+        </div>
       </TabFooter>
     </TabContentLayout>
   )
