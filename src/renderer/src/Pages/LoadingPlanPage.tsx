@@ -31,6 +31,8 @@ import {
 } from '../utils/loadPlanPage.utils'
 import { MessageItem, MessagesList } from '../styles/LoadPlanStyle/LoadPlanStyle'
 
+type LoadingPlanTabId = 'loading-details' | 'ai-agent' | 'saved-load-plans'
+
 type ErrorPopupState = {
   message: string
   errors: string[]
@@ -44,7 +46,7 @@ type SavePlanFormState = {
 }
 
 type LoadingPlanRouteState = {
-  activeTab?: 'loading-details' | 'ai-agent' | 'saved-load-plans'
+  activeTab?: LoadingPlanTabId
   editLoadPlan?: LoadPlanDetailsData
 }
 
@@ -356,7 +358,9 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
     }
   }
 
-  const [activeTab, setActiveTab] = useState(locationState?.activeTab ?? 'loading-details')
+  const [activeTab, setActiveTab] = useState<LoadingPlanTabId>(
+    locationState?.activeTab ?? 'loading-details'
+  )
 
   const [formData, setFormData] = useState<LoadingPlanFormState>(() =>
     editingPlan ? loadPlanToFormState(editingPlan) : createInitialForm()
@@ -755,6 +759,12 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
     [loadingDetailsTabContent, aiAgentTabContent, savedLoadPlansTabContent]
   )
 
+  const handleTabChange = (tabId: string): void => {
+    if (tabId === 'loading-details' || tabId === 'ai-agent' || tabId === 'saved-load-plans') {
+      setActiveTab(tabId)
+    }
+  }
+
   return (
     <Win95Page
       title="Loading Plan"
@@ -767,7 +777,7 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
         items={tabs}
         defaultTabId="loading-details"
         activeTab={activeTab}
-        onChange={setActiveTab}
+        onChange={handleTabChange}
         sidebar={
           activeTab === 'saved-load-plans' ? undefined : (
             <ContainerPlanPreview
