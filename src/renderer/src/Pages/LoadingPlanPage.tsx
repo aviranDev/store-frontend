@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { AxiosError } from 'axios'
 import styled from 'styled-components'
 import LoadPlansCardsPanel from '../components/LoadPlan/LoadPlansCardsPanel'
@@ -10,11 +10,14 @@ import WinButton from '../components/Button/WinButton'
 import {
   previewLoadPlan,
   previewClosingLoadPlan,
+  LoadPlanCalculationMode,
+  LoadPlanDetailsData,
   PreviewCargoItem,
   PreviewLoadPlanData,
   PreviewLoadPlanPayload,
   saveLoadPlan,
-  ShipmentType
+  ShipmentType,
+  updateLoadPlan
 } from '../Services/loadPlan'
 
 import LoadPlanForm from '../components/LoadPlan/LoadPlanForm'
@@ -38,6 +41,11 @@ type SavePlanFormState = {
   customer: string
   shipmentType: ShipmentType
   notes: string
+}
+
+type LoadingPlanRouteState = {
+  activeTab?: 'loading-details' | 'ai-agent' | 'saved-load-plans'
+  editLoadPlan?: LoadPlanDetailsData
 }
 
 const toUiShape = (shape: PreviewCargoItem['shape']): CargoItem['shape'] => {
@@ -90,6 +98,28 @@ const createDefaultSaveForm = (formData: LoadingPlanFormState): SavePlanFormStat
     notes: ''
   }
 }
+
+const loadPlanToFormState = (plan: LoadPlanDetailsData): LoadingPlanFormState =>
+  payloadToFormState({
+    selectedContainerCode: plan.selectedContainerCode,
+    cargoItems: plan.cargoItems
+  })
+
+const loadPlanToPreviewData = (plan: LoadPlanDetailsData): PreviewLoadPlanData => ({
+  selectedContainerCode: plan.selectedContainerCode,
+  calculationMode: plan.calculationMode,
+  containerType: plan.containerType,
+  cargoItems: plan.cargoItems,
+  placedCargoItems: plan.placedCargoItems,
+  calculationSummary: plan.calculationSummary
+})
+
+const createSaveFormFromPlan = (plan: LoadPlanDetailsData): SavePlanFormState => ({
+  name: plan.name,
+  customer: plan.customer ?? '',
+  shipmentType: plan.shipmentType ?? 'other',
+  notes: plan.notes ?? ''
+})
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   const axiosError = error as AxiosError<{ message?: string }>
@@ -262,6 +292,10 @@ const SavePopupError = styled.div`
 
 const EmployeeLoadingPlanPage = (): React.JSX.Element => {
   const navigate = useNavigate()
+  const location = useLocation()
+
+  const locationState = location.state as LoadingPlanRouteState | null
+  const editingPlan = locationState?.editLoadPlan ?? null
 
   const handleApplyGeneratedPayload = async (payload: PreviewLoadPlanPayload): Promise<void> => {
     try {
@@ -273,7 +307,6 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
 
       setFormData(nextFormData)
 
-      // Important: use the same path as the manual Loading Details tab
       const finalPayload = buildPreviewPayload(nextFormData)
 
       const data = await previewLoadPlan(finalPayload)
@@ -319,26 +352,44 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
       throw error
     } finally {
       setIsCalculating(false)
-
-      // Stay on AI Agent tab
       setActiveTab('ai-agent')
     }
   }
-  const [activeTab, setActiveTab] = useState('loading-details')
-  const [formData, setFormData] = useState<LoadingPlanFormState>(createInitialForm())
-  const [message, setMessage] = useState('')
+
+  const [activeTab, setActiveTab] = useState(locationState?.activeTab ?? 'loading-details')
+
+  const [formData, setFormData] = useState<LoadingPlanFormState>(() =>
+    editingPlan ? loadPlanToFormState(editingPlan) : createInitialForm()
+  )
+
+  const [message, setMessage] = useState(
+    editingPlan
+      ? 'Saved load plan opened for update. Edit the details, calculate again, then update.'
+      : ''
+  )
+
   const [isCalculating, setIsCalculating] = useState(false)
-  const [previewData, setPreviewData] = useState<PreviewLoadPlanData | null>(null)
+
+  const [previewData, setPreviewData] = useState<PreviewLoadPlanData | null>(() =>
+    editingPlan ? loadPlanToPreviewData(editingPlan) : null
+  )
+
   const [previewMode, setPreviewMode] = useState<'2d' | '3d'>('2d')
   const [errorPopup, setErrorPopup] = useState<ErrorPopupState | null>(null)
   const [isSavePopupOpen, setIsSavePopupOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
+
   const [saveForm, setSaveForm] = useState<SavePlanFormState>(() =>
-    createDefaultSaveForm(createInitialForm())
+    editingPlan ? createSaveFormFromPlan(editingPlan) : createDefaultSaveForm(createInitialForm())
   )
-  const [activeCalculationMode, setActiveCalculationMode] = useState<'standard' | 'closing'>(
-    'standard'
+
+  const [editLoadPlanId, setEditLoadPlanId] = useState<string | null>(
+    () => editingPlan?._id ?? null
+  )
+
+  const [activeCalculationMode, setActiveCalculationMode] = useState<LoadPlanCalculationMode>(
+    editingPlan?.calculationMode ?? 'standard'
   )
 
   const handleContainerChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -431,10 +482,9 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
 
       const payload = buildPreviewPayload(formData)
       const data = await previewLoadPlan(payload)
-      setPreviewData(data)
-      setActiveCalculationMode('standard')
 
       setPreviewData(data)
+      setActiveCalculationMode('standard')
 
       const calculationErrors = data.calculationSummary.calculationErrors
 
@@ -476,10 +526,9 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
 
       const payload = buildPreviewPayload(formData)
       const data = await previewClosingLoadPlan(payload)
-      setPreviewData(data)
-      setActiveCalculationMode('closing')
 
       setPreviewData(data)
+      setActiveCalculationMode('closing')
 
       const calculationErrors = data.calculationSummary.calculationErrors
 
@@ -514,13 +563,17 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
   }
 
   const handleReset = () => {
-    setFormData(createInitialForm())
+    const initialForm = createInitialForm()
+
+    setFormData(initialForm)
     setPreviewData(null)
     setMessage('Form reset.')
     setErrorPopup(null)
     setIsSavePopupOpen(false)
     setSaveError('')
     setActiveCalculationMode('standard')
+    setEditLoadPlanId(null)
+    setSaveForm(createDefaultSaveForm(initialForm))
   }
 
   const canSavePreview = !!previewData?.calculationSummary.fitPossible
@@ -548,7 +601,19 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
       return
     }
 
-    setSaveForm(createDefaultSaveForm(formData))
+    if (editLoadPlanId) {
+      setSaveForm((prev) => {
+        const fallback = createDefaultSaveForm(formData)
+
+        return {
+          ...prev,
+          name: prev.name.trim() ? prev.name : fallback.name
+        }
+      })
+    } else {
+      setSaveForm(createDefaultSaveForm(formData))
+    }
+
     setSaveError('')
     setIsSavePopupOpen(true)
   }
@@ -590,20 +655,33 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
 
       const previewPayload = buildPreviewPayload(formData)
 
-      const savedPlan = await saveLoadPlan({
+      const planPayload = {
         ...previewPayload,
         name,
         customer: saveForm.customer.trim(),
         shipmentType: saveForm.shipmentType,
         notes: saveForm.notes.trim(),
         calculationMode: activeCalculationMode
-      })
+      }
+
+      const savedPlan = editLoadPlanId
+        ? await updateLoadPlan(editLoadPlanId, planPayload)
+        : await saveLoadPlan(planPayload)
 
       setIsSavePopupOpen(false)
+      setEditLoadPlanId(savedPlan._id ?? editLoadPlanId)
+      setSaveForm({
+        name: savedPlan.name ?? name,
+        customer: savedPlan.customer ?? saveForm.customer.trim(),
+        shipmentType: savedPlan.shipmentType ?? saveForm.shipmentType,
+        notes: savedPlan.notes ?? saveForm.notes.trim()
+      })
       setMessage(
-        savedPlan._id
-          ? `Load plan saved successfully. ID: ${savedPlan._id}`
-          : 'Load plan saved successfully.'
+        editLoadPlanId
+          ? 'Load plan updated successfully.'
+          : savedPlan._id
+            ? `Load plan saved successfully. ID: ${savedPlan._id}`
+            : 'Load plan saved successfully.'
       )
     } catch (error) {
       setSaveError(getErrorMessage(error, 'Failed to save load plan.'))
@@ -632,6 +710,8 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
       onCheckboxChange={handleCheckboxChange}
       onRemoveRow={handleRemoveRow}
       onOpenSavePlan={handleOpenSavePopup}
+      saveButtonLabel={editLoadPlanId ? 'Update Plan' : 'Save Plan'}
+      saveButtonTitle={editLoadPlanId ? 'Update this saved load plan' : 'Save this load plan'}
     />
   )
 
@@ -711,7 +791,9 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
           >
             <SavePopupForm onSubmit={handleSavePlan}>
               <MessagesPopupTitleBar>
-                <span id="save-load-plan-title">Save Load Plan</span>
+                <span id="save-load-plan-title">
+                  {editLoadPlanId ? 'Update Load Plan' : 'Save Load Plan'}
+                </span>
 
                 <MessagesPopupCloseButton
                   type="button"
@@ -779,7 +861,13 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
                 </WinButton>
 
                 <WinButton type="submit" disabled={isSaving}>
-                  {isSaving ? 'Saving...' : 'Save'}
+                  {isSaving
+                    ? editLoadPlanId
+                      ? 'Updating...'
+                      : 'Saving...'
+                    : editLoadPlanId
+                      ? 'Update'
+                      : 'Save'}
                 </WinButton>
               </MessagesPopupActions>
             </SavePopupForm>
