@@ -1,5 +1,16 @@
 import httpService from './http'
 
+export type LoadPlanCalculationMode = 'standard' | 'closing'
+
+export type SaveLoadPlanPayload = PreviewLoadPlanPayload & {
+  name: string
+  customer?: string
+  shipmentType?: ShipmentType
+  notes?: string
+  createdBy?: string
+  calculationMode?: LoadPlanCalculationMode
+}
+
 export type PreviewCargoRestriction = {
   mustStayVertical: boolean
   stackable: boolean
@@ -161,13 +172,13 @@ export type PreviewLoadPlanPayload = {
 
 export type ShipmentType = 'import' | 'export' | 'cross-trade' | 'other'
 
-export type SaveLoadPlanPayload = PreviewLoadPlanPayload & {
+/* export type SaveLoadPlanPayload = PreviewLoadPlanPayload & {
   name: string
   customer?: string
   shipmentType?: ShipmentType
   notes?: string
   createdBy?: string
-}
+} */
 
 export type PreviewLoadPlanData = {
   selectedContainerCode: string
@@ -263,6 +274,17 @@ export const previewLoadPlan = async (
   payload: PreviewLoadPlanPayload
 ): Promise<PreviewLoadPlanData> => {
   const response = await httpService.post<PreviewLoadPlanResponse>('/load-plans/preview', payload)
+
+  return response.data.data
+}
+
+export const previewClosingLoadPlan = async (
+  payload: PreviewLoadPlanPayload
+): Promise<PreviewLoadPlanData> => {
+  const response = await httpService.post<PreviewLoadPlanResponse>(
+    '/load-plans/preview/closing',
+    payload
+  )
 
   return response.data.data
 }
