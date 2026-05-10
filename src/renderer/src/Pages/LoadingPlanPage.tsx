@@ -724,6 +724,7 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
       message={message}
       previewData={previewData}
       previewDataExists={!!previewData}
+      selectedContainerCode={formData.containerType}
       warnings={warnings}
       errors={errors}
       onBack={() => navigate('/employee')}

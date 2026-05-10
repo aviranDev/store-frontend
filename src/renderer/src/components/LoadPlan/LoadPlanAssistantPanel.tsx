@@ -15,7 +15,7 @@ import {
 } from '../../styles/LoadPlanStyle/LoadPlanStyle'
 
 import { PreviewLoadPlanData, PreviewLoadPlanPayload } from '../../Services/loadPlan'
-import { askLoadPlanAgent } from '../../Services/loadPlanAgent'
+import { askLoadPlanAgent, uploadPackingListFile } from '../../Services/loadPlanAgent'
 import type { AskLoadPlanAgentResult } from '../../Services/loadPlanAgent'
 
 type ChatMessage = {
@@ -32,6 +32,7 @@ type Props = {
   message: string
   previewData: PreviewLoadPlanData | null
   previewDataExists: boolean
+  selectedContainerCode: string
   warnings: string[]
   errors: string[]
   onBack: () => void
@@ -68,6 +69,26 @@ const appendListSection = (lines: string[], title: string, values?: string[]): v
 const formatAgentResult = (result: AskLoadPlanAgentResult): string => {
   const lines: string[] = [result.answer]
 
+  if (result.source) {
+    lines.push('')
+    lines.push('Uploaded file:')
+    lines.push(`- File: ${result.source.fileName}`)
+    lines.push(`- Total rows: ${result.source.totalRows}`)
+    lines.push(`- Parsed cargo rows: ${result.source.parsedRows}`)
+  }
+
+  if (result.skippedRows && result.skippedRows.length > 0) {
+    lines.push('')
+    lines.push('Skipped rows:')
+    result.skippedRows.slice(0, 8).forEach((row) => {
+      lines.push(`- Row ${row.rowNumber}: ${row.reason}`)
+    })
+
+    if (result.skippedRows.length > 8) {
+      lines.push(`- ${result.skippedRows.length - 8} more skipped rows...`)
+    }
+  }
+
   if ('questions' in result) {
     appendListSection(lines, 'Questions', result.questions)
   }
@@ -88,10 +109,31 @@ const formatBuildRequestMessage = (result: RequestAgentResult): string => {
     result.answer,
     '',
     `Container: ${result.request.selectedContainerCode}`,
-    `Cargo lines: ${result.request.cargoItems.length}`,
-    '',
-    'Calculating the preview now...'
+    `Cargo lines: ${result.request.cargoItems.length}`
   ]
+
+  if (result.source) {
+    lines.push('')
+    lines.push('Uploaded file:')
+    lines.push(`- File: ${result.source.fileName}`)
+    lines.push(`- Total rows: ${result.source.totalRows}`)
+    lines.push(`- Parsed cargo rows: ${result.source.parsedRows}`)
+  }
+
+  if (result.skippedRows && result.skippedRows.length > 0) {
+    lines.push('')
+    lines.push('Skipped rows:')
+    result.skippedRows.slice(0, 8).forEach((row) => {
+      lines.push(`- Row ${row.rowNumber}: ${row.reason}`)
+    })
+
+    if (result.skippedRows.length > 8) {
+      lines.push(`- ${result.skippedRows.length - 8} more skipped rows...`)
+    }
+  }
+
+  lines.push('')
+  lines.push('Calculating the preview now...')
 
   appendListSection(lines, 'Assumptions', result.assumptions)
   appendListSection(lines, 'Warnings', result.warnings)
@@ -99,10 +141,17 @@ const formatBuildRequestMessage = (result: RequestAgentResult): string => {
   return lines.join('\n')
 }
 
+const isAllowedPackingListFile = (file: File): boolean => {
+  const fileName = file.name.toLowerCase()
+
+  return fileName.endsWith('.xlsx') || fileName.endsWith('.xls') || fileName.endsWith('.csv')
+}
+
 const LoadPlanAssistantPanel = ({
   message,
   previewData,
   previewDataExists,
+  selectedContainerCode,
   warnings,
   errors,
   onBack,
@@ -134,11 +183,12 @@ const LoadPlanAssistantPanel = ({
     {
       id: createId(),
       role: 'assistant',
-      text: 'Hello. I can build a load plan from text, ask for missing cargo details, explain fit results, warnings, stacking rules, cargo placement, and weight balance.'
+      text: 'Hello. I can build a load plan from text, upload a packing list file, ask for missing cargo details, explain fit results, warnings, stacking rules, cargo placement, and weight balance.'
     }
   ])
 
   const inputRef = useRef<HTMLTextAreaElement | null>(null)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
   const messagesRef = useRef<HTMLDivElement | null>(null)
   const messagesEndRef = useRef<HTMLDivElement | null>(null)
 
@@ -182,7 +232,7 @@ const LoadPlanAssistantPanel = ({
 
   const handleAgentResult = async (result: AskLoadPlanAgentResult): Promise<void> => {
     if (result.action === 'answer') {
-      addMessage('assistant', result.answer)
+      addMessage('assistant', formatAgentResult(result))
       return
     }
 
@@ -267,6 +317,52 @@ const LoadPlanAssistantPanel = ({
     }
   }
 
+  const handleOpenFilePicker = (): void => {
+    fileInputRef.current?.click()
+  }
+
+  const handlePackingListFileChange = async (
+    event: ChangeEvent<HTMLInputElement>
+  ): Promise<void> => {
+    const file = event.target.files?.[0]
+
+    event.target.value = ''
+
+    if (!file) return
+
+    if (!isAllowedPackingListFile(file)) {
+      addMessage('assistant', 'Please upload only .xlsx, .xls, or .csv packing list files.')
+      return
+    }
+
+    const textInstruction = input.trim()
+    const uploadMessage = textInstruction
+      ? `Upload packing list: ${file.name}\n${textInstruction}`
+      : `Upload packing list: ${file.name}`
+
+    try {
+      setIsSending(true)
+      clearInput()
+      addMessage('user', uploadMessage)
+
+      const result = await uploadPackingListFile({
+        file,
+        selectedContainerCode:
+          currentAgentRequest?.selectedContainerCode || selectedContainerCode || undefined,
+        text:
+          textInstruction ||
+          `Please build a load plan from this packing list using container ${selectedContainerCode}.`,
+        currentRequest: currentAgentRequest ?? undefined
+      })
+
+      await handleAgentResult(result)
+    } catch (error) {
+      addMessage('assistant', getErrorMessage(error, 'Failed to upload packing list file.'))
+    } finally {
+      setIsSending(false)
+    }
+  }
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault()
     await handleAsk()
@@ -342,7 +438,21 @@ const LoadPlanAssistantPanel = ({
                 disabled={isSending}
               />
 
-              <div style={{ display: 'flex', gap: 6 }}>
+              <div
+                style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".xlsx,.xls,.csv"
+                  onChange={handlePackingListFileChange}
+                  style={{ display: 'none' }}
+                />
+
+                <WinButton type="button" onClick={handleOpenFilePicker} disabled={isSending}>
+                  Upload File
+                </WinButton>
+
                 <WinButton
                   type="button"
                   onClick={handleBuildForm}
