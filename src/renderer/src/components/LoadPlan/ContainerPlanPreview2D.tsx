@@ -11,28 +11,19 @@ import {
 
 type PreviewData = NonNullable<ContainerPlanPreviewProps['previewData']>
 type PlacedCargoItem = PreviewData['placedCargoItems'][number]
+type CargoVisualShape = 'carton' | 'crate' | 'pallet'
 
-const GROUP_COLORS = [
-  '#b07a3f',
-  '#6fa85b',
-  '#5b7db1',
-  '#c78f52',
-  '#8f6fb8',
-  '#c95f5f',
-  '#5fa8a1',
-  '#9a9a3f'
-]
+const DEFAULT_SHAPE_COLORS: Record<CargoVisualShape, string> = {
+  carton: '#c79252',
+  crate: '#c58a42',
+  pallet: '#b9803d'
+}
 
-const getGroupKey = (item: PlacedCargoItem): string => {
-  const normalizedShape = item.shape === 'box' ? 'carton' : item.shape
+const normalizeShape = (shape: PlacedCargoItem['shape']): CargoVisualShape => {
+  if (shape === 'box') return 'carton'
+  if (shape === 'pallet') return 'pallet'
 
-  return [
-    normalizedShape,
-    item.placedLengthCm,
-    item.placedWidthCm,
-    item.placedHeightCm,
-    item.cargoDescription
-  ].join('|')
+  return 'crate'
 }
 
 const ContainerPlanPreview2D = ({
@@ -69,20 +60,6 @@ const ContainerPlanPreview2D = ({
     [previewData]
   )
 
-  const groupColorMap = useMemo(() => {
-    const map = new Map<string, string>()
-
-    sortedItems.forEach((item) => {
-      const key = getGroupKey(item)
-
-      if (!map.has(key)) {
-        map.set(key, GROUP_COLORS[map.size % GROUP_COLORS.length])
-      }
-    })
-
-    return map
-  }, [sortedItems])
-
   return (
     <PreviewViewport>
       {previewData ? (
@@ -102,14 +79,13 @@ const ContainerPlanPreview2D = ({
               const height = item.placedWidthCm * scale
 
               const isStacked = item.zCm > 0
-              const normalizedShape = item.shape === 'box' ? 'carton' : item.shape
-              const isPallet = normalizedShape === 'pallet'
-              const color = item.color || groupColorMap.get(getGroupKey(item)) || '#6fa85b'
+              const shape = normalizeShape(item.shape)
+              const color = item.color || DEFAULT_SHAPE_COLORS[shape]
 
               const titleParts = [
                 item.poNumber ? `PO: ${item.poNumber}` : null,
                 `${item.cargoDescription} #${item.unitIndex}`,
-                `Shape: ${normalizedShape}`,
+                `Shape: ${shape}`,
                 `X:${item.xCm}`,
                 `Y:${item.yCm}`,
                 `Z:${item.zCm}`,
@@ -117,20 +93,20 @@ const ContainerPlanPreview2D = ({
               ].filter(Boolean)
 
               return (
-                <div key={`${item.cargoDescription}-${item.unitIndex}-${index}`}>
-                  <PlanBlock
-                    $left={left}
-                    $top={top}
-                    $width={width}
-                    $height={height}
-                    $isStacked={isStacked}
-                    $isPallet={isPallet}
-                    $color={color}
-                    title={titleParts.join(' | ')}
-                  >
-                    {width >= 18 && height >= 12 ? item.poNumber || item.unitIndex : ''}
-                  </PlanBlock>
-                </div>
+                <PlanBlock
+                  key={`${item.cargoDescription}-${item.unitIndex}-${index}`}
+                  $left={left}
+                  $top={top}
+                  $width={width}
+                  $height={height}
+                  $isStacked={isStacked}
+                  $isPallet={shape === 'pallet'}
+                  $shape={shape}
+                  $color={color}
+                  title={titleParts.join(' | ')}
+                >
+                  <span>{width >= 18 && height >= 12 ? item.poNumber || item.unitIndex : ''}</span>
+                </PlanBlock>
               )
             })}
           </PlanCanvas>

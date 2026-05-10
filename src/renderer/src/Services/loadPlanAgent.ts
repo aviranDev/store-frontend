@@ -15,12 +15,29 @@ type ExplainLoadPlanResponse = {
   }
 }
 
+type AgentFileSource = {
+  fileName: string
+  mimeType?: string
+  totalRows: number
+  parsedRows: number
+}
+
+type AgentSkippedRow = {
+  rowNumber: number
+  reason: string
+}
+
+type AgentResultMeta = {
+  source?: AgentFileSource
+  skippedRows?: AgentSkippedRow[]
+}
+
 export type AskLoadPlanAgentResult =
-  | {
+  | ({
       action: 'answer'
       answer: string
-    }
-  | {
+    } & AgentResultMeta)
+  | ({
       action: 'ask_clarification'
       answer: string
       questions: string[]
@@ -28,14 +45,21 @@ export type AskLoadPlanAgentResult =
       draftRequest?: PreviewLoadPlanPayload
       assumptions: string[]
       warnings: string[]
-    }
-  | {
+    } & AgentResultMeta)
+  | ({
       action: 'build_request'
       answer: string
       request: PreviewLoadPlanPayload
       assumptions: string[]
       warnings: string[]
-    }
+    } & AgentResultMeta)
+  | ({
+      action: 'modify_request'
+      answer: string
+      request: PreviewLoadPlanPayload
+      assumptions: string[]
+      warnings: string[]
+    } & AgentResultMeta)
 
 type AskLoadPlanAgentResponse = {
   success: boolean
@@ -95,6 +119,46 @@ export const askLoadPlanAgent = async ({
   }
 
   const response = await httpService.post<AskLoadPlanAgentResponse>('/load-plan-agent/ask', body)
+
+  return response.data.data
+}
+
+export const uploadPackingListFile = async ({
+  file,
+  selectedContainerCode,
+  text,
+  currentRequest
+}: {
+  file: File
+  selectedContainerCode?: string
+  text?: string
+  currentRequest?: PreviewLoadPlanPayload | null
+}): Promise<AskLoadPlanAgentResult> => {
+  const formData = new FormData()
+
+  formData.append('file', file)
+
+  if (selectedContainerCode) {
+    formData.append('selectedContainerCode', selectedContainerCode)
+  }
+
+  if (text?.trim()) {
+    formData.append('text', text.trim())
+  }
+
+  if (currentRequest) {
+    formData.append('currentRequest', JSON.stringify(currentRequest))
+  }
+
+  const response = await httpService.post<AskLoadPlanAgentResponse>(
+    '/load-plan-agent/upload-packing-list',
+    formData,
+    {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    }
+  )
 
   return response.data.data
 }

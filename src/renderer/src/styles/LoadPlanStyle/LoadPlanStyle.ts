@@ -395,6 +395,44 @@ export const PlanCanvas = styled.div<{
   flex: 0 0 auto;
 `
 
+type PlanBlockShape = 'carton' | 'crate' | 'pallet'
+
+const getPlanBlockBackground = ({
+  $shape,
+  $color
+}: {
+  $shape: PlanBlockShape
+  $color: string
+}): string => {
+  if ($shape === 'crate') {
+    return `
+      background-color: ${$color};
+      background-image:
+        linear-gradient(90deg, rgba(85, 45, 16, 0.55) 0 10%, transparent 10% 90%, rgba(85, 45, 16, 0.55) 90% 100%),
+        linear-gradient(0deg, rgba(85, 45, 16, 0.55) 0 14%, transparent 14% 86%, rgba(85, 45, 16, 0.55) 86% 100%),
+        repeating-linear-gradient(0deg, transparent 0 12px, rgba(70, 35, 10, 0.45) 12px 14px),
+        repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0 2px, transparent 2px 12px);
+    `
+  }
+
+  if ($shape === 'pallet') {
+    return `
+      background-color: ${$color};
+      background-image:
+        repeating-linear-gradient(90deg, rgba(75, 40, 13, 0.45) 0 5px, transparent 5px 12px),
+        linear-gradient(0deg, transparent 0 28%, rgba(55, 30, 10, 0.5) 28% 34%, transparent 34% 66%, rgba(55, 30, 10, 0.5) 66% 72%, transparent 72% 100%);
+    `
+  }
+
+  return `
+    background-color: ${$color};
+    background-image:
+      linear-gradient(90deg, transparent 0 46%, rgba(95, 55, 22, 0.45) 46% 54%, transparent 54% 100%),
+      linear-gradient(0deg, rgba(255, 255, 255, 0.15) 0 20%, transparent 20% 100%),
+      repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.08) 0 2px, transparent 2px 8px);
+  `
+}
+
 export const PlanBlock = styled.div<{
   $left: number
   $top: number
@@ -402,6 +440,7 @@ export const PlanBlock = styled.div<{
   $height: number
   $isStacked: boolean
   $isPallet: boolean
+  $shape: PlanBlockShape
   $color: string
 }>`
   position: absolute;
@@ -410,7 +449,7 @@ export const PlanBlock = styled.div<{
   width: ${({ $width }) => `${Math.max($width, 6)}px`};
   height: ${({ $height }) => `${Math.max($height, 6)}px`};
   border: 1px solid #000;
-  background: ${({ $color }) => $color};
+  ${({ $shape, $color }) => getPlanBlockBackground({ $shape, $color })}
   opacity: ${({ $isStacked }) => ($isStacked ? 0.88 : 1)};
   display: flex;
   align-items: center;
@@ -425,7 +464,17 @@ export const PlanBlock = styled.div<{
   line-height: 1;
   white-space: nowrap;
   text-overflow: ellipsis;
-  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.35);
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.4),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.16);
+
+  > span {
+    position: relative;
+    z-index: 2;
+    padding: 1px 3px;
+    background: rgba(255, 255, 255, 0.52);
+    border: 1px solid rgba(0, 0, 0, 0.35);
+  }
 `
 
 export const RightPanelsLayout = styled.div`

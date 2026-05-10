@@ -28,30 +28,23 @@ const SceneReadyNotifier = ({ onReady }: { onReady: () => void }): React.JSX.Ele
 
 type PreviewData = NonNullable<ContainerPlanPreviewProps['previewData']>
 type PlacedCargoItem = PreviewData['placedCargoItems'][number]
+type CargoVisualShape = 'carton' | 'crate' | 'pallet'
+type CargoFaceType = 'side' | 'topBottom'
+type ContainerWallName = 'xMin' | 'xMax' | 'zMin' | 'zMax'
 
 const SCALE = 0.01 // 1 cm = 0.01 scene units
 
-const GROUP_COLORS = [
-  '#b07a3f',
-  '#6fa85b',
-  '#5b7db1',
-  '#c78f52',
-  '#8f6fb8',
-  '#c95f5f',
-  '#5fa8a1',
-  '#9a9a3f'
-]
+const DEFAULT_SHAPE_COLORS: Record<CargoVisualShape, string> = {
+  carton: '#c79252',
+  crate: '#c58a42',
+  pallet: '#bd8d55'
+}
 
-const getGroupKey = (item: PlacedCargoItem): string => {
-  const normalizedShape = item.shape === 'box' ? 'carton' : item.shape
+const normalizeShape = (shape: PlacedCargoItem['shape']): CargoVisualShape => {
+  if (shape === 'box') return 'carton'
+  if (shape === 'pallet') return 'pallet'
 
-  return [
-    normalizedShape,
-    item.placedLengthCm,
-    item.placedWidthCm,
-    item.placedHeightCm,
-    item.cargoDescription
-  ].join('|')
+  return 'crate'
 }
 
 const drawRoundedRect = (
@@ -75,14 +68,197 @@ const drawRoundedRect = (
   context.closePath()
 }
 
+const drawCardboardTexture = (
+  context: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  color: string,
+  faceType: CargoFaceType
+): void => {
+  context.fillStyle = color
+  context.fillRect(0, 0, width, height)
+
+  context.fillStyle = 'rgba(255, 255, 255, 0.12)'
+  context.fillRect(0, 0, width, height * 0.25)
+
+  context.strokeStyle = 'rgba(75, 42, 18, 0.42)'
+  context.lineWidth = 6
+
+  if (faceType === 'topBottom') {
+    context.beginPath()
+    context.moveTo(width / 2, 0)
+    context.lineTo(width / 2, height)
+    context.moveTo(0, height / 2)
+    context.lineTo(width, height / 2)
+    context.stroke()
+
+    context.fillStyle = 'rgba(120, 78, 34, 0.34)'
+    context.fillRect(width * 0.45, 0, width * 0.1, height)
+    context.fillRect(0, height * 0.43, width, height * 0.14)
+  } else {
+    context.beginPath()
+    context.moveTo(width / 2, 0)
+    context.lineTo(width / 2, height)
+    context.stroke()
+
+    context.fillStyle = 'rgba(120, 78, 34, 0.32)'
+    context.fillRect(0, height * 0.06, width, height * 0.13)
+  }
+
+  context.strokeStyle = 'rgba(255, 255, 255, 0.08)'
+  context.lineWidth = 2
+
+  for (let index = 0; index < 28; index += 1) {
+    const y = 18 + index * 18
+    context.beginPath()
+    context.moveTo(0, y)
+    context.lineTo(width, y + 6)
+    context.stroke()
+  }
+}
+
+const drawWoodTexture = (
+  context: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  color: string
+): void => {
+  context.fillStyle = color
+  context.fillRect(0, 0, width, height)
+
+  context.strokeStyle = 'rgba(85, 42, 13, 0.58)'
+  context.lineWidth = 5
+
+  for (let y = 72; y < height; y += 74) {
+    context.beginPath()
+    context.moveTo(0, y)
+    context.lineTo(width, y)
+    context.stroke()
+  }
+
+  context.strokeStyle = 'rgba(255, 230, 170, 0.18)'
+  context.lineWidth = 3
+
+  for (let index = 0; index < 32; index += 1) {
+    const y = 18 + index * 16
+    context.beginPath()
+    context.moveTo(0, y)
+    context.bezierCurveTo(width * 0.25, y - 18, width * 0.55, y + 18, width, y)
+    context.stroke()
+  }
+
+  context.strokeStyle = 'rgba(73, 34, 10, 0.75)'
+  context.lineWidth = 26
+  context.strokeRect(18, 18, width - 36, height - 36)
+
+  context.fillStyle = 'rgba(44, 24, 10, 0.55)'
+
+  for (let x = 80; x < width; x += 150) {
+    context.beginPath()
+    context.arc(x, 62, 8, 0, Math.PI * 2)
+    context.fill()
+
+    context.beginPath()
+    context.arc(x, height - 62, 8, 0, Math.PI * 2)
+    context.fill()
+  }
+}
+
+const drawWrappedPalletLoadTexture = (
+  context: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  color: string
+): void => {
+  context.fillStyle = color
+  context.fillRect(0, 0, width, height)
+
+  context.strokeStyle = 'rgba(80, 45, 18, 0.38)'
+  context.lineWidth = 5
+
+  for (let x = width / 3; x < width; x += width / 3) {
+    context.beginPath()
+    context.moveTo(x, 0)
+    context.lineTo(x, height)
+    context.stroke()
+  }
+
+  for (let y = height / 3; y < height; y += height / 3) {
+    context.beginPath()
+    context.moveTo(0, y)
+    context.lineTo(width, y)
+    context.stroke()
+  }
+
+  context.strokeStyle = 'rgba(255, 255, 255, 0.36)'
+  context.lineWidth = 4
+
+  for (let y = 20; y < height; y += 28) {
+    context.beginPath()
+    context.moveTo(0, y)
+    context.lineTo(width, y + 12)
+    context.stroke()
+  }
+
+  context.fillStyle = 'rgba(255, 255, 255, 0.16)'
+  context.fillRect(0, 0, width, height)
+}
+
+const drawLabel = (
+  context: CanvasRenderingContext2D,
+  canvasWidth: number,
+  canvasHeight: number,
+  label?: string
+): void => {
+  const safeLabel = label?.trim() ?? ''
+
+  if (!safeLabel) return
+
+  let fontSize = 120
+  context.font = `bold ${fontSize}px Arial`
+
+  while (fontSize > 44 && context.measureText(safeLabel).width > canvasWidth - 180) {
+    fontSize -= 4
+    context.font = `bold ${fontSize}px Arial`
+  }
+
+  const textWidth = context.measureText(safeLabel).width
+  const paddingX = 42
+  const paddingY = 24
+
+  const labelWidth = Math.min(textWidth + paddingX * 2, canvasWidth - 90)
+  const labelHeight = fontSize + paddingY * 2
+
+  const labelX = (canvasWidth - labelWidth) / 2
+  const labelY = (canvasHeight - labelHeight) / 2
+
+  context.fillStyle = 'rgba(255, 255, 255, 0.62)'
+  drawRoundedRect(context, labelX, labelY, labelWidth, labelHeight, 18)
+  context.fill()
+
+  context.strokeStyle = 'rgba(0, 0, 0, 0.45)'
+  context.lineWidth = 5
+  drawRoundedRect(context, labelX, labelY, labelWidth, labelHeight, 18)
+  context.stroke()
+
+  context.fillStyle = '#111111'
+  context.textAlign = 'center'
+  context.textBaseline = 'middle'
+  context.fillText(safeLabel, canvasWidth / 2, canvasHeight / 2)
+}
+
 const createCargoFaceTexture = ({
   label,
   color,
-  showLabel
+  showLabel,
+  shape,
+  faceType
 }: {
   label?: string
   color: string
   showLabel: boolean
+  shape: CargoVisualShape
+  faceType: CargoFaceType
 }): THREE.CanvasTexture => {
   const canvas = document.createElement('canvas')
   const context = canvas.getContext('2d')
@@ -96,60 +272,16 @@ const createCargoFaceTexture = ({
 
   context.clearRect(0, 0, canvas.width, canvas.height)
 
-  /**
-   * The cargo color becomes the actual face background.
-   * This prevents the PO from looking like a floating layer.
-   */
-  context.fillStyle = color
-  context.fillRect(0, 0, canvas.width, canvas.height)
+  if (shape === 'crate') {
+    drawWoodTexture(context, canvas.width, canvas.height, color)
+  } else if (shape === 'pallet') {
+    drawWrappedPalletLoadTexture(context, canvas.width, canvas.height, color)
+  } else {
+    drawCardboardTexture(context, canvas.width, canvas.height, color, faceType)
+  }
 
-  /**
-   * Slight shading lines so the face still has depth.
-   */
-  context.fillStyle = 'rgba(255, 255, 255, 0.08)'
-  context.fillRect(0, 0, canvas.width, canvas.height / 3)
-
-  context.fillStyle = 'rgba(0, 0, 0, 0.08)'
-  context.fillRect(0, canvas.height * 0.78, canvas.width, canvas.height * 0.22)
-
-  const safeLabel = label?.trim() ?? ''
-
-  if (showLabel && safeLabel) {
-    let fontSize = 120
-    context.font = `bold ${fontSize}px Arial`
-
-    while (fontSize > 44 && context.measureText(safeLabel).width > canvas.width - 180) {
-      fontSize -= 4
-      context.font = `bold ${fontSize}px Arial`
-    }
-
-    const textWidth = context.measureText(safeLabel).width
-    const paddingX = 42
-    const paddingY = 24
-
-    const labelWidth = Math.min(textWidth + paddingX * 2, canvas.width - 90)
-    const labelHeight = fontSize + paddingY * 2
-
-    const labelX = (canvas.width - labelWidth) / 2
-    const labelY = (canvas.height - labelHeight) / 2
-
-    /**
-     * Reduced PO background.
-     * It is only behind the text and blended into the item face.
-     */
-    context.fillStyle = 'rgba(255, 255, 255, 0.52)'
-    drawRoundedRect(context, labelX, labelY, labelWidth, labelHeight, 18)
-    context.fill()
-
-    context.strokeStyle = 'rgba(0, 0, 0, 0.45)'
-    context.lineWidth = 5
-    drawRoundedRect(context, labelX, labelY, labelWidth, labelHeight, 18)
-    context.stroke()
-
-    context.fillStyle = '#111111'
-    context.textAlign = 'center'
-    context.textBaseline = 'middle'
-    context.fillText(safeLabel, canvas.width / 2, canvas.height / 2)
+  if (showLabel) {
+    drawLabel(context, canvas.width, canvas.height, label)
   }
 
   const texture = new THREE.CanvasTexture(canvas)
@@ -164,16 +296,18 @@ const createCargoFaceTexture = ({
   return texture
 }
 
-const BoxWithEdges = ({
+const CargoBodyBox = ({
   position,
   size,
   color,
-  label
+  label,
+  shape
 }: {
   position: [number, number, number]
   size: [number, number, number]
   color: string
   label?: string
+  shape: CargoVisualShape
 }): React.JSX.Element => {
   const geometry = useMemo(() => new THREE.BoxGeometry(size[0], size[1], size[2]), [size])
   const edgesGeometry = useMemo(() => new THREE.EdgesGeometry(geometry), [geometry])
@@ -182,26 +316,30 @@ const BoxWithEdges = ({
     const sideTexture = createCargoFaceTexture({
       label,
       color,
-      showLabel: true
+      showLabel: true,
+      shape,
+      faceType: 'side'
     })
 
     const topBottomTexture = createCargoFaceTexture({
       label,
       color,
-      showLabel: false
+      showLabel: false,
+      shape,
+      faceType: 'topBottom'
     })
 
     return {
       sideTexture,
       topBottomTexture
     }
-  }, [label, color])
+  }, [label, color, shape])
 
   const materials = useMemo(() => {
     const sideMaterial = new THREE.MeshStandardMaterial({
       map: faceTextures.sideTexture,
       color: '#ffffff',
-      roughness: 0.85,
+      roughness: 0.86,
       metalness: 0,
       toneMapped: false
     })
@@ -209,18 +347,11 @@ const BoxWithEdges = ({
     const topBottomMaterial = new THREE.MeshStandardMaterial({
       map: faceTextures.topBottomTexture,
       color: '#ffffff',
-      roughness: 0.85,
+      roughness: 0.86,
       metalness: 0,
       toneMapped: false
     })
 
-    /**
-     * BoxGeometry material order:
-     * 0 right, 1 left, 2 top, 3 bottom, 4 front, 5 back.
-     *
-     * PO is printed on side faces.
-     * Top and bottom keep the clean cargo color.
-     */
     return [
       sideMaterial,
       sideMaterial,
@@ -253,6 +384,188 @@ const BoxWithEdges = ({
       </lineSegments>
     </group>
   )
+}
+
+const CrateBox = ({
+  position,
+  size,
+  color,
+  label
+}: {
+  position: [number, number, number]
+  size: [number, number, number]
+  color: string
+  label?: string
+}): React.JSX.Element => {
+  const beamThickness = Math.min(Math.max(Math.min(size[0], size[1], size[2]) * 0.08, 0.035), 0.09)
+  const xEdge = size[0] / 2 - beamThickness / 2
+  const yEdge = size[1] / 2 - beamThickness / 2
+  const zFront = size[2] / 2 + beamThickness * 0.18
+  const zBack = -size[2] / 2 - beamThickness * 0.18
+
+  const beamMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#8a4f1f',
+        roughness: 0.88,
+        metalness: 0
+      }),
+    []
+  )
+
+  useEffect(() => {
+    return () => {
+      beamMaterial.dispose()
+    }
+  }, [beamMaterial])
+
+  const beams = [
+    { position: [-xEdge, 0, zFront], size: [beamThickness, size[1], beamThickness] },
+    { position: [xEdge, 0, zFront], size: [beamThickness, size[1], beamThickness] },
+    { position: [0, yEdge, zFront], size: [size[0], beamThickness, beamThickness] },
+    { position: [0, -yEdge, zFront], size: [size[0], beamThickness, beamThickness] },
+
+    { position: [-xEdge, 0, zBack], size: [beamThickness, size[1], beamThickness] },
+    { position: [xEdge, 0, zBack], size: [beamThickness, size[1], beamThickness] },
+    { position: [0, yEdge, zBack], size: [size[0], beamThickness, beamThickness] },
+    { position: [0, -yEdge, zBack], size: [size[0], beamThickness, beamThickness] }
+  ] as const
+
+  return (
+    <group position={position}>
+      <CargoBodyBox position={[0, 0, 0]} size={size} color={color} label={label} shape="crate" />
+
+      {beams.map((beam, index) => (
+        <mesh key={index} position={beam.position} material={beamMaterial}>
+          <boxGeometry args={beam.size} />
+        </mesh>
+      ))}
+    </group>
+  )
+}
+
+const PalletBase = ({
+  position,
+  size
+}: {
+  position: [number, number, number]
+  size: [number, number, number]
+}): React.JSX.Element => {
+  const [length, height, depth] = size
+
+  const topBoardHeight = Math.max(height * 0.22, 0.018)
+  const bottomBoardHeight = Math.max(height * 0.16, 0.014)
+  const blockHeight = Math.max(height * 0.48, 0.04)
+
+  const boardColor = '#b97932'
+  const boardAltColor = '#c98b45'
+  const darkWoodColor = '#744018'
+
+  const topBoardCount = 5
+  const topBoardDepth = depth / 8
+
+  const topBoards = Array.from({ length: topBoardCount }, (_, index) => {
+    const z = -depth / 2 + ((index + 0.5) * depth) / topBoardCount
+
+    return {
+      position: [0, height * 0.34, z] as [number, number, number],
+      size: [length, topBoardHeight, topBoardDepth] as [number, number, number],
+      color: index % 2 === 0 ? boardColor : boardAltColor
+    }
+  })
+
+  const bottomBoards = [-0.36, 0, 0.36].map((zOffset) => ({
+    position: [0, -height * 0.38, zOffset * depth] as [number, number, number],
+    size: [length, bottomBoardHeight, depth * 0.12] as [number, number, number]
+  }))
+
+  const supportBlocks = [-0.36, 0, 0.36].flatMap((xOffset) =>
+    [-0.36, 0, 0.36].map((zOffset) => ({
+      position: [xOffset * length, -height * 0.05, zOffset * depth] as [number, number, number],
+      size: [length * 0.12, blockHeight, depth * 0.12] as [number, number, number]
+    }))
+  )
+
+  return (
+    <group position={position}>
+      {topBoards.map((board, index) => (
+        <mesh key={`pallet-top-${index}`} position={board.position}>
+          <boxGeometry args={board.size} />
+          <meshStandardMaterial color={board.color} roughness={0.88} metalness={0} />
+        </mesh>
+      ))}
+
+      {supportBlocks.map((block, index) => (
+        <mesh key={`pallet-block-${index}`} position={block.position}>
+          <boxGeometry args={block.size} />
+          <meshStandardMaterial color={darkWoodColor} roughness={0.92} metalness={0} />
+        </mesh>
+      ))}
+
+      {bottomBoards.map((board, index) => (
+        <mesh key={`pallet-bottom-${index}`} position={board.position}>
+          <boxGeometry args={board.size} />
+          <meshStandardMaterial color={darkWoodColor} roughness={0.92} metalness={0} />
+        </mesh>
+      ))}
+    </group>
+  )
+}
+
+const PalletizedLoad = ({
+  position,
+  size,
+  color,
+  label
+}: {
+  position: [number, number, number]
+  size: [number, number, number]
+  color: string
+  label?: string
+}): React.JSX.Element => {
+  const palletHeight = Math.min(Math.max(size[1] * 0.16, 0.08), 0.16)
+  const loadHeight = Math.max(size[1] - palletHeight, size[1] * 0.45)
+
+  return (
+    <group position={position}>
+      <PalletBase
+        position={[0, -size[1] / 2 + palletHeight / 2, 0]}
+        size={[size[0], palletHeight, size[2]]}
+      />
+
+      <CargoBodyBox
+        position={[0, -size[1] / 2 + palletHeight + loadHeight / 2, 0]}
+        size={[size[0], loadHeight, size[2]]}
+        color={color}
+        label={label}
+        shape="pallet"
+      />
+    </group>
+  )
+}
+
+const CargoVisualItem = ({
+  position,
+  size,
+  color,
+  label,
+  shape
+}: {
+  position: [number, number, number]
+  size: [number, number, number]
+  color: string
+  label?: string
+  shape: CargoVisualShape
+}): React.JSX.Element => {
+  if (shape === 'pallet') {
+    return <PalletizedLoad position={position} size={size} color={color} label={label} />
+  }
+
+  if (shape === 'crate') {
+    return <CrateBox position={position} size={size} color={color} label={label} />
+  }
+
+  return <CargoBodyBox position={position} size={size} color={color} label={label} shape="carton" />
 }
 
 const KeyboardCameraControls = ({
@@ -338,28 +651,207 @@ const KeyboardCameraControls = ({
   return null
 }
 
+const createWallGridGeometry = ({
+  wall,
+  containerLength,
+  containerWidth,
+  containerHeight
+}: {
+  wall: ContainerWallName
+  containerLength: number
+  containerWidth: number
+  containerHeight: number
+}): THREE.BufferGeometry => {
+  const positions: number[] = []
+
+  const xMin = -containerLength / 2
+  const xMax = containerLength / 2
+  const yMin = -containerHeight / 2
+  const yMax = containerHeight / 2
+  const zMin = -containerWidth / 2
+  const zMax = containerWidth / 2
+
+  const gridStep = Math.max(containerLength, containerWidth) / 24
+
+  const addLine = (
+    x1: number,
+    y1: number,
+    z1: number,
+    x2: number,
+    y2: number,
+    z2: number
+  ): void => {
+    positions.push(x1, y1, z1, x2, y2, z2)
+  }
+
+  if (wall === 'zMin' || wall === 'zMax') {
+    const z = wall === 'zMin' ? zMin : zMax
+
+    for (let x = xMin; x <= xMax + 0.001; x += gridStep) {
+      addLine(x, yMin, z, x, yMax, z)
+    }
+
+    for (let y = yMin; y <= yMax + 0.001; y += gridStep) {
+      addLine(xMin, y, z, xMax, y, z)
+    }
+  }
+
+  if (wall === 'xMin' || wall === 'xMax') {
+    const x = wall === 'xMin' ? xMin : xMax
+
+    for (let z = zMin; z <= zMax + 0.001; z += gridStep) {
+      addLine(x, yMin, z, x, yMax, z)
+    }
+
+    for (let y = yMin; y <= yMax + 0.001; y += gridStep) {
+      addLine(x, y, zMin, x, y, zMax)
+    }
+  }
+
+  const geometry = new THREE.BufferGeometry()
+
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3))
+
+  return geometry
+}
+
+const CameraBackWallGrid = ({
+  containerLength,
+  containerWidth,
+  containerHeight
+}: {
+  containerLength: number
+  containerWidth: number
+  containerHeight: number
+}): React.JSX.Element => {
+  const { camera } = useThree()
+
+  const xMinRef = useRef<THREE.LineSegments | null>(null)
+  const xMaxRef = useRef<THREE.LineSegments | null>(null)
+  const zMinRef = useRef<THREE.LineSegments | null>(null)
+  const zMaxRef = useRef<THREE.LineSegments | null>(null)
+
+  const xMinGeometry = useMemo(
+    () =>
+      createWallGridGeometry({
+        wall: 'xMin',
+        containerLength,
+        containerWidth,
+        containerHeight
+      }),
+    [containerLength, containerWidth, containerHeight]
+  )
+
+  const xMaxGeometry = useMemo(
+    () =>
+      createWallGridGeometry({
+        wall: 'xMax',
+        containerLength,
+        containerWidth,
+        containerHeight
+      }),
+    [containerLength, containerWidth, containerHeight]
+  )
+
+  const zMinGeometry = useMemo(
+    () =>
+      createWallGridGeometry({
+        wall: 'zMin',
+        containerLength,
+        containerWidth,
+        containerHeight
+      }),
+    [containerLength, containerWidth, containerHeight]
+  )
+
+  const zMaxGeometry = useMemo(
+    () =>
+      createWallGridGeometry({
+        wall: 'zMax',
+        containerLength,
+        containerWidth,
+        containerHeight
+      }),
+    [containerLength, containerWidth, containerHeight]
+  )
+
+  const gridMaterial = useMemo(
+    () =>
+      new THREE.LineBasicMaterial({
+        color: '#bdbdbd',
+        transparent: true,
+        opacity: 0.68,
+        depthTest: true,
+        depthWrite: false
+      }),
+    []
+  )
+
+  useFrame(() => {
+    /**
+     * Reset all wall grids first.
+     */
+    if (xMinRef.current) xMinRef.current.visible = false
+    if (xMaxRef.current) xMaxRef.current.visible = false
+    if (zMinRef.current) zMinRef.current.visible = false
+    if (zMaxRef.current) zMaxRef.current.visible = false
+
+    const cameraX = camera.position.x
+    const cameraZ = camera.position.z
+
+    /**
+     * Show TWO back wall grids every time:
+     *
+     * 1. One opposite X wall
+     * 2. One opposite Z wall
+     *
+     * This creates a visible container corner / two-wall angle,
+     * but still avoids showing the front wall grid.
+     */
+
+    if (cameraX >= 0) {
+      if (xMinRef.current) xMinRef.current.visible = true
+    } else {
+      if (xMaxRef.current) xMaxRef.current.visible = true
+    }
+
+    if (cameraZ >= 0) {
+      if (zMinRef.current) zMinRef.current.visible = true
+    } else {
+      if (zMaxRef.current) zMaxRef.current.visible = true
+    }
+  })
+
+  useEffect(() => {
+    return () => {
+      xMinGeometry.dispose()
+      xMaxGeometry.dispose()
+      zMinGeometry.dispose()
+      zMaxGeometry.dispose()
+      gridMaterial.dispose()
+    }
+  }, [xMinGeometry, xMaxGeometry, zMinGeometry, zMaxGeometry, gridMaterial])
+
+  return (
+    <group>
+      <lineSegments ref={xMinRef} geometry={xMinGeometry} material={gridMaterial} />
+      <lineSegments ref={xMaxRef} geometry={xMaxGeometry} material={gridMaterial} />
+      <lineSegments ref={zMinRef} geometry={zMinGeometry} material={gridMaterial} />
+      <lineSegments ref={zMaxRef} geometry={zMaxGeometry} material={gridMaterial} />
+    </group>
+  )
+}
+
 const ContainerScene = ({ previewData }: { previewData: PreviewData }): React.JSX.Element => {
   const containerLength = previewData.containerType.dimensions.internalLengthCm * SCALE
   const containerWidth = previewData.containerType.dimensions.internalWidthCm * SCALE
   const containerHeight = previewData.containerType.dimensions.internalHeightCm * SCALE
 
-  const groupColorMap = useMemo(() => {
-    const map = new Map<string, string>()
-
-    previewData.placedCargoItems.forEach((item) => {
-      const key = getGroupKey(item)
-
-      if (!map.has(key)) {
-        map.set(key, GROUP_COLORS[map.size % GROUP_COLORS.length])
-      }
-    })
-
-    return map
-  }, [previewData])
-
   const placedItems = useMemo(
     () =>
       previewData.placedCargoItems.map((item, index) => {
+        const shape = normalizeShape(item.shape)
+
         const sizeX = item.placedLengthCm * SCALE
         const sizeY = item.placedHeightCm * SCALE
         const sizeZ = item.placedWidthCm * SCALE
@@ -370,13 +862,14 @@ const ContainerScene = ({ previewData }: { previewData: PreviewData }): React.JS
 
         return {
           key: `${item.cargoDescription}-${item.unitIndex}-${index}`,
-          color: item.color || groupColorMap.get(getGroupKey(item)) || '#6fa85b',
+          shape,
+          color: item.color || DEFAULT_SHAPE_COLORS[shape],
           label: item.poNumber || String(item.unitIndex),
           position: [x, y, z] as [number, number, number],
           size: [sizeX, sizeY, sizeZ] as [number, number, number]
         }
       }),
-    [previewData, containerLength, containerHeight, containerWidth, groupColorMap]
+    [previewData, containerLength, containerHeight, containerWidth]
   )
 
   const shellGeometry = useMemo(
@@ -395,9 +888,9 @@ const ContainerScene = ({ previewData }: { previewData: PreviewData }): React.JS
 
   return (
     <>
-      <ambientLight intensity={1.1} />
-      <directionalLight position={[8, 10, 8]} intensity={1.2} />
-      <directionalLight position={[-6, 6, -4]} intensity={0.5} />
+      <ambientLight intensity={1.15} />
+      <directionalLight position={[8, 10, 8]} intensity={1.25} />
+      <directionalLight position={[-6, 6, -4]} intensity={0.55} />
 
       <KeyboardCameraControls containerLength={containerLength} />
 
@@ -412,9 +905,11 @@ const ContainerScene = ({ previewData }: { previewData: PreviewData }): React.JS
       />
 
       <group>
-        <mesh geometry={shellGeometry}>
-          <meshStandardMaterial color="#9e9e9e" transparent opacity={0.06} />
-        </mesh>
+        <CameraBackWallGrid
+          containerLength={containerLength}
+          containerWidth={containerWidth}
+          containerHeight={containerHeight}
+        />
 
         <lineSegments geometry={shellEdgesGeometry}>
           <lineBasicMaterial color="#666666" />
@@ -422,12 +917,13 @@ const ContainerScene = ({ previewData }: { previewData: PreviewData }): React.JS
       </group>
 
       {placedItems.map((item) => (
-        <BoxWithEdges
+        <CargoVisualItem
           key={item.key}
           position={item.position}
           size={item.size}
           color={item.color}
           label={item.label}
+          shape={item.shape}
         />
       ))}
     </>
@@ -451,11 +947,6 @@ const ContainerPlanPreview3D = ({
     setIsPreparing3D(true)
     setSceneData(null)
 
-    /**
-     * This delay allows React to paint:
-     * "Loading, please wait..."
-     * before the heavy 3D scene starts rendering.
-     */
     const timeoutId = window.setTimeout(() => {
       setSceneData(previewData)
     }, 80)
@@ -526,7 +1017,7 @@ const ContainerPlanPreview3D = ({
                 border: '2px inset #c0c0c0'
               }}
             >
-              Loading, please wait...
+              Loading, please wait.
             </div>
           )}
         </div>
