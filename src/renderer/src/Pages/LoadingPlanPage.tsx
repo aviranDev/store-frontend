@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { AxiosError } from 'axios'
 import styled from 'styled-components'
 import LoadPlansCardsPanel from '../components/LoadPlan/LoadPlansCardsPanel'
-
+import ClientLoadPlanPdf from '../components/LoadPlan/ClientLoadPlanPdf'
 import Win95Page from '../components/Win95/Win95Page'
 import Win95Tabs, { TabItem } from '../components/Win95/Win95Tabs'
 import WinButton from '../components/Button/WinButton'
@@ -17,7 +17,8 @@ import {
   PreviewLoadPlanPayload,
   saveLoadPlan,
   ShipmentType,
-  updateLoadPlan
+  updateLoadPlan,
+  sendLoadPlanPdfEmail
 } from '../Services/loadPlan'
 
 import LoadPlanForm from '../components/LoadPlan/LoadPlanForm'
@@ -45,9 +46,24 @@ type SavePlanFormState = {
   notes: string
 }
 
+type PdfEmailFormState = {
+  to: string
+  subject: string
+  message: string
+}
+
 type LoadingPlanRouteState = {
   activeTab?: LoadingPlanTabId
   editLoadPlan?: LoadPlanDetailsData
+}
+
+const wait = (milliseconds: number): Promise<void> =>
+  new Promise((resolve) => window.setTimeout(resolve, milliseconds))
+
+const sanitizePdfFileName = (value: string): string => {
+  const cleanValue = value.trim() || 'load-plan'
+
+  return cleanValue.replace(/[<>:"/\\|?*\x00-\x1F]/g, '-')
 }
 
 const toUiShape = (shape: PreviewCargoItem['shape']): CargoItem['shape'] => {
@@ -381,12 +397,22 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
   const [previewMode, setPreviewMode] = useState<'2d' | '3d'>('2d')
   const [errorPopup, setErrorPopup] = useState<ErrorPopupState | null>(null)
   const [isSavePopupOpen, setIsSavePopupOpen] = useState(false)
+  const [isEmailPopupOpen, setIsEmailPopupOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [isPdfBusy, setIsPdfBusy] = useState(false)
   const [saveError, setSaveError] = useState('')
+  const [emailError, setEmailError] = useState('')
+  const [isPdfLayoutVisible, setIsPdfLayoutVisible] = useState(false)
 
   const [saveForm, setSaveForm] = useState<SavePlanFormState>(() =>
     editingPlan ? createSaveFormFromPlan(editingPlan) : createDefaultSaveForm(createInitialForm())
   )
+
+  const [pdfEmailForm, setPdfEmailForm] = useState<PdfEmailFormState>({
+    to: '',
+    subject: '',
+    message: 'Please find attached the loading plan PDF.'
+  })
 
   const [editLoadPlanId, setEditLoadPlanId] = useState<string | null>(
     () => editingPlan?._id ?? null
@@ -395,6 +421,20 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
   const [activeCalculationMode, setActiveCalculationMode] = useState<LoadPlanCalculationMode>(
     editingPlan?.calculationMode ?? 'standard'
   )
+
+  const getPdfPlanName = (): string => {
+    const fallback = createDefaultSaveForm(formData).name
+
+    return saveForm.name.trim() || fallback
+  }
+
+  const getPdfFileName = (): string => {
+    return `${sanitizePdfFileName(getPdfPlanName())}.pdf`
+  }
+
+  const getDefaultEmailSubject = (): string => {
+    return `Load Plan - ${getPdfPlanName()}`
+  }
 
   const handleContainerChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     setFormData((prev) => ({
@@ -569,18 +609,36 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
   const handleReset = () => {
     const initialForm = createInitialForm()
 
+    setIsPdfLayoutVisible(false)
     setFormData(initialForm)
     setPreviewData(null)
     setMessage('Form reset.')
     setErrorPopup(null)
     setIsSavePopupOpen(false)
+    setIsEmailPopupOpen(false)
     setSaveError('')
+    setEmailError('')
     setActiveCalculationMode('standard')
     setEditLoadPlanId(null)
     setSaveForm(createDefaultSaveForm(initialForm))
+    setPdfEmailForm({
+      to: '',
+      subject: '',
+      message: 'Please find attached the loading plan PDF.'
+    })
   }
 
   const canSavePreview = !!previewData?.calculationSummary.fitPossible
+  const canCreatePdf = !!previewData
+
+  const showPdfLayoutBeforePrint = async (): Promise<void> => {
+    setIsPdfLayoutVisible(true)
+    await wait(1200)
+  }
+
+  const hidePdfLayoutAfterPrint = (): void => {
+    setIsPdfLayoutVisible(false)
+  }
 
   const handleOpenSavePopup = () => {
     if (!previewData) {
@@ -637,6 +695,130 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
 
       setSaveError('')
     }
+
+  const handlePdfEmailFormChange =
+    (field: keyof PdfEmailFormState) =>
+    (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      const { value } = event.target
+
+      setPdfEmailForm((prev) => ({
+        ...prev,
+        [field]: value
+      }))
+
+      setEmailError('')
+    }
+
+  const handleDownloadPdf = async (): Promise<void> => {
+    if (!previewData) {
+      const nextMessage = 'Please calculate a preview before creating a PDF.'
+
+      setMessage(nextMessage)
+      setErrorPopup({
+        message: nextMessage,
+        errors: []
+      })
+      return
+    }
+
+    if (!window.api?.loadPlanPdf) {
+      setMessage('PDF export is available only inside the Electron app.')
+      return
+    }
+
+    try {
+      setIsPdfBusy(true)
+      setMessage('Creating PDF...')
+      setErrorPopup(null)
+
+      await showPdfLayoutBeforePrint()
+
+      const result = await window.api.loadPlanPdf.save(getPdfFileName())
+
+      if (result.canceled) {
+        setMessage('PDF export canceled.')
+        return
+      }
+
+      setMessage(`PDF saved successfully: ${result.filePath}`)
+    } catch (error) {
+      setMessage(getErrorMessage(error, 'Failed to create PDF.'))
+    } finally {
+      hidePdfLayoutAfterPrint()
+      setIsPdfBusy(false)
+    }
+  }
+
+  const handleOpenSendPdfEmail = (): void => {
+    if (!previewData) {
+      const nextMessage = 'Please calculate a preview before sending a PDF.'
+
+      setMessage(nextMessage)
+      setErrorPopup({
+        message: nextMessage,
+        errors: []
+      })
+      return
+    }
+
+    setPdfEmailForm((prev) => ({
+      ...prev,
+      subject: prev.subject.trim() ? prev.subject : getDefaultEmailSubject()
+    }))
+    setEmailError('')
+    setIsEmailPopupOpen(true)
+  }
+
+  const handleSendPdfEmail = async (event: React.FormEvent<HTMLFormElement>): Promise<void> => {
+    event.preventDefault()
+
+    const to = pdfEmailForm.to.trim()
+    const subject = pdfEmailForm.subject.trim() || getDefaultEmailSubject()
+    const emailMessage = pdfEmailForm.message.trim()
+
+    if (!to) {
+      setEmailError('Email address is required.')
+      return
+    }
+
+    if (!previewData) {
+      setEmailError('Please calculate a preview before sending a PDF.')
+      return
+    }
+
+    if (!window.api?.loadPlanPdf) {
+      setEmailError('PDF export is available only inside the Electron app.')
+      return
+    }
+
+    try {
+      setIsPdfBusy(true)
+      setEmailError('')
+      setIsEmailPopupOpen(false)
+      setMessage('Creating and sending PDF...')
+
+      await showPdfLayoutBeforePrint()
+
+      const pdfBase64 = await window.api.loadPlanPdf.createBase64()
+
+      await sendLoadPlanPdfEmail({
+        to,
+        subject,
+        message: emailMessage || 'Please find attached the loading plan PDF.',
+        fileName: getPdfFileName(),
+        pdfBase64
+      })
+
+      setMessage('PDF email sent successfully.')
+    } catch (error) {
+      setEmailError(getErrorMessage(error, 'Failed to send PDF email.'))
+      setIsEmailPopupOpen(true)
+      setMessage('Failed to send PDF email.')
+    } finally {
+      setIsPdfBusy(false)
+      hidePdfLayoutAfterPrint()
+    }
+  }
 
   const handleSavePlan = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -703,7 +885,9 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
       message={message}
       isCalculating={isCalculating}
       isSaving={isSaving}
+      isPdfBusy={isPdfBusy}
       canSavePreview={canSavePreview}
+      canCreatePdf={canCreatePdf}
       onSubmit={handleSubmit}
       onClosingPreview={handleClosingPreview}
       onAddRow={handleAddRow}
@@ -714,6 +898,8 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
       onCheckboxChange={handleCheckboxChange}
       onRemoveRow={handleRemoveRow}
       onOpenSavePlan={handleOpenSavePopup}
+      onDownloadPdf={handleDownloadPdf}
+      onOpenSendPdfEmail={handleOpenSendPdfEmail}
       saveButtonLabel={editLoadPlanId ? 'Update Plan' : 'Save Plan'}
       saveButtonTitle={editLoadPlanId ? 'Update this saved load plan' : 'Save this load plan'}
     />
@@ -764,6 +950,20 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
     if (tabId === 'loading-details' || tabId === 'ai-agent' || tabId === 'saved-load-plans') {
       setActiveTab(tabId)
     }
+  }
+
+  if (isPdfLayoutVisible && previewData) {
+    return (
+      <ClientLoadPlanPdf
+        planName={getPdfPlanName()}
+        customer={saveForm.customer}
+        shipmentType={saveForm.shipmentType}
+        notes={saveForm.notes}
+        calculationMode={activeCalculationMode}
+        formData={formData}
+        previewData={previewData}
+      />
+    )
   }
 
   return (
@@ -879,6 +1079,84 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
                     : editLoadPlanId
                       ? 'Update'
                       : 'Save'}
+                </WinButton>
+              </MessagesPopupActions>
+            </SavePopupForm>
+          </MessagesPopupWindow>
+        </MessagesPopupBackdrop>
+      )}
+
+      {isEmailPopupOpen && (
+        <MessagesPopupBackdrop onMouseDown={() => setIsEmailPopupOpen(false)}>
+          <MessagesPopupWindow
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="send-load-plan-pdf-title"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <SavePopupForm onSubmit={handleSendPdfEmail}>
+              <MessagesPopupTitleBar>
+                <span id="send-load-plan-pdf-title">Send Load Plan PDF</span>
+
+                <MessagesPopupCloseButton
+                  type="button"
+                  onClick={() => setIsEmailPopupOpen(false)}
+                  disabled={isPdfBusy}
+                >
+                  ×
+                </MessagesPopupCloseButton>
+              </MessagesPopupTitleBar>
+
+              <SavePopupFields>
+                <SavePopupField>
+                  Email
+                  <SavePopupInput
+                    type="email"
+                    value={pdfEmailForm.to}
+                    onChange={handlePdfEmailFormChange('to')}
+                    placeholder="client@example.com"
+                    autoFocus
+                  />
+                </SavePopupField>
+
+                <SavePopupField>
+                  Subject
+                  <SavePopupInput
+                    type="text"
+                    value={pdfEmailForm.subject}
+                    onChange={handlePdfEmailFormChange('subject')}
+                    placeholder={getDefaultEmailSubject()}
+                  />
+                </SavePopupField>
+
+                <SavePopupField>
+                  File name
+                  <SavePopupInput type="text" value={getPdfFileName()} readOnly />
+                </SavePopupField>
+
+                <SavePopupField style={{ alignItems: 'start' }}>
+                  Message
+                  <SavePopupTextArea
+                    value={pdfEmailForm.message}
+                    onChange={handlePdfEmailFormChange('message')}
+                    placeholder="Optional email message"
+                  />
+                </SavePopupField>
+              </SavePopupFields>
+
+              {emailError && <SavePopupError>{emailError}</SavePopupError>}
+
+              <MessagesPopupActions>
+                <WinButton
+                  type="button"
+                  onClick={() => setIsEmailPopupOpen(false)}
+                  disabled={isPdfBusy}
+                >
+                  Cancel
+                </WinButton>
+
+                <WinButton type="submit" disabled={isPdfBusy}>
+                  {isPdfBusy ? 'Sending...' : 'Send Email'}
                 </WinButton>
               </MessagesPopupActions>
             </SavePopupForm>

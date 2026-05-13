@@ -9,6 +9,10 @@ const api = {
   },
   debug: {
     openDevTools: () => ipcRenderer.send('debug:open-devtools')
+  },
+  loadPlanPdf: {
+    save: (fileName: string) => ipcRenderer.invoke('load-plan-pdf:save', fileName),
+    createBase64: () => ipcRenderer.invoke('load-plan-pdf:create-base64')
   }
 }
 

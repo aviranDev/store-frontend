@@ -12,6 +12,13 @@ declare global {
       debug?: {
         openDevTools: () => void
       }
+      loadPlanPdf?: {
+        save: (fileName: string) => Promise<{
+          canceled: boolean
+          filePath: string | null
+        }>
+        createBase64: () => Promise<string>
+      }
     }
   }
 }

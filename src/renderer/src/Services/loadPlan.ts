@@ -321,3 +321,27 @@ export const deleteLoadPlan = async (id: string): Promise<DeleteLoadPlanResponse
 
   return response.data
 }
+
+export type SendLoadPlanPdfEmailPayload = {
+  to: string
+  subject: string
+  message?: string
+  fileName: string
+  pdfBase64: string
+}
+
+type SendLoadPlanPdfEmailResponse = {
+  success: boolean
+  message: string
+}
+
+export const sendLoadPlanPdfEmail = async (
+  payload: SendLoadPlanPdfEmailPayload
+): Promise<SendLoadPlanPdfEmailResponse> => {
+  const response = await httpService.post<SendLoadPlanPdfEmailResponse>(
+    '/load-plans/pdf/email',
+    payload
+  )
+
+  return response.data
+}
