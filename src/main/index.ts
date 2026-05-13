@@ -1,7 +1,46 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
+import { writeFile } from 'fs/promises'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+
+const sanitizeFileName = (value: string): string => {
+  const cleanValue = value.trim() || 'load-plan'
+
+  return cleanValue.replace(/[<>:"/\\|?*\x00-\x1F]/g, '-')
+}
+
+const getCurrentWindow = (): BrowserWindow => {
+  const focusedWindow = BrowserWindow.getFocusedWindow()
+
+  if (focusedWindow) {
+    return focusedWindow
+  }
+
+  const firstWindow = BrowserWindow.getAllWindows()[0]
+
+  if (!firstWindow) {
+    throw new Error('No active Electron window found.')
+  }
+
+  return firstWindow
+}
+
+const createLoadPlanPdfBuffer = async (): Promise<Buffer> => {
+  const win = getCurrentWindow()
+
+  const pdfBuffer = await win.webContents.printToPDF({
+    landscape: true,
+    printBackground: true,
+    pageSize: 'A4',
+    preferCSSPageSize: true,
+    margins: {
+      marginType: 'none'
+    }
+  })
+
+  return pdfBuffer
+}
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -70,6 +109,47 @@ app.whenReady().then(() => {
   ipcMain.on('window:close', () => {
     const win = BrowserWindow.getFocusedWindow()
     win?.close()
+  })
+
+  ipcMain.handle('load-plan-pdf:save', async (_event, fileName: string) => {
+    const win = getCurrentWindow()
+    const safeFileName = sanitizeFileName(fileName)
+    const defaultFileName = safeFileName.toLowerCase().endsWith('.pdf')
+      ? safeFileName
+      : `${safeFileName}.pdf`
+
+    const result = await dialog.showSaveDialog(win, {
+      title: 'Save Load Plan PDF',
+      defaultPath: defaultFileName,
+      filters: [
+        {
+          name: 'PDF Files',
+          extensions: ['pdf']
+        }
+      ]
+    })
+
+    if (result.canceled || !result.filePath) {
+      return {
+        canceled: true,
+        filePath: null
+      }
+    }
+
+    const pdfBuffer = await createLoadPlanPdfBuffer()
+
+    await writeFile(result.filePath, pdfBuffer)
+
+    return {
+      canceled: false,
+      filePath: result.filePath
+    }
+  })
+
+  ipcMain.handle('load-plan-pdf:create-base64', async () => {
+    const pdfBuffer = await createLoadPlanPdfBuffer()
+
+    return pdfBuffer.toString('base64')
   })
 
   createWindow()

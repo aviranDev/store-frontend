@@ -989,6 +989,7 @@ const ContainerPlanPreview3D = ({
         >
           {sceneData && (
             <Canvas
+              gl={{ preserveDrawingBuffer: true, antialias: true }}
               camera={{
                 position: [containerLength * 0.48, 5.8, 7.2],
                 fov: 40,

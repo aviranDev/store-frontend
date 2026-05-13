@@ -22,7 +22,9 @@ type Props = {
   message: string
   isCalculating: boolean
   isSaving: boolean
+  isPdfBusy: boolean
   canSavePreview: boolean
+  canCreatePdf: boolean
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void
   onClosingPreview: () => void
   onAddRow: () => void
@@ -46,6 +48,8 @@ type Props = {
   ) => (event: React.ChangeEvent<HTMLInputElement>) => void
   onRemoveRow: (id: string) => void
   onOpenSavePlan: () => void
+  onDownloadPdf: () => void
+  onOpenSendPdfEmail: () => void
   saveButtonLabel?: string
   saveButtonTitle?: string
 }
@@ -55,7 +59,9 @@ const LoadPlanForm = ({
   message,
   isCalculating,
   isSaving,
+  isPdfBusy,
   canSavePreview,
+  canCreatePdf,
   onSubmit,
   onClosingPreview,
   onAddRow,
@@ -66,6 +72,8 @@ const LoadPlanForm = ({
   onCheckboxChange,
   onRemoveRow,
   onOpenSavePlan,
+  onDownloadPdf,
+  onOpenSendPdfEmail,
   saveButtonLabel = 'Save Plan',
   saveButtonTitle
 }: Props): React.JSX.Element => {
@@ -140,7 +148,7 @@ const LoadPlanForm = ({
       </Win95GroupBox>
 
       <TabFooter>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <WinButton type="button" onClick={onBack}>
             Back
           </WinButton>
@@ -155,6 +163,32 @@ const LoadPlanForm = ({
             }
           >
             {isSaving ? 'Saving...' : saveButtonLabel}
+          </WinButton>
+
+          <WinButton
+            type="button"
+            onClick={onDownloadPdf}
+            disabled={!canCreatePdf || isPdfBusy}
+            title={
+              canCreatePdf
+                ? 'Download this loading plan as PDF'
+                : 'Calculate a preview before creating a PDF'
+            }
+          >
+            {isPdfBusy ? 'Creating PDF...' : 'Download PDF'}
+          </WinButton>
+
+          <WinButton
+            type="button"
+            onClick={onOpenSendPdfEmail}
+            disabled={!canCreatePdf || isPdfBusy}
+            title={
+              canCreatePdf
+                ? 'Send this loading plan PDF by email'
+                : 'Calculate a preview before sending a PDF'
+            }
+          >
+            Send PDF Email
           </WinButton>
         </div>
       </TabFooter>
