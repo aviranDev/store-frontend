@@ -21,8 +21,8 @@ type Props = {
 type CargoItem = PreviewLoadPlanData['cargoItems'][number]
 
 const PdfGlobalStyle = createGlobalStyle`
-  @page {
-    size: A4 landscape;
+ @page {
+    size: 297mm 210mm;
     margin: 0;
   }
 
@@ -31,22 +31,31 @@ const PdfGlobalStyle = createGlobalStyle`
     body,
     #root {
       width: 297mm;
-      min-height: 210mm;
+      height: 210mm;
       margin: 0;
+      padding: 0;
+      overflow: hidden;
       background: #ffffff !important;
+    }
+
+    * {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
     }
   }
 `
 
 const PdfRoot = styled.main`
   width: 297mm;
-  min-height: 210mm;
+  height: 210mm;
+  max-height: 210mm;
+  overflow: hidden;
   box-sizing: border-box;
-  padding: 8mm;
+  padding: 5mm;
   background: #ffffff;
   color: #111827;
   font-family: Arial, Helvetica, sans-serif;
-  font-size: 10px;
+  font-size: 9px;
 `
 
 const Header = styled.header`
@@ -88,19 +97,19 @@ const HeaderMeta = styled.div`
 `
 
 const Section = styled.section`
-  margin-top: 7px;
+  margin-top: 4px;
 `
 
 const SectionTitle = styled.h2`
-  margin: 0 0 5px;
-  font-size: 12px;
+  margin: 0 0 3px;
+  font-size: 10px;
   line-height: 1.1;
   text-transform: uppercase;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.3px;
 `
 
 const VisualPanel = styled.div`
-  height: 80mm;
+  height: 72mm;
   overflow: hidden;
   border: 1px solid #cbd5e1;
   background: #f8fafc;
@@ -120,7 +129,7 @@ const VisualPanel = styled.div`
 const DetailsGrid = styled.div`
   display: grid;
   grid-template-columns: 1.1fr 1fr 1.2fr;
-  gap: 7px;
+  gap: 4px;
 `
 
 const Card = styled.div`
@@ -130,7 +139,7 @@ const Card = styled.div`
 `
 
 const CardTitle = styled.div`
-  padding: 5px 7px;
+  padding: 3px 5px;
   font-weight: 700;
   border-bottom: 1px solid #cbd5e1;
   background: #f1f5f9;
@@ -138,12 +147,12 @@ const CardTitle = styled.div`
 
 const InfoGrid = styled.div`
   display: grid;
-  grid-template-columns: 96px minmax(0, 1fr);
+  grid-template-columns: 82px minmax(0, 1fr);
   gap: 0;
 `
 
 const InfoLabel = styled.div`
-  padding: 4px 7px;
+  padding: 2px 5px;
   border-right: 1px solid #e5e7eb;
   border-bottom: 1px solid #e5e7eb;
   color: #4b5563;
@@ -151,16 +160,16 @@ const InfoLabel = styled.div`
 
 const InfoValue = styled.div`
   min-width: 0;
-  padding: 4px 7px;
+  padding: 2px 5px;
   border-bottom: 1px solid #e5e7eb;
   font-weight: 700;
   overflow-wrap: anywhere;
 `
 
 const NotesBox = styled.div`
-  padding: 7px;
-  min-height: 37px;
-  line-height: 1.35;
+  padding: 5px;
+  min-height: 26px;
+  line-height: 1.25;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 `
@@ -170,6 +179,7 @@ const CargoTable = styled.table`
   border-collapse: collapse;
   table-layout: fixed;
   border: 1px solid #cbd5e1;
+  font-size: 8.5px;
 
   thead {
     display: table-header-group;
@@ -177,11 +187,12 @@ const CargoTable = styled.table`
 
   th,
   td {
-    padding: 4px 5px;
+    padding: 2px 4px;
     border: 1px solid #d1d5db;
     vertical-align: top;
     text-align: left;
     overflow-wrap: anywhere;
+    line-height: 1.2;
   }
 
   th {
