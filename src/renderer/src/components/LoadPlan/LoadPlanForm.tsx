@@ -45,6 +45,7 @@ type Props = {
       | 'topLoadOnly'
       | 'fragile'
       | 'canBePlacedOnPallet'
+      | 'canBeStackedOnSameItem'
   ) => (event: React.ChangeEvent<HTMLInputElement>) => void
   onRemoveRow: (id: string) => void
   onOpenSavePlan: () => void

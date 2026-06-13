@@ -26,6 +26,7 @@ export const createCargoItem = (id: number): CargoItem => ({
   topLoadOnly: false,
   fragile: false,
   canBePlacedOnPallet: false,
+  canBeStackedOnSameItem: false,
   maxSupportedWeightKg: ''
 })
 
@@ -108,12 +109,14 @@ export const buildPreviewPayload = (formData: LoadingPlanFormState): PreviewLoad
             }
           : {}),
 
-        ...(item.shape !== 'pallet'
+        ...(item.shape === 'pallet'
           ? {
+              canBeStackedOnSameItem: item.canBeStackedOnSameItem
+            }
+          : {
               fragile: item.fragile,
               canBePlacedOnPallet: item.canBePlacedOnPallet
-            }
-          : {})
+            })
       }
     }
   })

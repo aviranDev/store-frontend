@@ -24,6 +24,7 @@ export type CargoItem = {
   topLoadOnly: boolean
   fragile: boolean
   canBePlacedOnPallet: boolean
+  canBeStackedOnSameItem: boolean
 
   /**
    * Max weight this cargo item can support on top of itself.
