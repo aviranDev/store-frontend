@@ -95,6 +95,7 @@ const payloadToFormState = (payload: PreviewLoadPlanPayload): LoadingPlanFormSta
       topLoadOnly: item.restrictions.topLoadOnly,
       fragile: item.restrictions.fragile ?? false,
       canBePlacedOnPallet: item.restrictions.canBePlacedOnPallet ?? false,
+      canBeStackedOnSameItem: item.restrictions.canBeStackedOnSameItem ?? false,
       maxSupportedWeightKg:
         item.restrictions.maxSupportedWeightKg === undefined
           ? ''
@@ -449,11 +450,25 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
   const handleItemChange =
     (id: string, field: keyof Omit<CargoItem, 'id'>) =>
     (event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+      const nextValue = event.target.value
+
       setFormData((prev) => ({
         ...prev,
-        items: prev.items.map((item) =>
-          item.id === id ? { ...item, [field]: event.target.value } : item
-        )
+        items: prev.items.map((item) => {
+          if (item.id !== id) {
+            return item
+          }
+
+          if (field === 'shape') {
+            return {
+              ...item,
+              shape: nextValue as CargoItem['shape'],
+              canBeStackedOnSameItem: false
+            }
+          }
+
+          return { ...item, [field]: nextValue }
+        })
       }))
       setPreviewData(null)
       setMessage('')
@@ -471,6 +486,7 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
         | 'topLoadOnly'
         | 'fragile'
         | 'canBePlacedOnPallet'
+        | 'canBeStackedOnSameItem'
     ) =>
     (event: React.ChangeEvent<HTMLInputElement>) => {
       setFormData((prev) => ({
@@ -481,7 +497,13 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
                 ...item,
                 [field]: event.target.checked,
                 ...(field === 'unstackable' && event.target.checked
-                  ? { maxSupportedWeightKg: '' }
+                  ? {
+                      maxSupportedWeightKg: '',
+                      canBeStackedOnSameItem: false
+                    }
+                  : {}),
+                ...(field === 'canBeStackedOnSameItem' && event.target.checked
+                  ? { unstackable: false }
                   : {})
               }
             : item

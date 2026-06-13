@@ -29,6 +29,7 @@ type Props = {
       | 'topLoadOnly'
       | 'fragile'
       | 'canBePlacedOnPallet'
+      | 'canBeStackedOnSameItem'
   ) => (event: React.ChangeEvent<HTMLInputElement>) => void
   onRemoveRow: (id: string) => void
 }
@@ -55,6 +56,7 @@ const CargoItemRow = ({
   onRemoveRow
 }: Props): React.JSX.Element => {
   const showCartonOptions = item.shape !== 'pallet'
+  const showPalletOptions = item.shape === 'pallet'
 
   return (
     <CargoCard>
@@ -169,6 +171,20 @@ const CargoItemRow = ({
           />
           Unstackable
         </RestrictionItem>
+
+        {showPalletOptions && (
+          <RestrictionItem
+            title="Allow pallets from this cargo line to be stacked on one another"
+          >
+            <input
+              type="checkbox"
+              checked={item.canBeStackedOnSameItem}
+              disabled={item.unstackable}
+              onChange={onCheckboxChange(item.id, 'canBeStackedOnSameItem')}
+            />
+            Self stackable
+          </RestrictionItem>
+        )}
 
         <RestrictionItem>
           <input

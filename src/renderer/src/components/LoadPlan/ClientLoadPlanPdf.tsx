@@ -272,6 +272,7 @@ const formatRestrictions = (item: CargoItem): string => {
     item.restrictions.topLoadOnly ? 'Top load only' : '',
     item.restrictions.fragile ? 'Fragile' : '',
     item.restrictions.canBePlacedOnPallet ? 'Can be placed on pallet' : '',
+    item.restrictions.canBeStackedOnSameItem ? 'Self stackable' : '',
     item.restrictions.maxSupportedWeightKg
       ? `Max supported ${formatNumber(item.restrictions.maxSupportedWeightKg, 1)} kg`
       : ''
