@@ -10,6 +10,7 @@ import WinButton from '../components/Button/WinButton'
 import {
   previewLoadPlan,
   previewClosingLoadPlan,
+  getLoadPlanById,
   LoadPlanCalculationMode,
   LoadPlanDetailsData,
   PreviewCargoItem,
@@ -940,13 +941,38 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
     />
   )
 
-  const savedLoadPlansTabContent = (
-    <LoadPlansCardsPanel
-      onBack={() => navigate('/employee')}
-      onOpenPlan={(planId) => navigate(`/employee/load-plans/${planId}`)}
-    />
-  )
+  const handleOpenSavedPlan = async (planId: string): Promise<void> => {
+    try {
+      setIsCalculating(true)
+      setErrorPopup(null)
+      setMessage('Opening saved load plan...')
 
+      const plan = await getLoadPlanById(planId)
+
+      const routeState: LoadingPlanRouteState = {
+        activeTab: 'loading-details',
+        editLoadPlan: plan
+      }
+
+      navigate(`/employee/load-plans/${planId}`, {
+        state: routeState
+      })
+    } catch (error) {
+      const nextMessage = getErrorMessage(error, 'Failed to open saved load plan.')
+
+      setMessage(nextMessage)
+      setErrorPopup({
+        message: nextMessage,
+        errors: []
+      })
+    } finally {
+      setIsCalculating(false)
+    }
+  }
+
+  const savedLoadPlansTabContent = (
+    <LoadPlansCardsPanel onBack={() => navigate('/employee')} onOpenPlan={handleOpenSavedPlan} />
+  )
   const tabs: TabItem[] = useMemo(
     () => [
       {
