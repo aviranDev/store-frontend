@@ -69,6 +69,7 @@ const sanitizePdfFileName = (value: string): string => {
 const toUiShape = (shape: PreviewCargoItem['shape']): CargoItem['shape'] => {
   if (shape === 'pallet') return 'pallet'
   if (shape === 'box') return 'carton'
+  if (shape === 'cylinder') return 'cylinder'
 
   return 'crate'
 }
@@ -82,9 +83,10 @@ const payloadToFormState = (payload: PreviewLoadPlanPayload): LoadingPlanFormSta
       color: item.color ?? '',
       shape: toUiShape(item.shape),
       quantity: String(item.quantity ?? 1),
-      length: String(item.dimensions.lengthCm ?? item.dimensions.diameterCm ?? ''),
-      width: String(item.dimensions.widthCm ?? item.dimensions.diameterCm ?? ''),
+      length: String(item.dimensions.lengthCm ?? ''),
+      width: String(item.dimensions.widthCm ?? ''),
       height: String(item.dimensions.heightCm ?? ''),
+      diameter: String(item.dimensions.diameterCm ?? ''),
       dimensionUnit: 'cm',
       weight: String(item.unitWeightKg ?? 0),
       weightUnit: 'kg',
