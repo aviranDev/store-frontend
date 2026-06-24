@@ -16,6 +16,7 @@ export const createCargoItem = (id: number): CargoItem => ({
   length: '',
   width: '',
   height: '',
+  diameter: '',
   dimensionUnit: 'cm',
   weight: '0',
   weightUnit: 'kg',
@@ -46,6 +47,7 @@ export const toKilograms = (value: number, unit: WeightUnit): number => {
 export const mapShapeToApi = (shape: ShapeType): PreviewCargoItem['shape'] => {
   if (shape === 'carton') return 'box'
   if (shape === 'crate') return 'crate'
+  if (shape === 'cylinder') return 'cylinder'
   return 'pallet'
 }
 
@@ -69,13 +71,18 @@ export const buildPreviewPayload = (formData: LoadingPlanFormState): PreviewLoad
     const length = Number(item.length)
     const width = Number(item.width)
     const height = Number(item.height)
+    const diameter = Number(item.diameter)
     const weight = Number(item.weight)
 
     if (!quantity || quantity < 1) {
       throw new Error(`Row ${index + 1}: quantity must be at least 1`)
     }
 
-    if (!length || !width || !height) {
+    if (item.shape === 'cylinder') {
+      if (!diameter || !height) {
+        throw new Error(`Row ${index + 1}: diameter and height are required`)
+      }
+    } else if (!length || !width || !height) {
       throw new Error(`Row ${index + 1}: length, width, and height are required`)
     }
 
@@ -87,14 +94,27 @@ export const buildPreviewPayload = (formData: LoadingPlanFormState): PreviewLoad
       ...(poNumber ? { poNumber } : {}),
       ...(color ? { color } : {}),
 
-      description: item.shape === 'carton' ? 'Carton' : item.shape === 'crate' ? 'Crate' : 'Pallet',
+      description:
+        item.shape === 'carton'
+          ? 'Carton'
+          : item.shape === 'crate'
+            ? 'Crate'
+            : item.shape === 'cylinder'
+              ? 'Cylinder'
+              : 'Pallet',
       quantity,
       shape: mapShapeToApi(item.shape),
-      dimensions: {
-        lengthCm: Number(toCentimeters(length, item.dimensionUnit).toFixed(2)),
-        widthCm: Number(toCentimeters(width, item.dimensionUnit).toFixed(2)),
-        heightCm: Number(toCentimeters(height, item.dimensionUnit).toFixed(2))
-      },
+      dimensions:
+        item.shape === 'cylinder'
+          ? {
+              diameterCm: Number(toCentimeters(diameter, item.dimensionUnit).toFixed(2)),
+              heightCm: Number(toCentimeters(height, item.dimensionUnit).toFixed(2))
+            }
+          : {
+              lengthCm: Number(toCentimeters(length, item.dimensionUnit).toFixed(2)),
+              widthCm: Number(toCentimeters(width, item.dimensionUnit).toFixed(2)),
+              heightCm: Number(toCentimeters(height, item.dimensionUnit).toFixed(2))
+            },
       unitWeightKg: Number(toKilograms(weight || 0, item.weightUnit).toFixed(2)),
       restrictions: {
         mustStayVertical: item.mustStayVertical,

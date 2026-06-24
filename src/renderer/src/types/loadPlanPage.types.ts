@@ -1,6 +1,6 @@
 import { PreviewLoadPlanData } from '../Services/loadPlan'
 
-export type ShapeType = 'pallet' | 'carton' | 'crate'
+export type ShapeType = 'pallet' | 'carton' | 'crate' | 'cylinder'
 export type DimensionUnit = 'cm' | 'in'
 export type WeightUnit = 'kg' | 'lb'
 export type PreviewMode = '2d' | '3d'
@@ -14,6 +14,7 @@ export type CargoItem = {
   length: string
   width: string
   height: string
+  diameter: string
   dimensionUnit: DimensionUnit
   weight: string
   weightUnit: WeightUnit
