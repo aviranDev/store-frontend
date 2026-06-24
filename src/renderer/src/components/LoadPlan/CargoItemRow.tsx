@@ -55,6 +55,7 @@ const CargoItemRow = ({
   onCheckboxChange,
   onRemoveRow
 }: Props): React.JSX.Element => {
+  const isCylinder = item.shape === 'cylinder'
   const showCartonOptions = item.shape !== 'pallet'
   const showPalletOptions = item.shape === 'pallet'
 
@@ -65,6 +66,7 @@ const CargoItemRow = ({
           <option value="pallet">Pallet</option>
           <option value="carton">Carton</option>
           <option value="crate">Crate</option>
+          <option value="cylinder">Cylinder</option>
         </NativeSelect>
 
         <CargoInput
@@ -74,30 +76,57 @@ const CargoItemRow = ({
           placeholder="1"
         />
 
-        <CargoInput
-          type="text"
-          value={item.length}
-          onChange={onItemChange(item.id, 'length')}
-          placeholder="L"
-        />
+        {isCylinder ? (
+          <>
+            <CargoInput
+              type="text"
+              value={item.diameter}
+              onChange={onItemChange(item.id, 'diameter')}
+              placeholder="Ø"
+              title="Cylinder diameter"
+            />
 
-        <DimSeparator>x</DimSeparator>
+            <DimSeparator>x</DimSeparator>
 
-        <CargoInput
-          type="text"
-          value={item.width}
-          onChange={onItemChange(item.id, 'width')}
-          placeholder="W"
-        />
+            <CargoInput
+              type="text"
+              value={item.height}
+              onChange={onItemChange(item.id, 'height')}
+              placeholder="H"
+              title="Cylinder height"
+            />
 
-        <DimSeparator>x</DimSeparator>
+            <DimSeparator aria-hidden="true" />
+            <span aria-hidden="true" />
+          </>
+        ) : (
+          <>
+            <CargoInput
+              type="text"
+              value={item.length}
+              onChange={onItemChange(item.id, 'length')}
+              placeholder="L"
+            />
 
-        <CargoInput
-          type="text"
-          value={item.height}
-          onChange={onItemChange(item.id, 'height')}
-          placeholder="H"
-        />
+            <DimSeparator>x</DimSeparator>
+
+            <CargoInput
+              type="text"
+              value={item.width}
+              onChange={onItemChange(item.id, 'width')}
+              placeholder="W"
+            />
+
+            <DimSeparator>x</DimSeparator>
+
+            <CargoInput
+              type="text"
+              value={item.height}
+              onChange={onItemChange(item.id, 'height')}
+              placeholder="H"
+            />
+          </>
+        )}
 
         <NativeSelect value={item.dimensionUnit} onChange={onItemChange(item.id, 'dimensionUnit')}>
           <option value="cm">cm</option>
@@ -173,9 +202,7 @@ const CargoItemRow = ({
         </RestrictionItem>
 
         {showPalletOptions && (
-          <RestrictionItem
-            title="Allow pallets from this cargo line to be stacked on one another"
-          >
+          <RestrictionItem title="Allow pallets from this cargo line to be stacked on one another">
             <input
               type="checkbox"
               checked={item.canBeStackedOnSameItem}

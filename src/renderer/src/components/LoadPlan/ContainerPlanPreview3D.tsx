@@ -28,7 +28,7 @@ const SceneReadyNotifier = ({ onReady }: { onReady: () => void }): React.JSX.Ele
 
 type PreviewData = NonNullable<ContainerPlanPreviewProps['previewData']>
 type PlacedCargoItem = PreviewData['placedCargoItems'][number]
-type CargoVisualShape = 'carton' | 'crate' | 'pallet'
+type CargoVisualShape = 'carton' | 'crate' | 'pallet' | 'cylinder'
 type CargoFaceType = 'side' | 'topBottom'
 type ContainerWallName = 'xMin' | 'xMax' | 'zMin' | 'zMax'
 
@@ -37,12 +37,14 @@ const SCALE = 0.01 // 1 cm = 0.01 scene units
 const DEFAULT_SHAPE_COLORS: Record<CargoVisualShape, string> = {
   carton: '#c79252',
   crate: '#c58a42',
-  pallet: '#bd8d55'
+  pallet: '#bd8d55',
+  cylinder: '#7d95a8'
 }
 
 const normalizeShape = (shape: PlacedCargoItem['shape']): CargoVisualShape => {
   if (shape === 'box') return 'carton'
   if (shape === 'pallet') return 'pallet'
+  if (shape === 'cylinder') return 'cylinder'
 
   return 'crate'
 }
@@ -386,6 +388,81 @@ const CargoBodyBox = ({
   )
 }
 
+const CargoCylinder = ({
+  position,
+  size,
+  color,
+  label
+}: {
+  position: [number, number, number]
+  size: [number, number, number]
+  color: string
+  label?: string
+}): React.JSX.Element => {
+  const radius = Math.min(size[0], size[2]) / 2
+
+  const geometry = useMemo(
+    () => new THREE.CylinderGeometry(radius, radius, size[1], 32),
+    [radius, size]
+  )
+
+  const edgesGeometry = useMemo(() => new THREE.EdgesGeometry(geometry), [geometry])
+
+  const sideTexture = useMemo(
+    () =>
+      createCargoFaceTexture({
+        label,
+        color,
+        showLabel: true,
+        shape: 'cylinder',
+        faceType: 'side'
+      }),
+    [label, color]
+  )
+
+  const materials = useMemo(
+    () => [
+      new THREE.MeshStandardMaterial({
+        map: sideTexture,
+        color: '#ffffff',
+        roughness: 0.68,
+        metalness: 0.08,
+        toneMapped: false
+      }),
+      new THREE.MeshStandardMaterial({
+        color,
+        roughness: 0.68,
+        metalness: 0.08
+      }),
+      new THREE.MeshStandardMaterial({
+        color,
+        roughness: 0.68,
+        metalness: 0.08
+      })
+    ],
+    [sideTexture, color]
+  )
+
+  useEffect(() => {
+    return () => {
+      geometry.dispose()
+      edgesGeometry.dispose()
+      sideTexture.dispose()
+      materials.forEach((material) => material.dispose())
+    }
+  }, [geometry, edgesGeometry, sideTexture, materials])
+
+  return (
+    <group position={position}>
+      <mesh geometry={geometry} material={materials} />
+
+      <lineSegments geometry={edgesGeometry}>
+        <lineBasicMaterial color="#111111" />
+      </lineSegments>
+    </group>
+  )
+}
+
 const CrateBox = ({
   position,
   size,
@@ -563,6 +640,10 @@ const CargoVisualItem = ({
 
   if (shape === 'crate') {
     return <CrateBox position={position} size={size} color={color} label={label} />
+  }
+
+  if (shape === 'cylinder') {
+    return <CargoCylinder position={position} size={size} color={color} label={label} />
   }
 
   return <CargoBodyBox position={position} size={size} color={color} label={label} shape="carton" />

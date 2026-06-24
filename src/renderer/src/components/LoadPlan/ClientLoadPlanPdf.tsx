@@ -251,16 +251,24 @@ const formatPercent = (value?: number | null): string => {
 const formatShape = (shape: CargoItem['shape']): string => {
   if (shape === 'box') return 'Carton'
   if (shape === 'pallet') return 'Pallet'
+  if (shape === 'cylinder') return 'Cylinder'
   return 'Crate'
 }
 
 const formatDimensions = (item: CargoItem): string => {
   const { dimensions } = item
-  const length = dimensions.lengthCm ?? dimensions.diameterCm
-  const width = dimensions.widthCm ?? dimensions.diameterCm
-  const height = dimensions.heightCm
 
-  return `${formatNumber(length, 1)} x ${formatNumber(width, 1)} x ${formatNumber(height, 1)} cm`
+  if (item.shape === 'cylinder') {
+    return `Ø ${formatNumber(dimensions.diameterCm, 1)} x ${formatNumber(
+      dimensions.heightCm,
+      1
+    )} cm`
+  }
+
+  return `${formatNumber(dimensions.lengthCm, 1)} x ${formatNumber(
+    dimensions.widthCm,
+    1
+  )} x ${formatNumber(dimensions.heightCm, 1)} cm`
 }
 
 const formatRestrictions = (item: CargoItem): string => {
