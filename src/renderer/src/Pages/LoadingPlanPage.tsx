@@ -70,7 +70,7 @@ const sanitizePdfFileName = (value: string): string => {
 const toUiShape = (shape: PreviewCargoItem['shape']): CargoItem['shape'] => {
   if (shape === 'pallet') return 'pallet'
   if (shape === 'box') return 'carton'
-  if (shape === 'cylinder') return 'cylinder'
+  if (shape === 'drum') return 'drum'
 
   return 'crate'
 }
@@ -468,12 +468,17 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
             return {
               ...item,
               shape: nextShape,
-              ...(nextShape === 'cylinder'
+              canBePlacedOnPallet: false,
+              canBeStackedOnSameItem: false,
+              ...(nextShape === 'drum'
                 ? {
-                    canBePlacedOnPallet: true
+                    fragile: false,
+                    length: '',
+                    width: ''
                   }
-                : {}),
-              canBeStackedOnSameItem: false
+                : {
+                    diameter: ''
+                  })
             }
           }
 

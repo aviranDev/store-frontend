@@ -47,7 +47,7 @@ export const toKilograms = (value: number, unit: WeightUnit): number => {
 export const mapShapeToApi = (shape: ShapeType): PreviewCargoItem['shape'] => {
   if (shape === 'carton') return 'box'
   if (shape === 'crate') return 'crate'
-  if (shape === 'cylinder') return 'cylinder'
+  if (shape === 'drum') return 'drum'
   return 'pallet'
 }
 
@@ -78,7 +78,7 @@ export const buildPreviewPayload = (formData: LoadingPlanFormState): PreviewLoad
       throw new Error(`Row ${index + 1}: quantity must be at least 1`)
     }
 
-    if (item.shape === 'cylinder') {
+    if (item.shape === 'drum') {
       if (!diameter || !height) {
         throw new Error(`Row ${index + 1}: diameter and height are required`)
       }
@@ -99,13 +99,13 @@ export const buildPreviewPayload = (formData: LoadingPlanFormState): PreviewLoad
           ? 'Carton'
           : item.shape === 'crate'
             ? 'Crate'
-            : item.shape === 'cylinder'
-              ? 'Cylinder'
+            : item.shape === 'drum'
+              ? 'Drum'
               : 'Pallet',
       quantity,
       shape: mapShapeToApi(item.shape),
       dimensions:
-        item.shape === 'cylinder'
+        item.shape === 'drum'
           ? {
               diameterCm: Number(toCentimeters(diameter, item.dimensionUnit).toFixed(2)),
               heightCm: Number(toCentimeters(height, item.dimensionUnit).toFixed(2))

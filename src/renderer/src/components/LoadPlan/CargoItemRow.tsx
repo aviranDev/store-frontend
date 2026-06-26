@@ -55,8 +55,8 @@ const CargoItemRow = ({
   onCheckboxChange,
   onRemoveRow
 }: Props): React.JSX.Element => {
-  const isCylinder = item.shape === 'cylinder'
-  const showCartonOptions = item.shape !== 'pallet'
+  const isDrum = item.shape === 'drum'
+  const showGeneralCargoOptions = item.shape === 'carton' || item.shape === 'crate'
   const showPalletOptions = item.shape === 'pallet'
 
   return (
@@ -66,7 +66,7 @@ const CargoItemRow = ({
           <option value="pallet">Pallet</option>
           <option value="carton">Carton</option>
           <option value="crate">Crate</option>
-          <option value="cylinder">Cylinder</option>
+          <option value="drum">Drum</option>
         </NativeSelect>
 
         <CargoInput
@@ -76,14 +76,14 @@ const CargoItemRow = ({
           placeholder="1"
         />
 
-        {isCylinder ? (
+        {isDrum ? (
           <>
             <CargoInput
               type="text"
               value={item.diameter}
               onChange={onItemChange(item.id, 'diameter')}
               placeholder="Ø"
-              title="Cylinder diameter"
+              title="Drum diameter"
             />
 
             <DimSeparator>x</DimSeparator>
@@ -93,7 +93,7 @@ const CargoItemRow = ({
               value={item.height}
               onChange={onItemChange(item.id, 'height')}
               placeholder="H"
-              title="Cylinder height"
+              title="Drum height"
             />
 
             <DimSeparator aria-hidden="true" />
@@ -258,7 +258,7 @@ const CargoItemRow = ({
           </NativeSelect>
         </RestrictionItem>
 
-        {showCartonOptions && (
+        {showGeneralCargoOptions && (
           <>
             <RestrictionItem>
               <input
@@ -278,6 +278,17 @@ const CargoItemRow = ({
               Can be placed on pallet
             </RestrictionItem>
           </>
+        )}
+
+        {isDrum && (
+          <RestrictionItem title="Checked: palletized on automatically generated 120 x 80 cm Euro pallets. Unchecked: loose cargo.">
+            <input
+              type="checkbox"
+              checked={item.canBePlacedOnPallet}
+              onChange={onCheckboxChange(item.id, 'canBePlacedOnPallet')}
+            />
+            Palletized (Euro pallet 120 x 80 cm)
+          </RestrictionItem>
         )}
       </RestrictionsGrid>
     </CargoCard>

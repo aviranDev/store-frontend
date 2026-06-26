@@ -395,7 +395,7 @@ export const PlanCanvas = styled.div<{
   flex: 0 0 auto;
 `
 
-type PlanBlockShape = 'carton' | 'crate' | 'pallet' | 'cylinder'
+type PlanBlockShape = 'carton' | 'crate' | 'pallet' | 'drum'
 
 const getPlanBlockBackground = ({
   $shape,
@@ -424,7 +424,7 @@ const getPlanBlockBackground = ({
     `
   }
 
-  if ($shape === 'cylinder') {
+  if ($shape === 'drum') {
     return `
       background-color: ${$color};
       background-image:
@@ -458,7 +458,7 @@ export const PlanBlock = styled.div<{
   width: ${({ $width }) => `${Math.max($width, 6)}px`};
   height: ${({ $height }) => `${Math.max($height, 6)}px`};
   border: 1px solid #000;
-  border-radius: ${({ $shape }) => ($shape === 'cylinder' ? '50%' : '0')};
+  border-radius: ${({ $shape }) => ($shape === 'drum' ? '50%' : '0')};
   ${({ $shape, $color }) => getPlanBlockBackground({ $shape, $color })}
   opacity: ${({ $isStacked }) => ($isStacked ? 0.88 : 1)};
   display: flex;
