@@ -28,7 +28,7 @@ const SceneReadyNotifier = ({ onReady }: { onReady: () => void }): React.JSX.Ele
 
 type PreviewData = NonNullable<ContainerPlanPreviewProps['previewData']>
 type PlacedCargoItem = PreviewData['placedCargoItems'][number]
-type CargoVisualShape = 'carton' | 'crate' | 'pallet' | 'cylinder'
+type CargoVisualShape = 'carton' | 'crate' | 'pallet' | 'drum'
 type CargoFaceType = 'side' | 'topBottom'
 type ContainerWallName = 'xMin' | 'xMax' | 'zMin' | 'zMax'
 
@@ -38,13 +38,13 @@ const DEFAULT_SHAPE_COLORS: Record<CargoVisualShape, string> = {
   carton: '#c79252',
   crate: '#c58a42',
   pallet: '#bd8d55',
-  cylinder: '#7d95a8'
+  drum: '#7d95a8'
 }
 
 const normalizeShape = (shape: PlacedCargoItem['shape']): CargoVisualShape => {
   if (shape === 'box') return 'carton'
   if (shape === 'pallet') return 'pallet'
-  if (shape === 'cylinder') return 'cylinder'
+  if (shape === 'drum') return 'drum'
 
   return 'crate'
 }
@@ -388,7 +388,7 @@ const CargoBodyBox = ({
   )
 }
 
-const CargoCylinder = ({
+const CargoDrum = ({
   position,
   size,
   color,
@@ -414,7 +414,7 @@ const CargoCylinder = ({
         label,
         color,
         showLabel: true,
-        shape: 'cylinder',
+        shape: 'drum',
         faceType: 'side'
       }),
     [label, color]
@@ -642,8 +642,8 @@ const CargoVisualItem = ({
     return <CrateBox position={position} size={size} color={color} label={label} />
   }
 
-  if (shape === 'cylinder') {
-    return <CargoCylinder position={position} size={size} color={color} label={label} />
+  if (shape === 'drum') {
+    return <CargoDrum position={position} size={size} color={color} label={label} />
   }
 
   return <CargoBodyBox position={position} size={size} color={color} label={label} shape="carton" />

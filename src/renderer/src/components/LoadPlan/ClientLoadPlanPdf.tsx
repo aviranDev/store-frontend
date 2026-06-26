@@ -251,14 +251,14 @@ const formatPercent = (value?: number | null): string => {
 const formatShape = (shape: CargoItem['shape']): string => {
   if (shape === 'box') return 'Carton'
   if (shape === 'pallet') return 'Pallet'
-  if (shape === 'cylinder') return 'Cylinder'
+  if (shape === 'drum') return 'Drum'
   return 'Crate'
 }
 
 const formatDimensions = (item: CargoItem): string => {
   const { dimensions } = item
 
-  if (item.shape === 'cylinder') {
+  if (item.shape === 'drum') {
     return `Ø ${formatNumber(dimensions.diameterCm, 1)} x ${formatNumber(
       dimensions.heightCm,
       1
@@ -272,14 +272,22 @@ const formatDimensions = (item: CargoItem): string => {
 }
 
 const formatRestrictions = (item: CargoItem): string => {
+  const drumLoadingMode =
+    item.shape === 'drum'
+      ? item.restrictions.canBePlacedOnPallet
+        ? 'Palletized on Euro pallet (120 x 80 cm)'
+        : 'Loose cargo'
+      : ''
+
   const restrictions = [
+    drumLoadingMode,
     item.restrictions.mustStayVertical ? 'Must stay vertical' : '',
     !item.restrictions.stackable ? 'Unstackable' : '',
     !item.restrictions.rotatable ? 'No rotation' : '',
     item.restrictions.tiltAllowed ? 'Tilt allowed' : '',
     item.restrictions.topLoadOnly ? 'Top load only' : '',
     item.restrictions.fragile ? 'Fragile' : '',
-    item.restrictions.canBePlacedOnPallet ? 'Can be placed on pallet' : '',
+    item.shape !== 'drum' && item.restrictions.canBePlacedOnPallet ? 'Can be placed on pallet' : '',
     item.restrictions.canBeStackedOnSameItem ? 'Self stackable' : '',
     item.restrictions.maxSupportedWeightKg
       ? `Max supported ${formatNumber(item.restrictions.maxSupportedWeightKg, 1)} kg`

@@ -45,7 +45,7 @@ export type PreviewCargoItem = {
   color?: string
   description: string
   quantity: number
-  shape: 'box' | 'cylinder' | 'pallet' | 'crate' | 'machine'
+  shape: 'box' | 'drum' | 'pallet' | 'crate' | 'machine'
   dimensions: {
     lengthCm?: number
     widthCm?: number
@@ -54,6 +54,14 @@ export type PreviewCargoItem = {
   }
   unitWeightKg: number
   restrictions: PreviewCargoRestriction
+
+  /**
+   * Internal server metadata for automatically palletized drums.
+   * The frontend does not need to set these values when creating a request.
+   */
+  palletizationGroupId?: string
+  isGeneratedSupportItem?: boolean
+
   notes?: string
 }
 
@@ -83,7 +91,7 @@ export type PreviewPlacedCargoItem = {
   poNumber?: string
   cargoDescription: string
   unitIndex: number
-  shape: 'box' | 'pallet' | 'crate' | 'cylinder' | 'machine'
+  shape: 'box' | 'pallet' | 'crate' | 'drum' | 'machine'
 
   xCm: number
   yCm: number
@@ -95,6 +103,10 @@ export type PreviewPlacedCargoItem = {
   rotationDeg: 0 | 90 | 180 | 270
 
   color?: string
+
+  /** Server metadata used to associate drums with generated Euro pallets. */
+  palletizationGroupId?: string
+  isGeneratedSupportItem?: boolean
 
   placementMode?: 'floor' | 'stacked_on_carton' | 'stacked_on_pallet' | 'top_load'
   stackedOnUnitIndex?: number | null

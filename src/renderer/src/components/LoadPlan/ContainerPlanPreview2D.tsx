@@ -11,19 +11,19 @@ import {
 
 type PreviewData = NonNullable<ContainerPlanPreviewProps['previewData']>
 type PlacedCargoItem = PreviewData['placedCargoItems'][number]
-type CargoVisualShape = 'carton' | 'crate' | 'pallet' | 'cylinder'
+type CargoVisualShape = 'carton' | 'crate' | 'pallet' | 'drum'
 
 const DEFAULT_SHAPE_COLORS: Record<CargoVisualShape, string> = {
   carton: '#c79252',
   crate: '#c58a42',
   pallet: '#b9803d',
-  cylinder: '#7d95a8'
+  drum: '#7d95a8'
 }
 
 const normalizeShape = (shape: PlacedCargoItem['shape']): CargoVisualShape => {
   if (shape === 'box') return 'carton'
   if (shape === 'pallet') return 'pallet'
-  if (shape === 'cylinder') return 'cylinder'
+  if (shape === 'drum') return 'drum'
 
   return 'crate'
 }
