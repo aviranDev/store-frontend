@@ -192,13 +192,14 @@ const CargoItemRow = ({
           Must stay vertical
         </RestrictionItem>
 
-        <RestrictionItem>
+        <RestrictionItem title={isDrum ? 'Drums are always loose and non-stackable.' : undefined}>
           <input
             type="checkbox"
-            checked={item.unstackable}
+            checked={isDrum || item.unstackable}
+            disabled={isDrum}
             onChange={onCheckboxChange(item.id, 'unstackable')}
           />
-          Unstackable
+          {isDrum ? 'Unstackable (required)' : 'Unstackable'}
         </RestrictionItem>
 
         {showPalletOptions && (
@@ -231,32 +232,36 @@ const CargoItemRow = ({
           Tilt allowed
         </RestrictionItem>
 
-        <RestrictionItem>
-          <input
-            type="checkbox"
-            checked={item.topLoadOnly}
-            onChange={onCheckboxChange(item.id, 'topLoadOnly')}
-          />
-          Top load only
-        </RestrictionItem>
+        {!isDrum && (
+          <>
+            <RestrictionItem>
+              <input
+                type="checkbox"
+                checked={item.topLoadOnly}
+                onChange={onCheckboxChange(item.id, 'topLoadOnly')}
+              />
+              Top load only
+            </RestrictionItem>
 
-        <RestrictionItem>
-          Max support kg
-          <NativeSelect
-            value={item.maxSupportedWeightKg}
-            onChange={onItemChange(item.id, 'maxSupportedWeightKg')}
-            disabled={item.unstackable}
-            title="Maximum weight this item can support on top"
-          >
-            <option value="">None</option>
+            <RestrictionItem>
+              Max support kg
+              <NativeSelect
+                value={item.maxSupportedWeightKg}
+                onChange={onItemChange(item.id, 'maxSupportedWeightKg')}
+                disabled={item.unstackable}
+                title="Maximum weight this item can support on top"
+              >
+                <option value="">None</option>
 
-            {MAX_SUPPORTED_WEIGHT_OPTIONS.map((value) => (
-              <option key={value} value={String(value)}>
-                {value}
-              </option>
-            ))}
-          </NativeSelect>
-        </RestrictionItem>
+                {MAX_SUPPORTED_WEIGHT_OPTIONS.map((value) => (
+                  <option key={value} value={String(value)}>
+                    {value}
+                  </option>
+                ))}
+              </NativeSelect>
+            </RestrictionItem>
+          </>
+        )}
 
         {showGeneralCargoOptions && (
           <>
@@ -281,13 +286,8 @@ const CargoItemRow = ({
         )}
 
         {isDrum && (
-          <RestrictionItem title="Checked: palletized on automatically generated 120 x 80 cm Euro pallets. Unchecked: loose cargo.">
-            <input
-              type="checkbox"
-              checked={item.canBePlacedOnPallet}
-              onChange={onCheckboxChange(item.id, 'canBePlacedOnPallet')}
-            />
-            Palletized (Euro pallet 120 x 80 cm)
+          <RestrictionItem title="Drums are loaded loose on the container floor. Use the Pallet cargo type for palletized drums.">
+            <strong>Loose cargo only (use Pallet for palletized loads)</strong>
           </RestrictionItem>
         )}
       </RestrictionsGrid>

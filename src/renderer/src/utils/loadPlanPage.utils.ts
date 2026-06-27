@@ -116,28 +116,40 @@ export const buildPreviewPayload = (formData: LoadingPlanFormState): PreviewLoad
               heightCm: Number(toCentimeters(height, item.dimensionUnit).toFixed(2))
             },
       unitWeightKg: Number(toKilograms(weight || 0, item.weightUnit).toFixed(2)),
-      restrictions: {
-        mustStayVertical: item.mustStayVertical,
-        stackable: !item.unstackable,
-        rotatable: item.rotatable,
-        tiltAllowed: item.tiltAllowed,
-        topLoadOnly: item.topLoadOnly,
-
-        ...(maxSupportedWeightKg !== undefined
+      restrictions:
+        item.shape === 'drum'
           ? {
-              maxSupportedWeightKg
-            }
-          : {}),
-
-        ...(item.shape === 'pallet'
-          ? {
-              canBeStackedOnSameItem: item.canBeStackedOnSameItem
+              mustStayVertical: item.mustStayVertical,
+              stackable: false,
+              rotatable: item.rotatable,
+              tiltAllowed: item.tiltAllowed,
+              topLoadOnly: false,
+              fragile: false,
+              canBePlacedOnPallet: false,
+              canBeStackedOnSameItem: false
             }
           : {
-              fragile: item.fragile,
-              canBePlacedOnPallet: item.canBePlacedOnPallet
-            })
-      }
+              mustStayVertical: item.mustStayVertical,
+              stackable: !item.unstackable,
+              rotatable: item.rotatable,
+              tiltAllowed: item.tiltAllowed,
+              topLoadOnly: item.topLoadOnly,
+
+              ...(maxSupportedWeightKg !== undefined
+                ? {
+                    maxSupportedWeightKg
+                  }
+                : {}),
+
+              ...(item.shape === 'pallet'
+                ? {
+                    canBeStackedOnSameItem: item.canBeStackedOnSameItem
+                  }
+                : {
+                    fragile: item.fragile,
+                    canBePlacedOnPallet: item.canBePlacedOnPallet
+                  })
+            }
     }
   })
 
