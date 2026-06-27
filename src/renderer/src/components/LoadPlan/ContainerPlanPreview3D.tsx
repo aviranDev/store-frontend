@@ -33,6 +33,12 @@ type CargoFaceType = 'side' | 'topBottom'
 type ContainerWallName = 'xMin' | 'xMax' | 'zMin' | 'zMax'
 
 const SCALE = 0.01 // 1 cm = 0.01 scene units
+const CM_PER_FOOT = 30.48
+
+const formatCentimeters = (valueCm: number): string => Number(valueCm.toFixed(1)).toString()
+
+const formatContainerDimension = (valueCm: number): string =>
+  `${(valueCm / CM_PER_FOOT).toFixed(2)} ft (${formatCentimeters(valueCm)} cm)`
 
 const DEFAULT_SHAPE_COLORS: Record<CargoVisualShape, string> = {
   carton: '#c79252',
@@ -923,10 +929,268 @@ const CameraBackWallGrid = ({
   )
 }
 
+const createDimensionLabelTexture = (text: string): THREE.CanvasTexture => {
+  const canvas = document.createElement('canvas')
+  const context = canvas.getContext('2d')
+
+  canvas.width = 1200
+  canvas.height = 190
+
+  if (context) {
+    context.clearRect(0, 0, canvas.width, canvas.height)
+    context.fillStyle = 'rgba(248, 248, 248, 0.96)'
+    context.fillRect(5, 5, canvas.width - 10, canvas.height - 10)
+    context.strokeStyle = '#606060'
+    context.lineWidth = 8
+    context.strokeRect(5, 5, canvas.width - 10, canvas.height - 10)
+
+    let fontSize = 66
+    context.font = `bold ${fontSize}px Arial`
+
+    while (fontSize > 34 && context.measureText(text).width > canvas.width - 100) {
+      fontSize -= 2
+      context.font = `bold ${fontSize}px Arial`
+    }
+
+    context.fillStyle = '#111111'
+    context.textAlign = 'center'
+    context.textBaseline = 'middle'
+    context.fillText(text, canvas.width / 2, canvas.height / 2)
+  }
+
+  const texture = new THREE.CanvasTexture(canvas)
+  texture.needsUpdate = true
+  texture.colorSpace = THREE.SRGBColorSpace
+  texture.minFilter = THREE.LinearFilter
+  texture.magFilter = THREE.LinearFilter
+  return texture
+}
+
+const DimensionLabelSprite = ({
+  text,
+  position,
+  worldWidth
+}: {
+  text: string
+  position: [number, number, number]
+  worldWidth: number
+}): React.JSX.Element => {
+  const texture = useMemo(() => createDimensionLabelTexture(text), [text])
+  const worldHeight = worldWidth * (190 / 1200)
+
+  useEffect(() => () => texture.dispose(), [texture])
+
+  return (
+    <sprite position={position} scale={[worldWidth, worldHeight, 1]} renderOrder={50}>
+      <spriteMaterial
+        map={texture}
+        transparent
+        depthTest={false}
+        depthWrite={false}
+        toneMapped={false}
+      />
+    </sprite>
+  )
+}
+
+const ContainerDimensionRulers = ({
+  containerLength,
+  containerWidth,
+  containerHeight,
+  lengthCm,
+  widthCm,
+  heightCm,
+  gridStep
+}: {
+  containerLength: number
+  containerWidth: number
+  containerHeight: number
+  lengthCm: number
+  widthCm: number
+  heightCm: number
+  gridStep: number
+}): React.JSX.Element => {
+  const floorY = -containerHeight / 2 + 0.065
+  const ceilingY = containerHeight / 2 - 0.065
+  const gap = Math.max(gridStep * 0.7, 0.16)
+  const tick = Math.max(Math.min(gridStep * 0.38, 0.2), 0.09)
+
+  const xMin = -containerLength / 2
+  const xMax = containerLength / 2
+  const zMin = -containerWidth / 2
+  const zMax = containerWidth / 2
+
+  const lengthZ = zMax + gap
+  const widthX = xMax + gap
+
+  // Keep the height ruler just outside the visible front-left corner.
+  // Its label is moved inward toward the container center so it cannot be clipped.
+  const heightX = xMin - gap * 0.35
+  const heightZ = zMax + gap * 0.35
+
+  const rulerGeometry = useMemo(() => {
+    const p = [
+      // Internal length ruler and end ticks.
+      xMin,
+      floorY,
+      lengthZ,
+      xMax,
+      floorY,
+      lengthZ,
+      xMin,
+      floorY,
+      lengthZ - tick,
+      xMin,
+      floorY,
+      lengthZ + tick,
+      xMax,
+      floorY,
+      lengthZ - tick,
+      xMax,
+      floorY,
+      lengthZ + tick,
+      xMin,
+      floorY,
+      zMax,
+      xMin,
+      floorY,
+      lengthZ,
+      xMax,
+      floorY,
+      zMax,
+      xMax,
+      floorY,
+      lengthZ,
+
+      // Internal width ruler and end ticks.
+      widthX,
+      floorY,
+      zMin,
+      widthX,
+      floorY,
+      zMax,
+      widthX - tick,
+      floorY,
+      zMin,
+      widthX + tick,
+      floorY,
+      zMin,
+      widthX - tick,
+      floorY,
+      zMax,
+      widthX + tick,
+      floorY,
+      zMax,
+      xMax,
+      floorY,
+      zMin,
+      widthX,
+      floorY,
+      zMin,
+      xMax,
+      floorY,
+      zMax,
+      widthX,
+      floorY,
+      zMax,
+
+      // Internal height ruler, end ticks, and guides.
+      heightX,
+      floorY,
+      heightZ,
+      heightX,
+      ceilingY,
+      heightZ,
+      heightX - tick,
+      floorY,
+      heightZ,
+      heightX + tick,
+      floorY,
+      heightZ,
+      heightX - tick,
+      ceilingY,
+      heightZ,
+      heightX + tick,
+      ceilingY,
+      heightZ,
+      xMin,
+      floorY,
+      zMax,
+      heightX,
+      floorY,
+      heightZ,
+      xMin,
+      ceilingY,
+      zMax,
+      heightX,
+      ceilingY,
+      heightZ
+    ]
+
+    const geometry = new THREE.BufferGeometry()
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(p, 3))
+    return geometry
+  }, [ceilingY, floorY, heightX, heightZ, lengthZ, tick, widthX, xMax, xMin, zMax, zMin])
+
+  const material = useMemo(
+    () =>
+      new THREE.LineBasicMaterial({
+        color: '#111111',
+        transparent: true,
+        opacity: 1,
+        depthTest: false,
+        depthWrite: false
+      }),
+    []
+  )
+
+  useEffect(() => {
+    return () => {
+      rulerGeometry.dispose()
+      material.dispose()
+    }
+  }, [material, rulerGeometry])
+
+  const labelY = floorY + Math.max(gridStep * 0.18, 0.09)
+  const lengthLabelWidth = Math.min(Math.max(containerLength * 0.23, 2.05), 3.45)
+  const widthLabelWidth = Math.min(Math.max(containerLength * 0.19, 1.9), 3.05)
+  const heightLabelWidth = Math.min(Math.max(containerLength * 0.2, 2.0), 3.2)
+
+  return (
+    <group renderOrder={40}>
+      <lineSegments geometry={rulerGeometry} material={material} renderOrder={40} />
+
+      <DimensionLabelSprite
+        text={`Internal Length: ${formatContainerDimension(lengthCm)}`}
+        position={[0, labelY, lengthZ + gridStep * 0.42]}
+        worldWidth={lengthLabelWidth}
+      />
+
+      <DimensionLabelSprite
+        text={`Internal Width: ${formatContainerDimension(widthCm)}`}
+        position={[widthX + gridStep * 0.52, labelY, 0]}
+        worldWidth={widthLabelWidth}
+      />
+
+      <DimensionLabelSprite
+        text={`Internal Height: ${formatContainerDimension(heightCm)}`}
+        position={[
+          heightX - Math.max(heightLabelWidth * 0.52, gap * 1.2),
+          (floorY + ceilingY) / 2,
+          heightZ + gridStep * 0.08
+        ]}
+        worldWidth={heightLabelWidth}
+      />
+    </group>
+  )
+}
+
 const ContainerScene = ({ previewData }: { previewData: PreviewData }): React.JSX.Element => {
   const containerLength = previewData.containerType.dimensions.internalLengthCm * SCALE
   const containerWidth = previewData.containerType.dimensions.internalWidthCm * SCALE
   const containerHeight = previewData.containerType.dimensions.internalHeightCm * SCALE
+  const groundGridStep = Math.max(containerLength, containerWidth) / 24
+  const groundGridSize = Math.max(containerLength, containerWidth) + groundGridStep * 4
 
   const placedItems = useMemo(
     () =>
@@ -981,8 +1245,18 @@ const ContainerScene = ({ previewData }: { previewData: PreviewData }): React.JS
       </mesh>
 
       <gridHelper
-        args={[Math.max(containerLength, containerWidth), 24, '#b8b8b8', '#d8d8d8']}
+        args={[groundGridSize, 28, '#b8b8b8', '#d8d8d8']}
         position={[0, -containerHeight / 2 + 0.02, 0]}
+      />
+
+      <ContainerDimensionRulers
+        containerLength={containerLength}
+        containerWidth={containerWidth}
+        containerHeight={containerHeight}
+        lengthCm={previewData.containerType.dimensions.internalLengthCm}
+        widthCm={previewData.containerType.dimensions.internalWidthCm}
+        heightCm={previewData.containerType.dimensions.internalHeightCm}
+        gridStep={groundGridStep}
       />
 
       <group>

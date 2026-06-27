@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { CSSProperties, useMemo } from 'react'
 import { ContainerPlanPreviewProps } from '../../types/loadPlanPage.types'
 import {
   PreviewViewport,
@@ -28,6 +28,38 @@ const normalizeShape = (shape: PlacedCargoItem['shape']): CargoVisualShape => {
   return 'crate'
 }
 
+const CM_PER_FOOT = 30.48
+
+const formatDimension = (valueCm: number): string => {
+  const feet = valueCm / CM_PER_FOOT
+  const roundedCm = Number.isInteger(valueCm) ? `${valueCm}` : valueCm.toFixed(1)
+
+  return `${feet.toFixed(2)} ft (${roundedCm} cm)`
+}
+
+const measureLabelStyle: CSSProperties = {
+  position: 'absolute',
+  padding: '2px 6px',
+  background: 'rgba(248, 248, 248, 0.96)',
+  color: '#111111',
+  border: '1px solid #5d5d5d',
+  fontSize: 11,
+  fontWeight: 'bold',
+  lineHeight: '14px',
+  whiteSpace: 'nowrap',
+  boxShadow: '1px 1px 0 rgba(255, 255, 255, 0.85)'
+}
+
+const rulerStyle: CSSProperties = {
+  position: 'absolute',
+  background: '#111111'
+}
+
+const tickStyle: CSSProperties = {
+  position: 'absolute',
+  background: '#111111'
+}
+
 const ContainerPlanPreview2D = ({
   formData,
   previewData
@@ -35,22 +67,43 @@ const ContainerPlanPreview2D = ({
   const canvasWidth = 620
   const canvasHeight = 260
 
-  const safePaddingX = 34
-  const safePaddingY = 26
+  const containerLengthCm = previewData?.containerType.dimensions.internalLengthCm ?? 1
+  const containerWidthCm = previewData?.containerType.dimensions.internalWidthCm ?? 1
+  const containerHeightCm = previewData?.containerType.dimensions.internalHeightCm ?? 1
 
-  const usableWidth = canvasWidth - safePaddingX * 2
-  const usableHeight = canvasHeight - safePaddingY * 2
+  const leftGutter = 92
+  const rightGutter = 112
+  const topGutter = 24
+  const bottomGutter = 58
 
-  const containerLength = previewData?.containerType.dimensions.internalLengthCm ?? 1
-  const containerWidth = previewData?.containerType.dimensions.internalWidthCm ?? 1
+  const usableWidth = canvasWidth - leftGutter - rightGutter
+  const usableHeight = canvasHeight - topGutter - bottomGutter
 
-  const scale = Math.min(usableWidth / containerLength, usableHeight / containerWidth)
+  const planScale = Math.min(usableWidth / containerLengthCm, usableHeight / containerWidthCm)
 
-  const scaledContainerWidth = containerLength * scale
-  const scaledContainerHeight = containerWidth * scale
+  const scaledContainerLength = containerLengthCm * planScale
+  const scaledContainerWidth = containerWidthCm * planScale
+  const scaledContainerHeight = containerHeightCm * planScale
 
-  const offsetX = (canvasWidth - scaledContainerWidth) / 2
-  const offsetY = (canvasHeight - scaledContainerHeight) / 2
+  const offsetX = leftGutter
+  const offsetY = topGutter + (usableHeight - scaledContainerWidth) / 2
+
+  const widthRulerX = offsetX - 20
+  const widthRulerTop = offsetY
+  const widthRulerHeight = scaledContainerWidth
+
+  const heightRulerX = offsetX + scaledContainerLength + 22
+  const heightRulerTop = offsetY + (scaledContainerWidth - scaledContainerHeight) / 2
+  const heightRulerHeight = scaledContainerHeight
+
+  const lengthRulerLeft = offsetX
+  const lengthRulerTop = offsetY + scaledContainerWidth + 16
+
+  const widthLabelLeft = widthRulerX - 13
+  const widthLabelTop = widthRulerTop + widthRulerHeight / 2
+
+  const heightLabelLeft = heightRulerX + 13
+  const heightLabelTop = heightRulerTop + heightRulerHeight / 2
 
   const sortedItems = useMemo(
     () =>
@@ -70,15 +123,131 @@ const ContainerPlanPreview2D = ({
             <ContainerFrame
               $left={offsetX}
               $top={offsetY}
-              $width={scaledContainerWidth}
-              $height={scaledContainerHeight}
+              $width={scaledContainerLength}
+              $height={scaledContainerWidth}
             />
 
+            <div
+              style={{
+                ...rulerStyle,
+                left: lengthRulerLeft,
+                top: lengthRulerTop,
+                width: scaledContainerLength,
+                height: 1
+              }}
+            />
+            <div
+              style={{
+                ...tickStyle,
+                left: lengthRulerLeft,
+                top: lengthRulerTop - 5,
+                width: 1,
+                height: 11
+              }}
+            />
+            <div
+              style={{
+                ...tickStyle,
+                left: lengthRulerLeft + scaledContainerLength,
+                top: lengthRulerTop - 5,
+                width: 1,
+                height: 11
+              }}
+            />
+            <div
+              style={{
+                ...measureLabelStyle,
+                left: offsetX + scaledContainerLength / 2,
+                top: lengthRulerTop + 10,
+                transform: 'translateX(-50%)'
+              }}
+            >
+              Internal Length: {formatDimension(containerLengthCm)}
+            </div>
+
+            <div
+              style={{
+                ...rulerStyle,
+                left: widthRulerX,
+                top: widthRulerTop,
+                width: 1,
+                height: widthRulerHeight
+              }}
+            />
+            <div
+              style={{
+                ...tickStyle,
+                left: widthRulerX - 5,
+                top: widthRulerTop,
+                width: 11,
+                height: 1
+              }}
+            />
+            <div
+              style={{
+                ...tickStyle,
+                left: widthRulerX - 5,
+                top: widthRulerTop + widthRulerHeight,
+                width: 11,
+                height: 1
+              }}
+            />
+            <div
+              style={{
+                ...measureLabelStyle,
+                left: widthLabelLeft,
+                top: widthLabelTop,
+                transform: 'translate(-50%, -50%) rotate(-90deg)',
+                transformOrigin: 'center'
+              }}
+            >
+              Internal Width: {formatDimension(containerWidthCm)}
+            </div>
+
+            <div
+              style={{
+                ...rulerStyle,
+                left: heightRulerX,
+                top: heightRulerTop,
+                width: 1,
+                height: heightRulerHeight
+              }}
+            />
+            <div
+              style={{
+                ...tickStyle,
+                left: heightRulerX - 5,
+                top: heightRulerTop,
+                width: 11,
+                height: 1
+              }}
+            />
+            <div
+              style={{
+                ...tickStyle,
+                left: heightRulerX - 5,
+                top: heightRulerTop + heightRulerHeight,
+                width: 11,
+                height: 1
+              }}
+            />
+            <div
+              style={{
+                ...measureLabelStyle,
+                left: heightLabelLeft,
+                top: heightLabelTop,
+                transform: 'translate(-50%, -50%) rotate(90deg)',
+                transformOrigin: 'center'
+              }}
+            >
+              Internal Height: {formatDimension(containerHeightCm)}
+            </div>
+
             {sortedItems.map((item, index) => {
-              const left = offsetX + item.xCm * scale
-              const top = offsetY + item.yCm * scale
-              const width = item.placedLengthCm * scale
-              const height = item.placedWidthCm * scale
+              const left = offsetX + item.xCm * planScale
+              const top = offsetY + item.yCm * planScale
+              const width = item.placedLengthCm * planScale
+              const height = item.placedWidthCm * planScale
 
               const isStacked = item.zCm > 0
               const shape = normalizeShape(item.shape)
