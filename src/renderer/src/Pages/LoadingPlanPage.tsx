@@ -10,7 +10,6 @@ import WinButton from '../components/Button/WinButton'
 import {
   previewLoadPlan,
   previewClosingLoadPlan,
-  getLoadPlanById,
   LoadPlanCalculationMode,
   LoadPlanDetailsData,
   PreviewCargoItem,
@@ -78,32 +77,39 @@ const toUiShape = (shape: PreviewCargoItem['shape']): CargoItem['shape'] => {
 const payloadToFormState = (payload: PreviewLoadPlanPayload): LoadingPlanFormState => {
   return {
     containerType: payload.selectedContainerCode,
-    items: payload.cargoItems.map((item, index) => ({
-      id: `${index + 1}`,
-      poNumber: item.poNumber ?? '',
-      color: item.color ?? '',
-      shape: toUiShape(item.shape),
-      quantity: String(item.quantity ?? 1),
-      length: String(item.dimensions.lengthCm ?? ''),
-      width: String(item.dimensions.widthCm ?? ''),
-      height: String(item.dimensions.heightCm ?? ''),
-      diameter: String(item.dimensions.diameterCm ?? ''),
-      dimensionUnit: 'cm',
-      weight: String(item.unitWeightKg ?? 0),
-      weightUnit: 'kg',
-      mustStayVertical: item.restrictions.mustStayVertical,
-      unstackable: !item.restrictions.stackable,
-      rotatable: item.restrictions.rotatable,
-      tiltAllowed: item.restrictions.tiltAllowed,
-      topLoadOnly: item.restrictions.topLoadOnly,
-      fragile: item.restrictions.fragile ?? false,
-      canBePlacedOnPallet: item.restrictions.canBePlacedOnPallet ?? false,
-      canBeStackedOnSameItem: item.restrictions.canBeStackedOnSameItem ?? false,
-      maxSupportedWeightKg:
-        item.restrictions.maxSupportedWeightKg === undefined
-          ? ''
-          : String(item.restrictions.maxSupportedWeightKg)
-    }))
+    items: payload.cargoItems.map((item, index) => {
+      const shape = toUiShape(item.shape)
+      const isDrum = shape === 'drum'
+
+      return {
+        id: `${index + 1}`,
+        poNumber: item.poNumber ?? '',
+        color: item.color ?? '',
+        shape,
+        quantity: String(item.quantity ?? 1),
+        length: String(item.dimensions.lengthCm ?? ''),
+        width: String(item.dimensions.widthCm ?? ''),
+        height: String(item.dimensions.heightCm ?? ''),
+        diameter: String(item.dimensions.diameterCm ?? ''),
+        dimensionUnit: 'cm',
+        weight: String(item.unitWeightKg ?? 0),
+        weightUnit: 'kg',
+        mustStayVertical: item.restrictions.mustStayVertical,
+        unstackable: isDrum ? true : !item.restrictions.stackable,
+        rotatable: item.restrictions.rotatable,
+        tiltAllowed: item.restrictions.tiltAllowed,
+        topLoadOnly: isDrum ? false : item.restrictions.topLoadOnly,
+        fragile: isDrum ? false : (item.restrictions.fragile ?? false),
+        canBePlacedOnPallet: isDrum ? false : (item.restrictions.canBePlacedOnPallet ?? false),
+        canBeStackedOnSameItem: isDrum
+          ? false
+          : (item.restrictions.canBeStackedOnSameItem ?? false),
+        maxSupportedWeightKg:
+          isDrum || item.restrictions.maxSupportedWeightKg === undefined
+            ? ''
+            : String(item.restrictions.maxSupportedWeightKg)
+      }
+    })
   }
 }
 
@@ -472,11 +478,15 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
               canBeStackedOnSameItem: false,
               ...(nextShape === 'drum'
                 ? {
+                    unstackable: true,
+                    topLoadOnly: false,
                     fragile: false,
+                    maxSupportedWeightKg: '',
                     length: '',
                     width: ''
                   }
                 : {
+                    unstackable: item.shape === 'drum' ? false : item.unstackable,
                     diameter: ''
                   })
             }
@@ -506,23 +516,39 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
     (event: React.ChangeEvent<HTMLInputElement>) => {
       setFormData((prev) => ({
         ...prev,
-        items: prev.items.map((item) =>
-          item.id === id
-            ? {
-                ...item,
-                [field]: event.target.checked,
-                ...(field === 'unstackable' && event.target.checked
-                  ? {
-                      maxSupportedWeightKg: '',
-                      canBeStackedOnSameItem: false
-                    }
-                  : {}),
-                ...(field === 'canBeStackedOnSameItem' && event.target.checked
-                  ? { unstackable: false }
-                  : {})
-              }
-            : item
-        )
+        items: prev.items.map((item) => {
+          if (item.id !== id) {
+            return item
+          }
+
+          const updatedItem = {
+            ...item,
+            [field]: event.target.checked,
+            ...(field === 'unstackable' && event.target.checked
+              ? {
+                  maxSupportedWeightKg: '',
+                  canBeStackedOnSameItem: false
+                }
+              : {}),
+            ...(field === 'canBeStackedOnSameItem' && event.target.checked
+              ? { unstackable: false }
+              : {})
+          }
+
+          if (item.shape !== 'drum') {
+            return updatedItem
+          }
+
+          return {
+            ...updatedItem,
+            unstackable: true,
+            topLoadOnly: false,
+            fragile: false,
+            canBePlacedOnPallet: false,
+            canBeStackedOnSameItem: false,
+            maxSupportedWeightKg: ''
+          }
+        })
       }))
       setPreviewData(null)
       setMessage('')
@@ -955,33 +981,8 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
     />
   )
 
-  const handleOpenSavedPlan = async (planId: string): Promise<void> => {
-    try {
-      setIsCalculating(true)
-      setErrorPopup(null)
-      setMessage('Opening saved load plan...')
-
-      const plan = await getLoadPlanById(planId)
-
-      const routeState: LoadingPlanRouteState = {
-        activeTab: 'loading-details',
-        editLoadPlan: plan
-      }
-
-      navigate(`/employee/load-plans/${planId}`, {
-        state: routeState
-      })
-    } catch (error) {
-      const nextMessage = getErrorMessage(error, 'Failed to open saved load plan.')
-
-      setMessage(nextMessage)
-      setErrorPopup({
-        message: nextMessage,
-        errors: []
-      })
-    } finally {
-      setIsCalculating(false)
-    }
+  const handleOpenSavedPlan = (planId: string): void => {
+    navigate(`/employee/load-plans/${planId}`)
   }
 
   const savedLoadPlansTabContent = (
