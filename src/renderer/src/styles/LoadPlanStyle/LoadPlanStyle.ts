@@ -78,8 +78,8 @@ export const TabContentLayout = styled.div`
   width: 100%;
   max-width: none;
   min-width: 0;
-  min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
 `
 
 export const TabFooter = styled.div`
