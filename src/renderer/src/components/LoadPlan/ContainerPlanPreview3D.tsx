@@ -993,6 +993,501 @@ const DimensionLabelSprite = ({
   )
 }
 
+const ContainerDoorVisual = ({
+  containerLength,
+  containerWidth,
+  containerHeight,
+  doorWidthCm,
+  doorHeightCm,
+  gridStep
+}: {
+  containerLength: number
+  containerWidth: number
+  containerHeight: number
+  doorWidthCm?: number
+  doorHeightCm?: number
+  gridStep: number
+}): React.JSX.Element | null => {
+  const hasDoorDimensions =
+    typeof doorWidthCm === 'number' &&
+    Number.isFinite(doorWidthCm) &&
+    doorWidthCm > 0 &&
+    typeof doorHeightCm === 'number' &&
+    Number.isFinite(doorHeightCm) &&
+    doorHeightCm > 0
+
+  const safeDoorWidthCm = hasDoorDimensions ? doorWidthCm : 0
+  const safeDoorHeightCm = hasDoorDimensions ? doorHeightCm : 0
+
+  const doorWidth = Math.min(safeDoorWidthCm * SCALE, containerWidth * 0.985)
+  const doorHeight = Math.min(safeDoorHeightCm * SCALE, containerHeight * 0.985)
+
+  // Application convention: the container doors are on the +X short end.
+  const x = containerLength / 2 - 0.004
+  const hardwareX = x + Math.max(doorWidth * 0.012, 0.025)
+  const bottomY = -containerHeight / 2
+  const topY = bottomY + doorHeight
+  const doorCenterY = bottomY + doorHeight / 2
+  const zMin = -doorWidth / 2
+  const zMax = doorWidth / 2
+
+  const centerGap = Math.max(Math.min(doorWidth * 0.012, 0.028), 0.012)
+  const leafWidth = Math.max((doorWidth - centerGap) / 2, 0.01)
+  const leftLeafZ = -(leafWidth / 2 + centerGap / 2)
+  const rightLeafZ = leafWidth / 2 + centerGap / 2
+
+  const frameThickness = Math.max(Math.min(doorWidth * 0.014, 0.034), 0.016)
+  const panelRibThickness = Math.max(Math.min(doorHeight * 0.008, 0.022), 0.01)
+  const lockingBarRadius = Math.max(Math.min(doorWidth * 0.008, 0.022), 0.011)
+  const lockingBarHeight = doorHeight * 0.88
+  const lockingBarY = bottomY + doorHeight * 0.5
+  const handleY = bottomY + doorHeight * 0.31
+  const handleLength = Math.max(doorWidth * 0.1, 0.15)
+  const handleRadius = Math.max(lockingBarRadius * 0.72, 0.008)
+
+  const lockingBarPositions = [
+    -doorWidth * 0.37,
+    -doorWidth * 0.13,
+    doorWidth * 0.13,
+    doorWidth * 0.37
+  ]
+
+  const panelRibYPositions = [0.24, 0.49, 0.74].map((ratio) => bottomY + doorHeight * ratio)
+
+  const hingeYPositions = [0.14, 0.38, 0.63, 0.87].map((ratio) => bottomY + doorHeight * ratio)
+
+  const labelText = `Door opening: ${formatCentimeters(safeDoorWidthCm)} × ${formatCentimeters(
+    safeDoorHeightCm
+  )} cm (W × H)`
+  const labelWidth = Math.min(Math.max(containerLength * 0.24, 2.45), 4)
+  const labelPosition: [number, number, number] = [
+    x + Math.max(gridStep * 0.78, 0.22),
+    topY + Math.max(gridStep * 0.44, 0.17),
+    0
+  ]
+
+  const panelMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#6f91aa',
+        transparent: true,
+        opacity: 0.16,
+        roughness: 0.8,
+        metalness: 0.12,
+        side: THREE.DoubleSide,
+        depthTest: true,
+        depthWrite: true
+      }),
+    []
+  )
+
+  const frameMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#45677f',
+        transparent: true,
+        opacity: 0.62,
+        roughness: 0.58,
+        metalness: 0.3,
+        depthTest: true,
+        depthWrite: true
+      }),
+    []
+  )
+
+  const hardwareMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#d4dadd',
+        transparent: true,
+        opacity: 0.78,
+        roughness: 0.28,
+        metalness: 0.72,
+        depthTest: true,
+        depthWrite: true
+      }),
+    []
+  )
+
+  const darkHardwareMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#4d555b',
+        transparent: true,
+        opacity: 0.78,
+        roughness: 0.42,
+        metalness: 0.5,
+        depthTest: true,
+        depthWrite: true
+      }),
+    []
+  )
+
+  const outlineMaterial = useMemo(
+    () =>
+      new THREE.LineBasicMaterial({
+        color: '#3e5667',
+        transparent: true,
+        opacity: 0.82,
+        depthTest: true,
+        depthWrite: false
+      }),
+    []
+  )
+
+  const outlineGeometry = useMemo(() => {
+    const positions: number[] = []
+
+    const addLine = (
+      x1: number,
+      y1: number,
+      z1: number,
+      x2: number,
+      y2: number,
+      z2: number
+    ): void => {
+      positions.push(x1, y1, z1, x2, y2, z2)
+    }
+
+    // Outer frame and center seam.
+    addLine(x, bottomY, zMin, x, bottomY, zMax)
+    addLine(x, bottomY, zMax, x, topY, zMax)
+    addLine(x, topY, zMax, x, topY, zMin)
+    addLine(x, topY, zMin, x, bottomY, zMin)
+    addLine(x, bottomY, 0, x, topY, 0)
+
+    // Pressed horizontal panel sections, similar to a real container door.
+    panelRibYPositions.forEach((y) => {
+      addLine(x, y, zMin, x, y, zMax)
+    })
+
+    const geometry = new THREE.BufferGeometry()
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3))
+    return geometry
+  }, [bottomY, panelRibYPositions, topY, x, zMax, zMin])
+
+  useEffect(() => {
+    return () => {
+      panelMaterial.dispose()
+      frameMaterial.dispose()
+      hardwareMaterial.dispose()
+      darkHardwareMaterial.dispose()
+      outlineMaterial.dispose()
+      outlineGeometry.dispose()
+    }
+  }, [
+    darkHardwareMaterial,
+    frameMaterial,
+    hardwareMaterial,
+    outlineGeometry,
+    outlineMaterial,
+    panelMaterial
+  ])
+
+  if (!hasDoorDimensions) {
+    return null
+  }
+
+  return (
+    <group>
+      {/* Semi-transparent blue-gray double doors. */}
+      <mesh position={[x, doorCenterY, leftLeafZ]} rotation={[0, -Math.PI / 2, 0]}>
+        <planeGeometry args={[leafWidth, doorHeight]} />
+        <primitive object={panelMaterial} attach="material" />
+      </mesh>
+
+      <mesh position={[x, doorCenterY, rightLeafZ]} rotation={[0, -Math.PI / 2, 0]}>
+        <planeGeometry args={[leafWidth, doorHeight]} />
+        <primitive object={panelMaterial} attach="material" />
+      </mesh>
+
+      {/* Outer frame, threshold, header, and central meeting stile. */}
+      <mesh position={[hardwareX, doorCenterY, zMin]}>
+        <boxGeometry args={[frameThickness, doorHeight, frameThickness]} />
+        <primitive object={frameMaterial} attach="material" />
+      </mesh>
+      <mesh position={[hardwareX, doorCenterY, zMax]}>
+        <boxGeometry args={[frameThickness, doorHeight, frameThickness]} />
+        <primitive object={frameMaterial} attach="material" />
+      </mesh>
+      <mesh position={[hardwareX, bottomY + frameThickness / 2, 0]}>
+        <boxGeometry args={[frameThickness, frameThickness, doorWidth]} />
+        <primitive object={frameMaterial} attach="material" />
+      </mesh>
+      <mesh position={[hardwareX, topY - frameThickness / 2, 0]}>
+        <boxGeometry args={[frameThickness, frameThickness, doorWidth]} />
+        <primitive object={frameMaterial} attach="material" />
+      </mesh>
+      <mesh position={[hardwareX, doorCenterY, 0]}>
+        <boxGeometry args={[frameThickness, doorHeight, Math.max(centerGap, frameThickness)]} />
+        <primitive object={frameMaterial} attach="material" />
+      </mesh>
+
+      {/* Horizontal panel ribs on both leaves. */}
+      {panelRibYPositions.map((y, index) => (
+        <mesh key={`door-rib-${index}`} position={[hardwareX, y, 0]}>
+          <boxGeometry args={[panelRibThickness, panelRibThickness, doorWidth * 0.96]} />
+          <primitive object={frameMaterial} attach="material" />
+        </mesh>
+      ))}
+
+      {/* Four vertical locking bars, two per door leaf. */}
+      {lockingBarPositions.map((z, index) => {
+        const towardCenter = z < 0 ? 1 : -1
+        const handleCenterZ = z + towardCenter * handleLength * 0.45
+
+        return (
+          <group key={`door-locking-bar-${index}`}>
+            <mesh position={[hardwareX + 0.018, lockingBarY, z]}>
+              <cylinderGeometry args={[lockingBarRadius, lockingBarRadius, lockingBarHeight, 14]} />
+              <primitive object={hardwareMaterial} attach="material" />
+            </mesh>
+
+            {/* Top, middle, and bottom bar brackets. */}
+            {[0.09, 0.5, 0.91].map((ratio) => (
+              <mesh
+                key={`door-bar-bracket-${index}-${ratio}`}
+                position={[hardwareX + 0.02, bottomY + doorHeight * ratio, z]}
+              >
+                <boxGeometry
+                  args={[
+                    frameThickness * 1.2,
+                    Math.max(doorHeight * 0.035, 0.055),
+                    lockingBarRadius * 3.2
+                  ]}
+                />
+                <primitive object={darkHardwareMaterial} attach="material" />
+              </mesh>
+            ))}
+
+            {/* Horizontal operating handle, pointing toward the center seam. */}
+            <mesh
+              position={[hardwareX + 0.04, handleY, handleCenterZ]}
+              rotation={[Math.PI / 2, 0, 0]}
+            >
+              <cylinderGeometry args={[handleRadius, handleRadius, handleLength, 12]} />
+              <primitive object={hardwareMaterial} attach="material" />
+            </mesh>
+            <mesh position={[hardwareX + 0.04, handleY, z]}>
+              <boxGeometry
+                args={[
+                  frameThickness * 1.25,
+                  Math.max(doorHeight * 0.05, 0.07),
+                  lockingBarRadius * 3.2
+                ]}
+              />
+              <primitive object={darkHardwareMaterial} attach="material" />
+            </mesh>
+          </group>
+        )
+      })}
+
+      {/* Four hinges on each outside edge. */}
+      {hingeYPositions.flatMap((y, yIndex) =>
+        [zMin, zMax].map((z, sideIndex) => (
+          <group key={`door-hinge-${yIndex}-${sideIndex}`}>
+            <mesh position={[hardwareX + 0.02, y, z]}>
+              <boxGeometry
+                args={[
+                  frameThickness * 1.35,
+                  Math.max(doorHeight * 0.055, 0.08),
+                  frameThickness * 2.2
+                ]}
+              />
+              <primitive object={darkHardwareMaterial} attach="material" />
+            </mesh>
+            <mesh position={[hardwareX + 0.045, y, z]} rotation={[0, 0, Math.PI / 2]}>
+              <cylinderGeometry
+                args={[
+                  lockingBarRadius * 0.75,
+                  lockingBarRadius * 0.75,
+                  Math.max(doorHeight * 0.065, 0.09),
+                  10
+                ]}
+              />
+              <primitive object={hardwareMaterial} attach="material" />
+            </mesh>
+          </group>
+        ))
+      )}
+
+      {/* Small corner castings help the door read as a shipping-container end. */}
+      {[
+        [bottomY + frameThickness, zMin],
+        [bottomY + frameThickness, zMax],
+        [topY - frameThickness, zMin],
+        [topY - frameThickness, zMax]
+      ].map(([y, z], index) => (
+        <mesh key={`door-corner-${index}`} position={[hardwareX + 0.01, y, z]}>
+          <boxGeometry args={[frameThickness * 1.8, frameThickness * 3.2, frameThickness * 3.2]} />
+          <primitive object={frameMaterial} attach="material" />
+        </mesh>
+      ))}
+
+      <lineSegments geometry={outlineGeometry} material={outlineMaterial} />
+
+      <DimensionLabelSprite text={labelText} position={labelPosition} worldWidth={labelWidth} />
+    </group>
+  )
+}
+
+const ContainerUnderframe = ({
+  containerLength,
+  containerWidth,
+  containerHeight
+}: {
+  containerLength: number
+  containerWidth: number
+  containerHeight: number
+}): React.JSX.Element => {
+  const floorY = -containerHeight / 2
+  const railHeight = Math.max(Math.min(containerHeight * 0.05, 0.14), 0.085)
+  const railDepth = Math.max(Math.min(containerWidth * 0.045, 0.12), 0.075)
+  const railCenterY = floorY - railHeight / 2 - 0.012
+  const sideRailZ = containerWidth / 2 - railDepth / 2
+  const endRailThickness = Math.max(Math.min(containerLength * 0.006, 0.09), 0.05)
+
+  const crossMemberCount = Math.max(7, Math.min(15, Math.round(containerLength / 0.85)))
+  const crossMemberXs = Array.from({ length: crossMemberCount }, (_, index) => {
+    const ratio = (index + 1) / (crossMemberCount + 1)
+    return -containerLength / 2 + containerLength * ratio
+  })
+
+  // Two dark rectangular openings along each side resemble forklift/tunnel pockets.
+  const pocketXs = [-containerLength * 0.27, containerLength * 0.27]
+  const pocketLength = Math.max(Math.min(containerLength * 0.085, 0.72), 0.34)
+  const pocketHeight = railHeight * 0.58
+  const pocketDepth = Math.max(railDepth * 0.32, 0.025)
+
+  const cornerLength = Math.max(Math.min(containerLength * 0.025, 0.22), 0.12)
+  const cornerDepth = Math.max(Math.min(containerWidth * 0.085, 0.2), 0.12)
+
+  const railMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#718493',
+        transparent: true,
+        opacity: 0.82,
+        roughness: 0.7,
+        metalness: 0.18,
+        depthTest: true,
+        depthWrite: true
+      }),
+    []
+  )
+
+  const crossMemberMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#8797a3',
+        transparent: true,
+        opacity: 0.65,
+        roughness: 0.78,
+        metalness: 0.12,
+        depthTest: true,
+        depthWrite: true
+      }),
+    []
+  )
+
+  const pocketMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#20272c',
+        roughness: 0.88,
+        metalness: 0.08,
+        depthTest: true,
+        depthWrite: true
+      }),
+    []
+  )
+
+  const cornerMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#4f6677',
+        roughness: 0.58,
+        metalness: 0.28,
+        depthTest: true,
+        depthWrite: true
+      }),
+    []
+  )
+
+  useEffect(() => {
+    return () => {
+      railMaterial.dispose()
+      crossMemberMaterial.dispose()
+      pocketMaterial.dispose()
+      cornerMaterial.dispose()
+    }
+  }, [cornerMaterial, crossMemberMaterial, pocketMaterial, railMaterial])
+
+  return (
+    <group>
+      {/* Long bottom side rails. */}
+      {[-sideRailZ, sideRailZ].map((z, index) => (
+        <mesh key={`underframe-side-rail-${index}`} position={[0, railCenterY, z]}>
+          <boxGeometry args={[containerLength, railHeight, railDepth]} />
+          <primitive object={railMaterial} attach="material" />
+        </mesh>
+      ))}
+
+      {/* Front and rear bottom rails. */}
+      {[-containerLength / 2, containerLength / 2].map((x, index) => (
+        <mesh key={`underframe-end-rail-${index}`} position={[x, railCenterY, 0]}>
+          <boxGeometry args={[endRailThickness, railHeight, containerWidth]} />
+          <primitive object={railMaterial} attach="material" />
+        </mesh>
+      ))}
+
+      {/* Cross-members beneath the container floor. */}
+      {crossMemberXs.map((x, index) => (
+        <mesh key={`underframe-cross-member-${index}`} position={[x, railCenterY, 0]}>
+          <boxGeometry
+            args={[
+              Math.max(endRailThickness * 0.62, 0.035),
+              railHeight * 0.72,
+              Math.max(containerWidth - railDepth * 2.25, 0.1)
+            ]}
+          />
+          <primitive object={crossMemberMaterial} attach="material" />
+        </mesh>
+      ))}
+
+      {/* Dark forklift-pocket openings on both visible side rails. */}
+      {[-1, 1].flatMap((side) =>
+        pocketXs.map((x, index) => (
+          <mesh
+            key={`underframe-pocket-${side}-${index}`}
+            position={[x, railCenterY, side * (containerWidth / 2 + pocketDepth / 2 - 0.006)]}
+          >
+            <boxGeometry args={[pocketLength, pocketHeight, pocketDepth]} />
+            <primitive object={pocketMaterial} attach="material" />
+          </mesh>
+        ))
+      )}
+
+      {/* Reinforced lower corner castings. */}
+      {[-1, 1].flatMap((xSide) =>
+        [-1, 1].map((zSide) => (
+          <mesh
+            key={`underframe-corner-${xSide}-${zSide}`}
+            position={[
+              xSide * (containerLength / 2 - cornerLength / 2),
+              railCenterY,
+              zSide * (containerWidth / 2 - cornerDepth / 2)
+            ]}
+          >
+            <boxGeometry args={[cornerLength, railHeight * 1.15, cornerDepth]} />
+            <primitive object={cornerMaterial} attach="material" />
+          </mesh>
+        ))
+      )}
+    </group>
+  )
+}
+
 const ContainerDimensionRulers = ({
   containerLength,
   containerWidth,
@@ -1249,6 +1744,12 @@ const ContainerScene = ({ previewData }: { previewData: PreviewData }): React.JS
         position={[0, -containerHeight / 2 + 0.02, 0]}
       />
 
+      <ContainerUnderframe
+        containerLength={containerLength}
+        containerWidth={containerWidth}
+        containerHeight={containerHeight}
+      />
+
       <ContainerDimensionRulers
         containerLength={containerLength}
         containerWidth={containerWidth}
@@ -1256,6 +1757,15 @@ const ContainerScene = ({ previewData }: { previewData: PreviewData }): React.JS
         lengthCm={previewData.containerType.dimensions.internalLengthCm}
         widthCm={previewData.containerType.dimensions.internalWidthCm}
         heightCm={previewData.containerType.dimensions.internalHeightCm}
+        gridStep={groundGridStep}
+      />
+
+      <ContainerDoorVisual
+        containerLength={containerLength}
+        containerWidth={containerWidth}
+        containerHeight={containerHeight}
+        doorWidthCm={previewData.containerType.dimensions.doorWidthCm}
+        doorHeightCm={previewData.containerType.dimensions.doorHeightCm}
         gridStep={groundGridStep}
       />
 
