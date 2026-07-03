@@ -738,7 +738,10 @@ const KeyboardCameraControls = ({
   return null
 }
 
-const createContainerWallTexture = (wallWidth: number, wallHeight: number): THREE.CanvasTexture => {
+const createContainerWallTexture = (
+  wallWidth: number,
+  _wallHeight: number
+): THREE.CanvasTexture => {
   const canvas = document.createElement('canvas')
   const context = canvas.getContext('2d')
 
@@ -1500,7 +1503,6 @@ const ContainerShellDetails = ({
 }): React.JSX.Element => {
   const xMin = -containerLength / 2
   const xMax = containerLength / 2
-  const yMin = -containerHeight / 2
   const yMax = containerHeight / 2
   const zMin = -containerWidth / 2
   const zMax = containerWidth / 2
