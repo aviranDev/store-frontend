@@ -738,7 +738,99 @@ const KeyboardCameraControls = ({
   return null
 }
 
-const createWallGridGeometry = ({
+const createContainerWallTexture = (wallWidth: number, wallHeight: number): THREE.CanvasTexture => {
+  const canvas = document.createElement('canvas')
+  const context = canvas.getContext('2d')
+
+  canvas.width = 1400
+  canvas.height = 760
+
+  if (!context) {
+    return new THREE.CanvasTexture(canvas)
+  }
+
+  context.clearRect(0, 0, canvas.width, canvas.height)
+
+  const baseGradient = context.createLinearGradient(0, 0, 0, canvas.height)
+  baseGradient.addColorStop(0, 'rgba(228, 233, 237, 0.98)')
+  baseGradient.addColorStop(0.5, 'rgba(212, 219, 225, 0.96)')
+  baseGradient.addColorStop(1, 'rgba(198, 206, 213, 0.98)')
+  context.fillStyle = baseGradient
+  context.fillRect(0, 0, canvas.width, canvas.height)
+
+  const corrugationCount = Math.max(12, Math.min(40, Math.round(wallWidth / 0.2)))
+  const pitch = canvas.width / corrugationCount
+  const ridgeWidth = pitch * 0.24
+  const slopeWidth = pitch * 0.18
+  const valleyWidth = pitch - ridgeWidth - slopeWidth * 2
+
+  for (let index = 0; index < corrugationCount; index += 1) {
+    const x0 = index * pitch
+    const x1 = x0 + ridgeWidth
+    const x2 = x1 + slopeWidth
+    const x3 = x2 + valleyWidth
+    const x4 = x0 + pitch
+
+    context.fillStyle = 'rgba(248, 250, 252, 0.24)'
+    context.fillRect(x0, 0, ridgeWidth, canvas.height)
+
+    const leftSlope = context.createLinearGradient(x1, 0, x2, 0)
+    leftSlope.addColorStop(0, 'rgba(236, 241, 245, 0.22)')
+    leftSlope.addColorStop(1, 'rgba(176, 186, 194, 0.18)')
+    context.fillStyle = leftSlope
+    context.beginPath()
+    context.moveTo(x1, 0)
+    context.lineTo(x2, 0)
+    context.lineTo(x3, canvas.height)
+    context.lineTo(x2, canvas.height)
+    context.closePath()
+    context.fill()
+
+    context.fillStyle = 'rgba(158, 169, 178, 0.16)'
+    context.fillRect(x2, 0, valleyWidth, canvas.height)
+
+    const rightSlope = context.createLinearGradient(x3, 0, x4, 0)
+    rightSlope.addColorStop(0, 'rgba(150, 160, 169, 0.12)')
+    rightSlope.addColorStop(1, 'rgba(234, 239, 243, 0.18)')
+    context.fillStyle = rightSlope
+    context.beginPath()
+    context.moveTo(x3, 0)
+    context.lineTo(x4, 0)
+    context.lineTo(x4, canvas.height)
+    context.lineTo(x1, canvas.height)
+    context.closePath()
+    context.fill()
+
+    context.strokeStyle = 'rgba(96, 108, 119, 0.18)'
+    context.lineWidth = 1
+    context.beginPath()
+    context.moveTo(x1, 0)
+    context.lineTo(x1, canvas.height)
+    context.moveTo(x2, 0)
+    context.lineTo(x2, canvas.height)
+    context.moveTo(x3, 0)
+    context.lineTo(x3, canvas.height)
+    context.stroke()
+  }
+
+  const railHeight = 10
+  context.fillStyle = 'rgba(132, 144, 154, 0.16)'
+  context.fillRect(0, 18, canvas.width, railHeight)
+  context.fillRect(0, canvas.height - 28, canvas.width, railHeight)
+
+  context.strokeStyle = 'rgba(74, 86, 97, 0.28)'
+  context.lineWidth = 6
+  context.strokeRect(10, 10, canvas.width - 20, canvas.height - 20)
+
+  const texture = new THREE.CanvasTexture(canvas)
+  texture.needsUpdate = true
+  texture.colorSpace = THREE.SRGBColorSpace
+  texture.minFilter = THREE.LinearFilter
+  texture.magFilter = THREE.LinearFilter
+  return texture
+}
+
+const createWallRibGeometry = ({
   wall,
   containerLength,
   containerWidth,
@@ -758,8 +850,6 @@ const createWallGridGeometry = ({
   const zMin = -containerWidth / 2
   const zMax = containerWidth / 2
 
-  const gridStep = Math.max(containerLength, containerWidth) / 24
-
   const addLine = (
     x1: number,
     y1: number,
@@ -773,33 +863,152 @@ const createWallGridGeometry = ({
 
   if (wall === 'zMin' || wall === 'zMax') {
     const z = wall === 'zMin' ? zMin : zMax
+    const wallWidth = containerLength
+    const corrugationSpacing = Math.max(Math.min(wallWidth / 34, 0.24), 0.14)
 
-    for (let x = xMin; x <= xMax + 0.001; x += gridStep) {
+    for (let x = xMin; x <= xMax + 0.001; x += corrugationSpacing) {
       addLine(x, yMin, z, x, yMax, z)
     }
 
-    for (let y = yMin; y <= yMax + 0.001; y += gridStep) {
-      addLine(xMin, y, z, xMax, y, z)
-    }
+    addLine(xMin, yMin, z, xMax, yMin, z)
+    addLine(xMin, yMax, z, xMax, yMax, z)
   }
 
   if (wall === 'xMin' || wall === 'xMax') {
     const x = wall === 'xMin' ? xMin : xMax
+    const wallWidth = containerWidth
+    const corrugationSpacing = Math.max(Math.min(wallWidth / 16, 0.2), 0.12)
 
-    for (let z = zMin; z <= zMax + 0.001; z += gridStep) {
+    for (let z = zMin; z <= zMax + 0.001; z += corrugationSpacing) {
       addLine(x, yMin, z, x, yMax, z)
     }
 
-    for (let y = yMin; y <= yMax + 0.001; y += gridStep) {
-      addLine(x, y, zMin, x, y, zMax)
-    }
+    addLine(x, yMin, zMin, x, yMin, zMax)
+    addLine(x, yMax, zMin, x, yMax, zMax)
   }
 
   const geometry = new THREE.BufferGeometry()
-
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3))
-
   return geometry
+}
+
+const ContainerWallPanel = ({
+  wall,
+  containerLength,
+  containerWidth,
+  containerHeight
+}: {
+  wall: ContainerWallName
+  containerLength: number
+  containerWidth: number
+  containerHeight: number
+}): React.JSX.Element => {
+  const wallWidth = wall === 'zMin' || wall === 'zMax' ? containerLength : containerWidth
+  const wallHeight = containerHeight
+  const xMin = -containerLength / 2
+  const xMax = containerLength / 2
+  const zMin = -containerWidth / 2
+  const zMax = containerWidth / 2
+  const epsilon = 0.003
+
+  const texture = useMemo(
+    () => createContainerWallTexture(wallWidth, wallHeight),
+    [wallWidth, wallHeight]
+  )
+  const ribGeometry = useMemo(
+    () =>
+      createWallRibGeometry({
+        wall,
+        containerLength,
+        containerWidth,
+        containerHeight
+      }),
+    [wall, containerLength, containerWidth, containerHeight]
+  )
+
+  const wallMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        map: texture,
+        color: '#e6ebef',
+        transparent: true,
+        opacity: 0.22,
+        roughness: 0.8,
+        metalness: 0.05,
+        side: THREE.DoubleSide,
+        depthTest: true,
+        depthWrite: false,
+        toneMapped: false
+      }),
+    [texture]
+  )
+
+  const ribMaterial = useMemo(
+    () =>
+      new THREE.LineBasicMaterial({
+        color: '#9aa6b0',
+        transparent: true,
+        opacity: 0.42,
+        depthTest: true,
+        depthWrite: false
+      }),
+    []
+  )
+
+  useEffect(() => {
+    return () => {
+      texture.dispose()
+      ribGeometry.dispose()
+      wallMaterial.dispose()
+      ribMaterial.dispose()
+    }
+  }, [texture, ribGeometry, wallMaterial, ribMaterial])
+
+  if (wall === 'zMin') {
+    return (
+      <group>
+        <mesh position={[0, 0, zMin + epsilon]}>
+          <planeGeometry args={[wallWidth, wallHeight]} />
+          <primitive object={wallMaterial} attach="material" />
+        </mesh>
+        <lineSegments geometry={ribGeometry} material={ribMaterial} />
+      </group>
+    )
+  }
+
+  if (wall === 'zMax') {
+    return (
+      <group>
+        <mesh position={[0, 0, zMax - epsilon]} rotation={[0, Math.PI, 0]}>
+          <planeGeometry args={[wallWidth, wallHeight]} />
+          <primitive object={wallMaterial} attach="material" />
+        </mesh>
+        <lineSegments geometry={ribGeometry} material={ribMaterial} />
+      </group>
+    )
+  }
+
+  if (wall === 'xMin') {
+    return (
+      <group>
+        <mesh position={[xMin + epsilon, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
+          <planeGeometry args={[wallWidth, wallHeight]} />
+          <primitive object={wallMaterial} attach="material" />
+        </mesh>
+        <lineSegments geometry={ribGeometry} material={ribMaterial} />
+      </group>
+    )
+  }
+
+  return (
+    <group>
+      <mesh position={[xMax - epsilon, 0, 0]} rotation={[0, -Math.PI / 2, 0]}>
+        <planeGeometry args={[wallWidth, wallHeight]} />
+        <primitive object={wallMaterial} attach="material" />
+      </mesh>
+      <lineSegments geometry={ribGeometry} material={ribMaterial} />
+    </group>
+  )
 }
 
 const CameraBackWallGrid = ({
@@ -813,71 +1022,12 @@ const CameraBackWallGrid = ({
 }): React.JSX.Element => {
   const { camera } = useThree()
 
-  const xMinRef = useRef<THREE.LineSegments | null>(null)
-  const xMaxRef = useRef<THREE.LineSegments | null>(null)
-  const zMinRef = useRef<THREE.LineSegments | null>(null)
-  const zMaxRef = useRef<THREE.LineSegments | null>(null)
-
-  const xMinGeometry = useMemo(
-    () =>
-      createWallGridGeometry({
-        wall: 'xMin',
-        containerLength,
-        containerWidth,
-        containerHeight
-      }),
-    [containerLength, containerWidth, containerHeight]
-  )
-
-  const xMaxGeometry = useMemo(
-    () =>
-      createWallGridGeometry({
-        wall: 'xMax',
-        containerLength,
-        containerWidth,
-        containerHeight
-      }),
-    [containerLength, containerWidth, containerHeight]
-  )
-
-  const zMinGeometry = useMemo(
-    () =>
-      createWallGridGeometry({
-        wall: 'zMin',
-        containerLength,
-        containerWidth,
-        containerHeight
-      }),
-    [containerLength, containerWidth, containerHeight]
-  )
-
-  const zMaxGeometry = useMemo(
-    () =>
-      createWallGridGeometry({
-        wall: 'zMax',
-        containerLength,
-        containerWidth,
-        containerHeight
-      }),
-    [containerLength, containerWidth, containerHeight]
-  )
-
-  const gridMaterial = useMemo(
-    () =>
-      new THREE.LineBasicMaterial({
-        color: '#bdbdbd',
-        transparent: true,
-        opacity: 0.68,
-        depthTest: true,
-        depthWrite: false
-      }),
-    []
-  )
+  const xMinRef = useRef<THREE.Group | null>(null)
+  const xMaxRef = useRef<THREE.Group | null>(null)
+  const zMinRef = useRef<THREE.Group | null>(null)
+  const zMaxRef = useRef<THREE.Group | null>(null)
 
   useFrame(() => {
-    /**
-     * Reset all wall grids first.
-     */
     if (xMinRef.current) xMinRef.current.visible = false
     if (xMaxRef.current) xMaxRef.current.visible = false
     if (zMinRef.current) zMinRef.current.visible = false
@@ -885,16 +1035,6 @@ const CameraBackWallGrid = ({
 
     const cameraX = camera.position.x
     const cameraZ = camera.position.z
-
-    /**
-     * Show TWO back wall grids every time:
-     *
-     * 1. One opposite X wall
-     * 2. One opposite Z wall
-     *
-     * This creates a visible container corner / two-wall angle,
-     * but still avoids showing the front wall grid.
-     */
 
     if (cameraX >= 0) {
       if (xMinRef.current) xMinRef.current.visible = true
@@ -909,22 +1049,40 @@ const CameraBackWallGrid = ({
     }
   })
 
-  useEffect(() => {
-    return () => {
-      xMinGeometry.dispose()
-      xMaxGeometry.dispose()
-      zMinGeometry.dispose()
-      zMaxGeometry.dispose()
-      gridMaterial.dispose()
-    }
-  }, [xMinGeometry, xMaxGeometry, zMinGeometry, zMaxGeometry, gridMaterial])
-
   return (
     <group>
-      <lineSegments ref={xMinRef} geometry={xMinGeometry} material={gridMaterial} />
-      <lineSegments ref={xMaxRef} geometry={xMaxGeometry} material={gridMaterial} />
-      <lineSegments ref={zMinRef} geometry={zMinGeometry} material={gridMaterial} />
-      <lineSegments ref={zMaxRef} geometry={zMaxGeometry} material={gridMaterial} />
+      <group ref={xMinRef}>
+        <ContainerWallPanel
+          wall="xMin"
+          containerLength={containerLength}
+          containerWidth={containerWidth}
+          containerHeight={containerHeight}
+        />
+      </group>
+      <group ref={xMaxRef}>
+        <ContainerWallPanel
+          wall="xMax"
+          containerLength={containerLength}
+          containerWidth={containerWidth}
+          containerHeight={containerHeight}
+        />
+      </group>
+      <group ref={zMinRef}>
+        <ContainerWallPanel
+          wall="zMin"
+          containerLength={containerLength}
+          containerWidth={containerWidth}
+          containerHeight={containerHeight}
+        />
+      </group>
+      <group ref={zMaxRef}>
+        <ContainerWallPanel
+          wall="zMax"
+          containerLength={containerLength}
+          containerWidth={containerWidth}
+          containerHeight={containerHeight}
+        />
+      </group>
     </group>
   )
 }
@@ -1331,6 +1489,148 @@ const ContainerDoorVisual = ({
   )
 }
 
+const ContainerShellDetails = ({
+  containerLength,
+  containerWidth,
+  containerHeight
+}: {
+  containerLength: number
+  containerWidth: number
+  containerHeight: number
+}): React.JSX.Element => {
+  const xMin = -containerLength / 2
+  const xMax = containerLength / 2
+  const yMin = -containerHeight / 2
+  const yMax = containerHeight / 2
+  const zMin = -containerWidth / 2
+  const zMax = containerWidth / 2
+
+  const postThickness = Math.max(Math.min(containerWidth * 0.045, 0.12), 0.06)
+  const railThickness = Math.max(Math.min(containerHeight * 0.045, 0.1), 0.055)
+  const castingSize = Math.max(Math.min(postThickness * 1.75, 0.16), 0.095)
+  const shellInset = 0.004
+
+  const frameMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#e7ecef',
+        transparent: true,
+        opacity: 0.42,
+        roughness: 0.78,
+        metalness: 0.08,
+        depthTest: true,
+        depthWrite: true
+      }),
+    []
+  )
+
+  const castingMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#d8dde2',
+        transparent: true,
+        opacity: 0.58,
+        roughness: 0.72,
+        metalness: 0.12,
+        depthTest: true,
+        depthWrite: true
+      }),
+    []
+  )
+
+  const recessMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#7b858f',
+        transparent: true,
+        opacity: 0.7,
+        roughness: 0.86,
+        metalness: 0.06,
+        depthTest: true,
+        depthWrite: true
+      }),
+    []
+  )
+
+  useEffect(() => {
+    return () => {
+      frameMaterial.dispose()
+      castingMaterial.dispose()
+      recessMaterial.dispose()
+    }
+  }, [frameMaterial, castingMaterial, recessMaterial])
+
+  const topRails = [
+    {
+      position: [0, yMax - railThickness / 2, zMin + shellInset],
+      size: [containerLength, railThickness, railThickness]
+    },
+    {
+      position: [0, yMax - railThickness / 2, zMax - shellInset],
+      size: [containerLength, railThickness, railThickness]
+    },
+    {
+      position: [xMin + shellInset, yMax - railThickness / 2, 0],
+      size: [railThickness, railThickness, containerWidth]
+    },
+    {
+      position: [xMax - shellInset, yMax - railThickness / 2, 0],
+      size: [railThickness, railThickness, containerWidth]
+    }
+  ] as const
+
+  const cornerPosts = [
+    [xMin + postThickness / 2, 0, zMin + postThickness / 2],
+    [xMin + postThickness / 2, 0, zMax - postThickness / 2],
+    [xMax - postThickness / 2, 0, zMin + postThickness / 2],
+    [xMax - postThickness / 2, 0, zMax - postThickness / 2]
+  ] as const
+
+  const topCastings = [
+    [xMin + castingSize / 2, yMax + castingSize * 0.08, zMin + castingSize / 2],
+    [xMin + castingSize / 2, yMax + castingSize * 0.08, zMax - castingSize / 2],
+    [xMax - castingSize / 2, yMax + castingSize * 0.08, zMin + castingSize / 2],
+    [xMax - castingSize / 2, yMax + castingSize * 0.08, zMax - castingSize / 2]
+  ] as const
+
+  return (
+    <group>
+      {topRails.map((rail, index) => (
+        <mesh key={`shell-top-rail-${index}`} position={rail.position}>
+          <boxGeometry args={rail.size} />
+          <primitive object={frameMaterial} attach="material" />
+        </mesh>
+      ))}
+
+      {cornerPosts.map((position, index) => (
+        <mesh key={`shell-corner-post-${index}`} position={position}>
+          <boxGeometry args={[postThickness, containerHeight, postThickness]} />
+          <primitive object={frameMaterial} attach="material" />
+        </mesh>
+      ))}
+
+      {topCastings.map((position, index) => {
+        const isFront = index >= 2
+        const xOffset = isFront ? -castingSize * 0.18 : castingSize * 0.18
+        const zOffset = index % 2 === 0 ? castingSize * 0.18 : -castingSize * 0.18
+
+        return (
+          <group key={`shell-top-casting-${index}`} position={position}>
+            <mesh>
+              <boxGeometry args={[castingSize, castingSize * 0.78, castingSize]} />
+              <primitive object={castingMaterial} attach="material" />
+            </mesh>
+            <mesh position={[xOffset, 0, zOffset]}>
+              <boxGeometry args={[castingSize * 0.34, castingSize * 0.22, castingSize * 0.34]} />
+              <primitive object={recessMaterial} attach="material" />
+            </mesh>
+          </group>
+        )
+      })}
+    </group>
+  )
+}
+
 const ContainerUnderframe = ({
   containerLength,
   containerWidth,
@@ -1505,8 +1805,8 @@ const ContainerDimensionRulers = ({
   heightCm: number
   gridStep: number
 }): React.JSX.Element => {
-  const floorY = -containerHeight / 2 + 0.065
-  const ceilingY = containerHeight / 2 - 0.065
+  const floorY = -containerHeight / 2
+  const ceilingY = containerHeight / 2
   const gap = Math.max(gridStep * 0.7, 0.16)
   const tick = Math.max(Math.min(gridStep * 0.38, 0.2), 0.09)
 
@@ -1518,10 +1818,12 @@ const ContainerDimensionRulers = ({
   const lengthZ = zMax + gap
   const widthX = xMax + gap
 
-  // Keep the height ruler just outside the visible front-left corner.
-  // Its label is moved inward toward the container center so it cannot be clipped.
-  const heightX = xMin - gap * 0.35
-  const heightZ = zMax + gap * 0.35
+  // The height ruler must sit on the actual front-left internal corner.
+  // If it is offset away from the corner in X/Z, perspective makes the top
+  // look lower or higher than the container roof even when the Y value is correct.
+  const heightX = xMin
+  const heightZ = zMax
+  const heightTickOuterX = xMin - tick
 
   const rulerGeometry = useMemo(() => {
     const p = [
@@ -1589,34 +1891,24 @@ const ContainerDimensionRulers = ({
       floorY,
       zMax,
 
-      // Internal height ruler, end ticks, and guides.
+      // Internal height ruler. This is now anchored on the real container edge.
       heightX,
       floorY,
       heightZ,
       heightX,
       ceilingY,
       heightZ,
-      heightX - tick,
+
+      // Bottom and top ticks extend outward from the container edge.
+      heightTickOuterX,
       floorY,
       heightZ,
-      heightX + tick,
-      floorY,
-      heightZ,
-      heightX - tick,
-      ceilingY,
-      heightZ,
-      heightX + tick,
-      ceilingY,
-      heightZ,
-      xMin,
-      floorY,
-      zMax,
       heightX,
       floorY,
       heightZ,
-      xMin,
+      heightTickOuterX,
       ceilingY,
-      zMax,
+      heightZ,
       heightX,
       ceilingY,
       heightZ
@@ -1625,7 +1917,20 @@ const ContainerDimensionRulers = ({
     const geometry = new THREE.BufferGeometry()
     geometry.setAttribute('position', new THREE.Float32BufferAttribute(p, 3))
     return geometry
-  }, [ceilingY, floorY, heightX, heightZ, lengthZ, tick, widthX, xMax, xMin, zMax, zMin])
+  }, [
+    ceilingY,
+    floorY,
+    heightTickOuterX,
+    heightX,
+    heightZ,
+    lengthZ,
+    tick,
+    widthX,
+    xMax,
+    xMin,
+    zMax,
+    zMin
+  ])
 
   const material = useMemo(
     () =>
@@ -1670,7 +1975,7 @@ const ContainerDimensionRulers = ({
       <DimensionLabelSprite
         text={`Internal Height: ${formatContainerDimension(heightCm)}`}
         position={[
-          heightX - Math.max(heightLabelWidth * 0.52, gap * 1.2),
+          heightTickOuterX - Math.max(heightLabelWidth * 0.52, gap * 0.8),
           (floorY + ceilingY) / 2,
           heightZ + gridStep * 0.08
         ]}
@@ -1745,6 +2050,12 @@ const ContainerScene = ({ previewData }: { previewData: PreviewData }): React.JS
       />
 
       <ContainerUnderframe
+        containerLength={containerLength}
+        containerWidth={containerWidth}
+        containerHeight={containerHeight}
+      />
+
+      <ContainerShellDetails
         containerLength={containerLength}
         containerWidth={containerWidth}
         containerHeight={containerHeight}
