@@ -1,5 +1,5 @@
 // styles/theme.ts
-import loadingPlanBackground from '../assets/backgrounds/loading-plan-bg.png'
+import loadingPlanBackground from '../assets/loading-plan-bg.png'
 
 export const win95Theme = {
   colors: {
