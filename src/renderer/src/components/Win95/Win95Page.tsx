@@ -27,12 +27,54 @@ type Win95PageProps = {
   className?: string
   showWindowControls?: boolean
   stretchOnSmallScreens?: boolean
+
+  /**
+   * undefined = use default theme background image
+   * string = use custom image
+   * null = disable image and use solid desktop color
+   */
+  desktopBackgroundImage?: string | null
+  desktopBackgroundSize?: string
+  desktopBackgroundPosition?: string
+  desktopBackgroundOverlay?: boolean
 }
 
-const Desktop = styled.div`
+const Desktop = styled.div<{
+  $desktopBackgroundImage?: string | null
+  $desktopBackgroundSize: string
+  $desktopBackgroundPosition: string
+  $desktopBackgroundOverlay: boolean
+}>`
   width: 100%;
   min-height: 100vh;
-  background: ${({ theme }) => theme.colors.desktop};
+
+  background-color: ${({ theme }) => theme.colors.desktop};
+
+  background-image: ${({ theme, $desktopBackgroundImage, $desktopBackgroundOverlay }) => {
+    const backgroundImage =
+      $desktopBackgroundImage === undefined
+        ? theme.images.desktopBackground
+        : $desktopBackgroundImage
+
+    if (!backgroundImage) return 'none'
+
+    if ($desktopBackgroundOverlay) {
+      return `
+        linear-gradient(
+          rgba(0, 20, 25, 0.12),
+          rgba(0, 20, 25, 0.18)
+        ),
+        url(${backgroundImage})
+      `
+    }
+
+    return `url(${backgroundImage})`
+  }};
+
+  background-size: ${({ $desktopBackgroundSize }) => $desktopBackgroundSize};
+  background-position: ${({ $desktopBackgroundPosition }) => $desktopBackgroundPosition};
+  background-repeat: no-repeat;
+
   display: flex;
   align-items: center;
   justify-content: center;
@@ -76,7 +118,12 @@ function Win95Page({
   maxHeight = WIN95_PAGE_SIZE.maxHeight,
   className,
   showWindowControls = true,
-  stretchOnSmallScreens = true
+  stretchOnSmallScreens = true,
+
+  desktopBackgroundImage,
+  desktopBackgroundSize = 'cover',
+  desktopBackgroundPosition = 'center',
+  desktopBackgroundOverlay = true
 }: Win95PageProps): React.JSX.Element {
   const handleMinimize = (): void => {
     window.api?.windowControls?.minimize()
@@ -91,7 +138,13 @@ function Win95Page({
   }
 
   return (
-    <Desktop className={className}>
+    <Desktop
+      className={className}
+      $desktopBackgroundImage={desktopBackgroundImage}
+      $desktopBackgroundSize={desktopBackgroundSize}
+      $desktopBackgroundPosition={desktopBackgroundPosition}
+      $desktopBackgroundOverlay={desktopBackgroundOverlay}
+    >
       <PageWindow
         $width={width}
         $maxWidth={maxWidth}

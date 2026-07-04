@@ -1,4 +1,6 @@
 // styles/theme.ts
+import loadingPlanBackground from '../assets/backgrounds/loading-plan-bg.png'
+
 export const win95Theme = {
   colors: {
     desktop: '#008080',
@@ -15,6 +17,10 @@ export const win95Theme = {
     text: '#000000',
     buttonFace: '#c0c0c0',
     inputBg: '#ffffff'
+  },
+
+  images: {
+    desktopBackground: loadingPlanBackground
   }
 }
 
