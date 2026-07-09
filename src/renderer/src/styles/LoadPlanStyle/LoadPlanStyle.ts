@@ -73,13 +73,12 @@ export const TabContentLayout = styled.div`
   display: flex;
   flex-direction: column;
   gap: 12px;
-  min-height: 100%;
   height: 100%;
+  min-height: 0;
   width: 100%;
   max-width: none;
   min-width: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
 `
 
 export const TabFooter = styled.div`
@@ -102,14 +101,9 @@ export const CargoRowsScroll = styled.div`
   max-height: calc(100vh - 300px);
   overflow-y: auto;
   overflow-x: hidden;
-
-  /* move scrollbar more to the right */
   width: calc(100% + 14px);
   margin-right: -14px;
-
-  /* keep some space between rows and scrollbar */
   padding-right: 6px;
-
   box-sizing: border-box;
 `
 

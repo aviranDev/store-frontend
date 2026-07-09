@@ -1099,8 +1099,8 @@ const createDimensionLabelTexture = (text: string): THREE.CanvasTexture => {
 
   if (context) {
     context.clearRect(0, 0, canvas.width, canvas.height)
-    context.fillStyle = 'rgba(248, 248, 248, 0.96)'
-    context.fillRect(5, 5, canvas.width - 10, canvas.height - 10)
+    context.fillStyle = '#f8f8f8'
+    context.fillRect(0, 0, canvas.width, canvas.height)
     context.strokeStyle = '#606060'
     context.lineWidth = 8
     context.strokeRect(5, 5, canvas.width - 10, canvas.height - 10)
@@ -1142,12 +1142,14 @@ const DimensionLabelSprite = ({
   useEffect(() => () => texture.dispose(), [texture])
 
   return (
-    <sprite position={position} scale={[worldWidth, worldHeight, 1]} renderOrder={50}>
+    <sprite position={position} scale={[worldWidth, worldHeight, 1]}>
       <spriteMaterial
         map={texture}
-        transparent
-        depthTest={false}
-        depthWrite={false}
+        transparent={false}
+        opacity={1}
+        depthTest={true}
+        depthWrite={true}
+        alphaTest={0.5}
         toneMapped={false}
       />
     </sprite>
@@ -1220,11 +1222,14 @@ const ContainerDoorVisual = ({
   const labelText = `Door opening: ${formatCentimeters(safeDoorWidthCm)} × ${formatCentimeters(
     safeDoorHeightCm
   )} cm (W × H)`
-  const labelWidth = Math.min(Math.max(containerLength * 0.24, 2.45), 4)
+  const labelWidth = Math.min(Math.max(containerLength * 0.2, 2.15), 3.05)
+  const labelGap = Math.max(gridStep * 0.7, 0.16)
+  const groundLabelY = bottomY + Math.max(gridStep * 0.18, 0.09)
+  const groundLabelZ = containerWidth / 2 + labelGap + gridStep * 1.25
   const labelPosition: [number, number, number] = [
-    x + Math.max(gridStep * 0.78, 0.22),
-    topY + Math.max(gridStep * 0.44, 0.17),
-    0
+    -containerLength / 2 + containerLength * 0.88,
+    groundLabelY,
+    groundLabelZ
   ]
 
   const panelMaterial = useMemo(
@@ -1808,7 +1813,7 @@ const ContainerDimensionRulers = ({
   gridStep: number
 }): React.JSX.Element => {
   const floorY = -containerHeight / 2
-  const ceilingY = containerHeight / 2
+  const heightRulerTopY = floorY + containerHeight * 0.58
   const gap = Math.max(gridStep * 0.7, 0.16)
   const tick = Math.max(Math.min(gridStep * 0.38, 0.2), 0.09)
 
@@ -1820,13 +1825,10 @@ const ContainerDimensionRulers = ({
   const lengthZ = zMax + gap
   const widthX = xMax + gap
 
-  // The height ruler must sit on the actual front-left internal corner.
-  // If it is offset away from the corner in X/Z, perspective makes the top
-  // look lower or higher than the container roof even when the Y value is correct.
+  // Keep the height ruler short and low so it does not create a tall outside
+  // line beside the container. The label still shows the full internal height.
   const heightX = xMin
   const heightZ = zMax
-  const heightTickOuterX = xMin - tick
-
   const rulerGeometry = useMemo(() => {
     const p = [
       // Internal length ruler and end ticks.
@@ -1893,26 +1895,15 @@ const ContainerDimensionRulers = ({
       floorY,
       zMax,
 
-      // Internal height ruler. This is now anchored on the real container edge.
+      // Short internal height marker. It intentionally stops before the roof
+      // to avoid a tall outside vertical line in the 3D preview.
+      // The small outside height ticks were removed so no black dashes
+      // appear outside the container wall.
       heightX,
       floorY,
       heightZ,
       heightX,
-      ceilingY,
-      heightZ,
-
-      // Bottom and top ticks extend outward from the container edge.
-      heightTickOuterX,
-      floorY,
-      heightZ,
-      heightX,
-      floorY,
-      heightZ,
-      heightTickOuterX,
-      ceilingY,
-      heightZ,
-      heightX,
-      ceilingY,
+      heightRulerTopY,
       heightZ
     ]
 
@@ -1920,9 +1911,8 @@ const ContainerDimensionRulers = ({
     geometry.setAttribute('position', new THREE.Float32BufferAttribute(p, 3))
     return geometry
   }, [
-    ceilingY,
     floorY,
-    heightTickOuterX,
+    heightRulerTopY,
     heightX,
     heightZ,
     lengthZ,
@@ -1938,10 +1928,10 @@ const ContainerDimensionRulers = ({
     () =>
       new THREE.LineBasicMaterial({
         color: '#111111',
-        transparent: true,
+        transparent: false,
         opacity: 1,
-        depthTest: false,
-        depthWrite: false
+        depthTest: true,
+        depthWrite: true
       }),
     []
   )
@@ -1954,33 +1944,46 @@ const ContainerDimensionRulers = ({
   }, [material, rulerGeometry])
 
   const labelY = floorY + Math.max(gridStep * 0.18, 0.09)
-  const lengthLabelWidth = Math.min(Math.max(containerLength * 0.23, 2.05), 3.45)
-  const widthLabelWidth = Math.min(Math.max(containerLength * 0.19, 1.9), 3.05)
-  const heightLabelWidth = Math.min(Math.max(containerLength * 0.2, 2.0), 3.2)
+  const groundLabelZ = zMax + gap + gridStep * 1.25
+  const lengthLabelWidth = Math.min(Math.max(containerLength * 0.2, 2.05), 3.05)
+  const widthLabelWidth = Math.min(Math.max(containerLength * 0.18, 1.9), 2.75)
+  const heightLabelWidth = Math.min(Math.max(containerLength * 0.18, 1.95), 2.85)
+
+  const lengthLabelPosition: [number, number, number] = [
+    xMin + containerLength * 0.18,
+    labelY,
+    groundLabelZ
+  ]
+  const widthLabelPosition: [number, number, number] = [
+    xMin + containerLength * 0.42,
+    labelY,
+    groundLabelZ
+  ]
+  const heightLabelPosition: [number, number, number] = [
+    xMin + containerLength * 0.66,
+    labelY,
+    groundLabelZ
+  ]
 
   return (
-    <group renderOrder={40}>
-      <lineSegments geometry={rulerGeometry} material={material} renderOrder={40} />
+    <group>
+      <lineSegments geometry={rulerGeometry} material={material} />
 
       <DimensionLabelSprite
         text={`Internal Length: ${formatContainerDimension(lengthCm)}`}
-        position={[0, labelY, lengthZ + gridStep * 0.42]}
+        position={lengthLabelPosition}
         worldWidth={lengthLabelWidth}
       />
 
       <DimensionLabelSprite
         text={`Internal Width: ${formatContainerDimension(widthCm)}`}
-        position={[widthX + gridStep * 0.52, labelY, 0]}
+        position={widthLabelPosition}
         worldWidth={widthLabelWidth}
       />
 
       <DimensionLabelSprite
         text={`Internal Height: ${formatContainerDimension(heightCm)}`}
-        position={[
-          heightTickOuterX - Math.max(heightLabelWidth * 0.52, gap * 0.8),
-          (floorY + ceilingY) / 2,
-          heightZ + gridStep * 0.08
-        ]}
+        position={heightLabelPosition}
         worldWidth={heightLabelWidth}
       />
     </group>
