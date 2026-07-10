@@ -340,6 +340,7 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
       const data = await previewLoadPlan(finalPayload)
 
       setPreviewData(data)
+      setActiveTab('loading-details')
 
       if (data.calculationSummary.calculationErrors.length > 0) {
         const nextMessage = 'AI created the form and the loading algorithm returned errors.'
@@ -380,7 +381,6 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
       throw error
     } finally {
       setIsCalculating(false)
-      setActiveTab('ai-agent')
     }
   }
 
