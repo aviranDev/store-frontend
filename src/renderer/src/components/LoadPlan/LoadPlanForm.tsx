@@ -1,3 +1,5 @@
+import styled from 'styled-components'
+
 import WinButton from '../../components/Button/WinButton'
 import Win95GroupBox from '../../components/Win95/Win95GroupBox'
 import { WinForm, MessageArea } from '../../components/Win95/Win95Form.style'
@@ -16,6 +18,76 @@ import {
   SectionLabel,
   NativeSelect
 } from '../../styles/LoadPlanStyle/LoadPlanStyle'
+
+const FixedTabContentLayout = styled(TabContentLayout)`
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 12px;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+`
+
+const LoadingDetailsGroupBox = styled(Win95GroupBox)`
+  height: auto;
+  min-height: 0;
+  overflow: hidden;
+
+  > div {
+    min-height: 0;
+    overflow: hidden;
+  }
+`
+
+const FixedWinForm = styled(WinForm)`
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+`
+
+const FixedFormPanel = styled(FormPanel)`
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+`
+
+const FixedCargoRowsScroll = styled(CargoRowsScroll)`
+  width: 100%;
+  min-height: 0;
+  max-height: none;
+  margin-right: 0;
+  padding-right: 6px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  box-sizing: border-box;
+`
+
+const FixedControlsGrid = styled(ControlsGrid)`
+  position: relative;
+  z-index: 2;
+  flex-shrink: 0;
+  padding-top: 2px;
+  background: ${({ theme }) => theme.colors.windowBg};
+`
+
+const FixedMessageArea = styled(MessageArea)`
+  position: relative;
+  z-index: 2;
+  flex-shrink: 0;
+  margin: 0 auto;
+  background: ${({ theme }) => theme.colors.windowBg};
+`
+
+const FixedTabFooter = styled(TabFooter)`
+  position: relative;
+  z-index: 3;
+  flex-shrink: 0;
+  margin-top: 0;
+  background: ${({ theme }) => theme.colors.windowBg};
+`
 
 type Props = {
   formData: LoadingPlanFormState
@@ -79,10 +151,10 @@ const LoadPlanForm = ({
   saveButtonTitle
 }: Props): React.JSX.Element => {
   return (
-    <TabContentLayout>
-      <Win95GroupBox legend="Loading Details">
-        <WinForm onSubmit={onSubmit}>
-          <FormPanel>
+    <FixedTabContentLayout>
+      <LoadingDetailsGroupBox legend="Loading Details">
+        <FixedWinForm onSubmit={onSubmit}>
+          <FixedFormPanel>
             <CargoHeader>
               <HeaderCell>Shape</HeaderCell>
               <HeaderCell>Qty</HeaderCell>
@@ -93,7 +165,7 @@ const LoadPlanForm = ({
               <HeaderCell />
             </CargoHeader>
 
-            <CargoRowsScroll>
+            <FixedCargoRowsScroll>
               <CargoTable>
                 {formData.items.map((item) => (
                   <CargoItemRow
@@ -106,9 +178,9 @@ const LoadPlanForm = ({
                   />
                 ))}
               </CargoTable>
-            </CargoRowsScroll>
+            </FixedCargoRowsScroll>
 
-            <ControlsGrid>
+            <FixedControlsGrid>
               <WinButton type="button" onClick={onAddRow}>
                 Add Line
               </WinButton>
@@ -141,14 +213,14 @@ const LoadPlanForm = ({
               <WinButton type="button" onClick={onReset}>
                 Reset
               </WinButton>
-            </ControlsGrid>
+            </FixedControlsGrid>
 
-            <MessageArea $visible={!!message}>{message}</MessageArea>
-          </FormPanel>
-        </WinForm>
-      </Win95GroupBox>
+            <FixedMessageArea $visible={!!message}>{message}</FixedMessageArea>
+          </FixedFormPanel>
+        </FixedWinForm>
+      </LoadingDetailsGroupBox>
 
-      <TabFooter>
+      <FixedTabFooter>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <WinButton type="button" onClick={onBack}>
             Back
@@ -192,8 +264,8 @@ const LoadPlanForm = ({
             Send PDF Email
           </WinButton>
         </div>
-      </TabFooter>
-    </TabContentLayout>
+      </FixedTabFooter>
+    </FixedTabContentLayout>
   )
 }
 
