@@ -174,7 +174,6 @@ const LoadPlansCardsPanel = ({ onBack, onOpenPlan }: Props): React.JSX.Element =
     limit: 20,
     totalPages: 1
   })
-  const [planPendingDelete, setPlanPendingDelete] = useState<SavedLoadPlanData | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [deletingPlanId, setDeletingPlanId] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState('')
@@ -214,38 +213,39 @@ const LoadPlansCardsPanel = ({ onBack, onOpenPlan }: Props): React.JSX.Element =
     fetchLoadPlans(data.page + 1)
   }
 
-  const handleDeletePlan = async (planId: string): Promise<void> => {
+  const getPlanId = (plan: SavedLoadPlanData): string | null => {
+    const possibleId = plan._id ?? (plan as SavedLoadPlanData & { id?: unknown }).id
+
+    return typeof possibleId === 'string' && possibleId.trim() ? possibleId.trim() : null
+  }
+
+  const handleDeletePlan = async (plan: SavedLoadPlanData): Promise<void> => {
+    const planId = getPlanId(plan)
+
+    if (!planId) {
+      setErrorMessage('Cannot delete this load plan because its id is missing.')
+      return
+    }
+
+    const confirmed = window.confirm(
+      `Delete load plan "${plan.name}"? This action cannot be undone.`
+    )
+
+    if (!confirmed) return
+
     try {
       setDeletingPlanId(planId)
       setErrorMessage('')
 
       await deleteLoadPlan(planId)
 
-      setData((prev) => {
-        const nextItems = prev.items.filter((item) => item._id !== planId)
-        const nextTotal = Math.max(0, prev.total - 1)
-        const nextTotalPages = nextTotal === 0 ? 1 : Math.ceil(nextTotal / prev.limit)
+      const pageAfterDelete = data.items.length === 1 && data.page > 1 ? data.page - 1 : data.page
 
-        return {
-          ...prev,
-          items: nextItems,
-          total: nextTotal,
-          totalPages: nextTotalPages,
-          page: Math.min(prev.page, nextTotalPages)
-        }
-      })
-
-      setPlanPendingDelete(null)
-
-      if (data.items.length === 1 && data.page > 1) {
-        await fetchLoadPlans(data.page - 1)
-      }
-
-      window.requestAnimationFrame(() => {
-        window.focus()
-      })
+      await fetchLoadPlans(pageAfterDelete)
     } catch (error) {
-      setErrorMessage(getErrorMessage(error, 'Failed to delete load plan.'))
+      const message = getErrorMessage(error, 'Failed to delete load plan.')
+      setErrorMessage(message)
+      window.alert(message)
     } finally {
       setDeletingPlanId(null)
     }
@@ -353,10 +353,14 @@ const LoadPlansCardsPanel = ({ onBack, onOpenPlan }: Props): React.JSX.Element =
 
                       <WinButton
                         type="button"
-                        disabled={!plan._id || deletingPlanId === plan._id}
-                        onClick={() => setPlanPendingDelete(plan)}
+                        disabled={!getPlanId(plan) || deletingPlanId === getPlanId(plan)}
+                        onClick={(event) => {
+                          event.preventDefault()
+                          event.stopPropagation()
+                          void handleDeletePlan(plan)
+                        }}
                       >
-                        {deletingPlanId === plan._id ? 'Deleting...' : 'Delete'}
+                        {deletingPlanId === getPlanId(plan) ? 'Deleting...' : 'Delete'}
                       </WinButton>
                     </CardActions>
                   </PlanCard>
@@ -390,35 +394,6 @@ const LoadPlansCardsPanel = ({ onBack, onOpenPlan }: Props): React.JSX.Element =
           </WinButton>
         </FooterActions>
       </TabFooter>
-      {planPendingDelete && (
-        <MessageBox>
-          <div style={{ marginBottom: 10 }}>
-            Delete load plan <strong>{planPendingDelete.name}</strong>?
-          </div>
-
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-            <WinButton
-              type="button"
-              disabled={deletingPlanId === planPendingDelete._id}
-              onClick={() => setPlanPendingDelete(null)}
-            >
-              Cancel
-            </WinButton>
-
-            <WinButton
-              type="button"
-              disabled={!planPendingDelete._id || deletingPlanId === planPendingDelete._id}
-              onClick={() => {
-                if (planPendingDelete._id) {
-                  void handleDeletePlan(planPendingDelete._id)
-                }
-              }}
-            >
-              {deletingPlanId === planPendingDelete._id ? 'Deleting...' : 'Confirm Delete'}
-            </WinButton>
-          </div>
-        </MessageBox>
-      )}
     </TabContentLayout>
   )
 }
