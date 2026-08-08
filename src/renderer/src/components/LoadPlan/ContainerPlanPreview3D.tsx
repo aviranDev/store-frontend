@@ -2,6 +2,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { ContainerPlanPreviewProps } from '../../types/loadPlanPage.types'
+import { getPreviewSecurementToolPlacements } from '../../utils/loadPlanPage.utils'
 import {
   PreviewViewport,
   PlaceholderText,
@@ -28,6 +29,9 @@ const SceneReadyNotifier = ({ onReady }: { onReady: () => void }): React.JSX.Ele
 
 type PreviewData = NonNullable<ContainerPlanPreviewProps['previewData']>
 type PlacedCargoItem = PreviewData['placedCargoItems'][number]
+type SecurementToolPlacement = NonNullable<
+  PreviewData['securementSummary']
+>['toolPlacements'][number]
 type CargoVisualShape = 'carton' | 'crate' | 'pallet' | 'drum'
 type CargoFaceType = 'side' | 'topBottom'
 type ContainerWallName = 'xMin' | 'xMax' | 'zMin' | 'zMax'
@@ -39,6 +43,136 @@ const formatCentimeters = (valueCm: number): string => Number(valueCm.toFixed(1)
 
 const formatContainerDimension = (valueCm: number): string =>
   `${(valueCm / CM_PER_FOOT).toFixed(2)} ft (${formatCentimeters(valueCm)} cm)`
+
+const SecurementTubeSegment = ({
+  start,
+  end,
+  color,
+  verified
+}: {
+  start: THREE.Vector3
+  end: THREE.Vector3
+  color: string
+  verified: boolean
+}): React.JSX.Element | null => {
+  const direction = end.clone().sub(start)
+  const length = direction.length()
+
+  if (length <= 0.0001) return null
+
+  const midpoint = start.clone().add(end).multiplyScalar(0.5)
+  const quaternion = new THREE.Quaternion().setFromUnitVectors(
+    new THREE.Vector3(0, 1, 0),
+    direction.normalize()
+  )
+
+  return (
+    <mesh position={midpoint} quaternion={quaternion} renderOrder={500}>
+      <cylinderGeometry args={[verified ? 0.028 : 0.024, verified ? 0.028 : 0.024, length, 10]} />
+      <meshBasicMaterial
+        color={color}
+        transparent
+        opacity={verified ? 1 : 0.82}
+        depthTest={false}
+        depthWrite={false}
+      />
+    </mesh>
+  )
+}
+
+const SecurementToolVisual = ({
+  tool,
+  containerLength,
+  containerWidth,
+  containerHeight
+}: {
+  tool: SecurementToolPlacement
+  containerLength: number
+  containerWidth: number
+  containerHeight: number
+}): React.JSX.Element | null => {
+  const color = tool.verified ? '#00a651' : '#ff8c00'
+  const toScenePoint = useCallback(
+    (point: { xCm: number; yCm: number; zCm: number }): THREE.Vector3 =>
+      new THREE.Vector3(
+        -containerLength / 2 + point.xCm * SCALE,
+        -containerHeight / 2 + point.zCm * SCALE,
+        -containerWidth / 2 + point.yCm * SCALE
+      ),
+    [containerHeight, containerLength, containerWidth]
+  )
+
+  if (tool.pointsCm && tool.pointsCm.length >= 2) {
+    const scenePoints = tool.pointsCm.map(toScenePoint)
+    const labelPosition = scenePoints[Math.floor(scenePoints.length / 2)] ?? null
+
+    return (
+      <group renderOrder={500}>
+        {scenePoints.slice(0, -1).map((start, index) => (
+          <SecurementTubeSegment
+            key={`${tool.id}-segment-${index}`}
+            start={start}
+            end={scenePoints[index + 1]}
+            color={color}
+            verified={tool.verified}
+          />
+        ))}
+
+        {scenePoints.map((position, index) => (
+          <mesh key={`${tool.id}-joint-${index}`} position={position} renderOrder={501}>
+            <sphereGeometry args={[tool.verified ? 0.038 : 0.032, 10, 8]} />
+            <meshBasicMaterial
+              color={color}
+              transparent
+              opacity={tool.verified ? 1 : 0.82}
+              depthTest={false}
+              depthWrite={false}
+            />
+          </mesh>
+        ))}
+
+        {labelPosition && (
+          <DimensionLabelSprite
+            text={`${tool.label}${tool.verified ? '' : ' — VERIFY'}`}
+            position={[labelPosition.x, labelPosition.y + 0.14, labelPosition.z]}
+            worldWidth={1.45}
+          />
+        )}
+      </group>
+    )
+  }
+
+  if (!tool.centerCm || !tool.sizeCm) return null
+
+  const position = toScenePoint(tool.centerCm)
+  const size: [number, number, number] = [
+    Math.max(0.025, tool.sizeCm.lengthCm * SCALE),
+    Math.max(0.025, tool.sizeCm.heightCm * SCALE),
+    Math.max(0.025, tool.sizeCm.widthCm * SCALE)
+  ]
+
+  return (
+    <group renderOrder={500}>
+      <mesh position={position} renderOrder={500}>
+        <boxGeometry args={size} />
+        <meshBasicMaterial
+          color={color}
+          transparent
+          opacity={tool.verified ? 0.82 : 0.58}
+          wireframe={!tool.verified}
+          depthTest={false}
+          depthWrite={false}
+        />
+      </mesh>
+
+      <DimensionLabelSprite
+        text={`${tool.label}${tool.verified ? '' : ' — VERIFY'}`}
+        position={[position.x, position.y + size[1] / 2 + 0.13, position.z]}
+        worldWidth={Math.min(Math.max(size[0], 1.1), 2.1)}
+      />
+    </group>
+  )
+}
 
 const DEFAULT_SHAPE_COLORS: Record<CargoVisualShape, string> = {
   carton: '#c79252',
@@ -1910,19 +2044,7 @@ const ContainerDimensionRulers = ({
     const geometry = new THREE.BufferGeometry()
     geometry.setAttribute('position', new THREE.Float32BufferAttribute(p, 3))
     return geometry
-  }, [
-    floorY,
-    heightRulerTopY,
-    heightX,
-    heightZ,
-    lengthZ,
-    tick,
-    widthX,
-    xMax,
-    xMin,
-    zMax,
-    zMin
-  ])
+  }, [floorY, heightRulerTopY, heightX, heightZ, lengthZ, tick, widthX, xMax, xMin, zMax, zMin])
 
   const material = useMemo(
     () =>
@@ -1996,6 +2118,7 @@ const ContainerScene = ({ previewData }: { previewData: PreviewData }): React.JS
   const containerHeight = previewData.containerType.dimensions.internalHeightCm * SCALE
   const groundGridStep = Math.max(containerLength, containerWidth) / 24
   const groundGridSize = Math.max(containerLength, containerWidth) + groundGridStep * 4
+  const securementTools = getPreviewSecurementToolPlacements(previewData)
 
   const placedItems = useMemo(
     () =>
@@ -2107,6 +2230,16 @@ const ContainerScene = ({ previewData }: { previewData: PreviewData }): React.JS
           shape={item.shape}
         />
       ))}
+
+      {securementTools.map((tool) => (
+        <SecurementToolVisual
+          key={tool.id}
+          tool={tool}
+          containerLength={containerLength}
+          containerWidth={containerWidth}
+          containerHeight={containerHeight}
+        />
+      ))}
     </>
   )
 }
@@ -2156,6 +2289,7 @@ const ContainerPlanPreview3D = ({
   }
 
   const containerLength = previewData.containerType.dimensions.internalLengthCm * SCALE
+  const securementToolCount = getPreviewSecurementToolPlacements(previewData).length
 
   return (
     <PreviewViewport>
@@ -2181,6 +2315,26 @@ const ContainerPlanPreview3D = ({
               <ContainerScene previewData={sceneData} />
               <SceneReadyNotifier onReady={handleSceneReady} />
             </Canvas>
+          )}
+
+          {securementToolCount > 0 && !isPreparing3D && (
+            <div
+              style={{
+                position: 'absolute',
+                left: 8,
+                top: 8,
+                zIndex: 20,
+                padding: '3px 7px',
+                border: '1px solid #006b30',
+                background: '#e8fff1',
+                color: '#005c29',
+                fontSize: 10,
+                fontWeight: 'bold',
+                pointerEvents: 'none'
+              }}
+            >
+              SECUREMENT · {securementToolCount} {securementToolCount === 1 ? 'TOOL' : 'TOOLS'}
+            </div>
           )}
 
           {isPreparing3D && (

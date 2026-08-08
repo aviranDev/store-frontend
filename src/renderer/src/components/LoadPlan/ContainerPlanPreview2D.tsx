@@ -1,5 +1,6 @@
 import { CSSProperties, useMemo } from 'react'
 import { ContainerPlanPreviewProps } from '../../types/loadPlanPage.types'
+import { getPreviewSecurementToolPlacements } from '../../utils/loadPlanPage.utils'
 import {
   PreviewViewport,
   PlaceholderText,
@@ -11,6 +12,9 @@ import {
 
 type PreviewData = NonNullable<ContainerPlanPreviewProps['previewData']>
 type PlacedCargoItem = PreviewData['placedCargoItems'][number]
+type SecurementToolPlacement = NonNullable<
+  PreviewData['securementSummary']
+>['toolPlacements'][number]
 type CargoVisualShape = 'carton' | 'crate' | 'pallet' | 'drum'
 
 const DEFAULT_SHAPE_COLORS: Record<CargoVisualShape, string> = {
@@ -114,6 +118,7 @@ const ContainerPlanPreview2D = ({
       }),
     [previewData]
   )
+  const securementTools: SecurementToolPlacement[] = getPreviewSecurementToolPlacements(previewData)
 
   return (
     <PreviewViewport>
@@ -126,6 +131,27 @@ const ContainerPlanPreview2D = ({
               $width={scaledContainerLength}
               $height={scaledContainerWidth}
             />
+
+            {securementTools.length > 0 && (
+              <div
+                style={{
+                  position: 'absolute',
+                  left: 8,
+                  top: 8,
+                  zIndex: 30,
+                  padding: '3px 7px',
+                  border: '1px solid #006b30',
+                  background: '#e8fff1',
+                  color: '#005c29',
+                  fontSize: 10,
+                  fontWeight: 'bold',
+                  pointerEvents: 'none'
+                }}
+              >
+                SECUREMENT · {securementTools.length}{' '}
+                {securementTools.length === 1 ? 'TOOL' : 'TOOLS'}
+              </div>
+            )}
 
             <div
               style={{
@@ -280,6 +306,97 @@ const ContainerPlanPreview2D = ({
                 </PlanBlock>
               )
             })}
+
+            <svg
+              width={canvasWidth}
+              height={canvasHeight}
+              viewBox={`0 0 ${canvasWidth} ${canvasHeight}`}
+              aria-label="Securement tool overlay"
+              style={{
+                position: 'absolute',
+                inset: 0,
+                zIndex: 20,
+                pointerEvents: 'none',
+                overflow: 'visible'
+              }}
+            >
+              {securementTools.map((tool) => {
+                const color = tool.verified ? '#008a3b' : '#ff7800'
+                const dashArray = tool.verified ? undefined : '7 4'
+
+                if (tool.pointsCm && tool.pointsCm.length >= 2) {
+                  const points = tool.pointsCm
+                    .map(
+                      (point) =>
+                        `${offsetX + point.xCm * planScale},${offsetY + point.yCm * planScale}`
+                    )
+                    .join(' ')
+                  const labelPoint = tool.pointsCm[Math.floor(tool.pointsCm.length / 2)]
+
+                  return (
+                    <g key={tool.id}>
+                      <polyline
+                        points={points}
+                        fill="none"
+                        stroke={color}
+                        strokeWidth={tool.verified ? 4 : 3}
+                        strokeDasharray={dashArray}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <text
+                        x={offsetX + labelPoint.xCm * planScale + 4}
+                        y={offsetY + labelPoint.yCm * planScale - 5}
+                        fill={color}
+                        fontSize="10"
+                        fontWeight="bold"
+                        paintOrder="stroke"
+                        stroke="#ffffff"
+                        strokeWidth="3"
+                      >
+                        {tool.label}
+                      </text>
+                    </g>
+                  )
+                }
+
+                if (!tool.centerCm || !tool.sizeCm) return null
+
+                const width = Math.max(3, tool.sizeCm.lengthCm * planScale)
+                const height = Math.max(3, tool.sizeCm.widthCm * planScale)
+                const left = offsetX + tool.centerCm.xCm * planScale - width / 2
+                const top = offsetY + tool.centerCm.yCm * planScale - height / 2
+
+                return (
+                  <g key={tool.id}>
+                    <rect
+                      x={left}
+                      y={top}
+                      width={width}
+                      height={height}
+                      fill={color}
+                      fillOpacity={tool.verified ? 0.68 : 0.35}
+                      stroke={color}
+                      strokeWidth="2"
+                      strokeDasharray={dashArray}
+                    />
+                    <text
+                      x={left + width / 2}
+                      y={top - 4}
+                      textAnchor="middle"
+                      fill={color}
+                      fontSize="10"
+                      fontWeight="bold"
+                      paintOrder="stroke"
+                      stroke="#ffffff"
+                      strokeWidth="3"
+                    >
+                      {tool.label}
+                    </text>
+                  </g>
+                )
+              })}
+            </svg>
           </PlanCanvas>
         </PlanCanvasWrap>
       ) : (

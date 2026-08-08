@@ -1,5 +1,6 @@
 import Win95GroupBox from '../../components/Win95/Win95GroupBox'
 import { ContainerPlanPreviewProps, PreviewMode } from '../../types/loadPlanPage.types'
+import { getPreviewSecurementToolPlacements } from '../../utils/loadPlanPage.utils'
 import ContainerPlanPreview2D from './ContainerPlanPreview2D'
 import ContainerPlanPreview3D from './ContainerPlanPreview3D'
 import {
@@ -23,6 +24,34 @@ const ContainerPlanPreview = ({
   const handleModeChange = (mode: PreviewMode) => () => {
     onPreviewModeChange(mode)
   }
+
+  const fitStatus = !previewData
+    ? 'Not calculated'
+    : previewData.calculationSummary.fitPossible
+      ? 'Passed'
+      : 'Action required'
+
+  const balanceStatus = (() => {
+    const status = previewData?.calculationSummary.weightBalance?.status
+
+    if (!status || status === 'not_calculated') return 'Not calculated'
+    if (status === 'balanced' || status === 'acceptable') return 'Passed'
+    return 'Action required'
+  })()
+
+  const securementStatus = (() => {
+    const status = previewData?.securementSummary?.status
+
+    if (!status || status === 'not_calculated') return 'Not calculated'
+    if (status === 'passed') return 'Passed'
+    return 'Action required'
+  })()
+  const securementTools = getPreviewSecurementToolPlacements(previewData)
+  const securementToolCount = previewData?.securementSummary ? securementTools.length : undefined
+  const securementStatusLabel =
+    securementToolCount === undefined
+      ? securementStatus
+      : `${securementStatus} · ${securementToolCount} ${securementToolCount === 1 ? 'tool' : 'tools'}`
 
   return (
     <PreviewWrap>
@@ -104,10 +133,18 @@ const ContainerPlanPreview = ({
             </SummaryRow>
 
             <SummaryRow>
-              <span>Fit Possible</span>
-              <strong>
-                {previewData ? (previewData.calculationSummary.fitPossible ? 'Yes' : 'No') : '-'}
-              </strong>
+              <span>1. Fit</span>
+              <strong>{fitStatus}</strong>
+            </SummaryRow>
+
+            <SummaryRow>
+              <span>2. Balance</span>
+              <strong>{balanceStatus}</strong>
+            </SummaryRow>
+
+            <SummaryRow>
+              <span>3. Securement</span>
+              <strong>{securementStatusLabel}</strong>
             </SummaryRow>
           </SummaryGrid>
         </Win95GroupBox>
