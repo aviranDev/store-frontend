@@ -10,11 +10,13 @@ import WinButton from '../components/Button/WinButton'
 import {
   previewLoadPlan,
   previewClosingLoadPlan,
+  previewSecurementLoadPlan,
   LoadPlanCalculationMode,
   LoadPlanDetailsData,
   PreviewCargoItem,
   PreviewLoadPlanData,
   PreviewLoadPlanPayload,
+  SecurementConfig,
   saveLoadPlan,
   ShipmentType,
   updateLoadPlan,
@@ -24,6 +26,7 @@ import {
 import LoadPlanForm from '../components/LoadPlan/LoadPlanForm'
 import ContainerPlanPreview from '../components/LoadPlan/ContainerPlanPreview'
 import LoadPlanAssistantPanel from '../components/LoadPlan/LoadPlanAssistantPanel'
+import SecurementPlanDialog from '../components/LoadPlan/SecurementPlanDialog'
 import { CargoItem, LoadingPlanFormState } from '../types/loadPlanPage.types'
 import {
   buildPreviewPayload,
@@ -139,7 +142,9 @@ const loadPlanToPreviewData = (plan: LoadPlanDetailsData): PreviewLoadPlanData =
   containerType: plan.containerType,
   cargoItems: plan.cargoItems,
   placedCargoItems: plan.placedCargoItems,
-  calculationSummary: plan.calculationSummary
+  calculationSummary: plan.calculationSummary,
+  securementConfig: plan.securementConfig,
+  securementSummary: plan.securementSummary
 })
 
 const createSaveFormFromPlan = (plan: LoadPlanDetailsData): SavePlanFormState => ({
@@ -340,6 +345,9 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
       const data = await previewLoadPlan(finalPayload)
 
       setPreviewData(data)
+      setActiveCalculationMode('standard')
+      setIsSecurementPopupOpen(false)
+      setSecurementError('')
       setActiveTab('loading-details')
 
       if (data.calculationSummary.calculationErrors.length > 0) {
@@ -399,6 +407,7 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
   )
 
   const [isCalculating, setIsCalculating] = useState(false)
+  const [isSecurementCalculating, setIsSecurementCalculating] = useState(false)
 
   const [previewData, setPreviewData] = useState<PreviewLoadPlanData | null>(() =>
     editingPlan ? loadPlanToPreviewData(editingPlan) : null
@@ -408,10 +417,12 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
   const [errorPopup, setErrorPopup] = useState<ErrorPopupState | null>(null)
   const [isSavePopupOpen, setIsSavePopupOpen] = useState(false)
   const [isEmailPopupOpen, setIsEmailPopupOpen] = useState(false)
+  const [isSecurementPopupOpen, setIsSecurementPopupOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isPdfBusy, setIsPdfBusy] = useState(false)
   const [saveError, setSaveError] = useState('')
   const [emailError, setEmailError] = useState('')
+  const [securementError, setSecurementError] = useState('')
   const [isPdfLayoutVisible, setIsPdfLayoutVisible] = useState(false)
 
   const [saveForm, setSaveForm] = useState<SavePlanFormState>(() =>
@@ -592,6 +603,8 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
 
       setPreviewData(data)
       setActiveCalculationMode('standard')
+      setIsSecurementPopupOpen(false)
+      setSecurementError('')
 
       const calculationErrors = data.calculationSummary.calculationErrors
 
@@ -636,6 +649,8 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
 
       setPreviewData(data)
       setActiveCalculationMode('closing')
+      setIsSecurementPopupOpen(false)
+      setSecurementError('')
 
       const calculationErrors = data.calculationSummary.calculationErrors
 
@@ -669,6 +684,83 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
     }
   }
 
+  const handleOpenSecurement = (): void => {
+    if (!previewData) {
+      const nextMessage = 'Calculate Fit and Closing Plan before Securement.'
+
+      setMessage(nextMessage)
+      setErrorPopup({ message: nextMessage, errors: [] })
+      return
+    }
+
+    if (activeCalculationMode !== 'closing') {
+      const nextMessage = 'Run Closing Plan before starting Phase 3 Securement.'
+
+      setMessage(nextMessage)
+      setErrorPopup({ message: nextMessage, errors: [] })
+      return
+    }
+
+    const balanceStatus = previewData.calculationSummary.weightBalance?.status
+    const balancePassed = balanceStatus === 'balanced' || balanceStatus === 'acceptable'
+
+    if (!previewData.calculationSummary.fitPossible || !balancePassed) {
+      const nextMessage = 'Fit and Balance must pass before Securement can be calculated.'
+
+      setMessage(nextMessage)
+      setErrorPopup({ message: nextMessage, errors: [] })
+      return
+    }
+
+    setSecurementError('')
+    setErrorPopup(null)
+    setIsSecurementPopupOpen(true)
+  }
+
+  const handleCalculateSecurement = async (config: SecurementConfig): Promise<void> => {
+    if (!previewData) {
+      setSecurementError('The Closing Plan preview is no longer available.')
+      return
+    }
+
+    try {
+      setIsSecurementCalculating(true)
+      setSecurementError('')
+
+      const result = await previewSecurementLoadPlan({
+        selectedContainerCode: previewData.selectedContainerCode,
+        placedCargoItems: previewData.placedCargoItems,
+        calculationSummary: previewData.calculationSummary,
+        securementConfig: config
+      })
+
+      setPreviewData((current) =>
+        current
+          ? {
+              ...current,
+              securementConfig: config,
+              securementSummary: result.securementSummary
+            }
+          : current
+      )
+
+      if (result.securementSummary.status === 'passed') {
+        setMessage('Securement: Passed. Cargo coordinates were not changed.')
+      } else if (result.securementSummary.status === 'action_required') {
+        setMessage('Securement: Action required. Review the listed securing actions.')
+      } else {
+        setMessage('Securement: Not calculated. Complete the missing information.')
+      }
+    } catch (error) {
+      const nextMessage = getErrorMessage(error, 'Failed to calculate securement.')
+
+      setSecurementError(nextMessage)
+      setMessage(nextMessage)
+    } finally {
+      setIsSecurementCalculating(false)
+    }
+  }
+
   const handleReset = () => {
     const initialForm = createInitialForm()
 
@@ -679,8 +771,10 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
     setErrorPopup(null)
     setIsSavePopupOpen(false)
     setIsEmailPopupOpen(false)
+    setIsSecurementPopupOpen(false)
     setSaveError('')
     setEmailError('')
+    setSecurementError('')
     setActiveCalculationMode('standard')
     setEditLoadPlanId(null)
     setSaveForm(createDefaultSaveForm(initialForm))
@@ -693,6 +787,13 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
 
   const canSavePreview = !!previewData?.calculationSummary.fitPossible
   const canCreatePdf = !!previewData
+  const balanceStatus = previewData?.calculationSummary.weightBalance?.status
+  const canCalculateSecurement =
+    activeCalculationMode === 'closing' &&
+    !!previewData?.calculationSummary.fitPossible &&
+    (balanceStatus === 'balanced' || balanceStatus === 'acceptable')
+  const placedCargoKeys =
+    previewData?.placedCargoItems.map((item) => `${item.cargoDescription}::${item.unitIndex}`) ?? []
 
   const showPdfLayoutBeforePrint = async (): Promise<void> => {
     setIsPdfLayoutVisible(true)
@@ -947,12 +1048,15 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
       formData={formData}
       message={message}
       isCalculating={isCalculating}
+      isSecurementCalculating={isSecurementCalculating}
       isSaving={isSaving}
       isPdfBusy={isPdfBusy}
       canSavePreview={canSavePreview}
       canCreatePdf={canCreatePdf}
+      canCalculateSecurement={canCalculateSecurement}
       onSubmit={handleSubmit}
       onClosingPreview={handleClosingPreview}
+      onOpenSecurement={handleOpenSecurement}
       onAddRow={handleAddRow}
       onReset={handleReset}
       onBack={() => navigate('/employee')}
@@ -1053,6 +1157,16 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
           )
         }
         sidebarWidth="minmax(760px, 1fr)"
+      />
+
+      <SecurementPlanDialog
+        open={isSecurementPopupOpen}
+        isCalculating={isSecurementCalculating}
+        cargoKeys={placedCargoKeys}
+        summary={previewData?.securementSummary}
+        requestError={securementError}
+        onClose={() => setIsSecurementPopupOpen(false)}
+        onCalculate={handleCalculateSecurement}
       />
 
       {isSavePopupOpen && (

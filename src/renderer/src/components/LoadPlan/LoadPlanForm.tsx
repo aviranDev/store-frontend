@@ -93,12 +93,15 @@ type Props = {
   formData: LoadingPlanFormState
   message: string
   isCalculating: boolean
+  isSecurementCalculating: boolean
   isSaving: boolean
   isPdfBusy: boolean
   canSavePreview: boolean
   canCreatePdf: boolean
+  canCalculateSecurement: boolean
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void
   onClosingPreview: () => void
+  onOpenSecurement: () => void
   onAddRow: () => void
   onReset: () => void
   onBack: () => void
@@ -131,12 +134,15 @@ const LoadPlanForm = ({
   formData,
   message,
   isCalculating,
+  isSecurementCalculating,
   isSaving,
   isPdfBusy,
   canSavePreview,
   canCreatePdf,
+  canCalculateSecurement,
   onSubmit,
   onClosingPreview,
+  onOpenSecurement,
   onAddRow,
   onReset,
   onBack,
@@ -208,6 +214,19 @@ const LoadPlanForm = ({
 
               <WinButton type="button" onClick={onClosingPreview} disabled={isCalculating}>
                 {isCalculating ? 'Calculating...' : 'Closing Plan'}
+              </WinButton>
+
+              <WinButton
+                type="button"
+                onClick={onOpenSecurement}
+                disabled={!canCalculateSecurement || isCalculating || isSecurementCalculating}
+                title={
+                  canCalculateSecurement
+                    ? 'Calculate manual Phase 3 securement for the frozen Closing Plan'
+                    : 'Complete a valid and balanced Closing Plan first'
+                }
+              >
+                {isSecurementCalculating ? 'Securing...' : 'Securement'}
               </WinButton>
 
               <WinButton type="button" onClick={onReset}>

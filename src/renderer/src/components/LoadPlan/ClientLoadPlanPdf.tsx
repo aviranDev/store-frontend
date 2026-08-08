@@ -322,6 +322,19 @@ const ClientLoadPlanPdf = ({
   const container = previewData.containerType
   const hasErrors = summary.calculationErrors.length > 0 || !summary.fitPossible
   const hasWarnings = !hasErrors && summary.calculationWarnings.length > 0
+  const balanceStatus = summary.weightBalance?.status
+  const balancePhaseStatus =
+    balanceStatus === 'balanced' || balanceStatus === 'acceptable'
+      ? 'Passed'
+      : balanceStatus === 'needs_review'
+        ? 'Action required'
+        : 'Not calculated'
+  const securementPhaseStatus =
+    previewData.securementSummary?.status === 'passed'
+      ? 'Passed'
+      : previewData.securementSummary?.status === 'action_required'
+        ? 'Action required'
+        : 'Not calculated'
 
   return (
     <>
@@ -402,6 +415,15 @@ const ClientLoadPlanPdf = ({
 
                 <InfoLabel>Weight use</InfoLabel>
                 <InfoValue>{formatPercent(summary.utilizationByWeightPercent)}</InfoValue>
+
+                <InfoLabel>1. Fit</InfoLabel>
+                <InfoValue>{summary.fitPossible ? 'Passed' : 'Action required'}</InfoValue>
+
+                <InfoLabel>2. Balance</InfoLabel>
+                <InfoValue>{balancePhaseStatus}</InfoValue>
+
+                <InfoLabel>3. Securement</InfoLabel>
+                <InfoValue>{securementPhaseStatus}</InfoValue>
               </InfoGrid>
             </Card>
 

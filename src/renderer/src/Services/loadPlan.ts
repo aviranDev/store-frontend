@@ -142,6 +142,134 @@ export type PreviewWeightBalanceSummary = {
   warnings: string[]
 }
 
+export type SecurementStatus = 'not_calculated' | 'action_required' | 'passed'
+export type SecurementTransportMode = 'road' | 'rail' | 'sea' | 'multimodal'
+export type SecurementDirection = 'front' | 'rear' | 'left' | 'right'
+export type SecurementDeviceType =
+  | 'blocking'
+  | 'bracing'
+  | 'dunnage_bag'
+  | 'direct_lashing'
+  | 'top_over_lashing'
+  | 'door_barrier'
+  | 'locking_device'
+
+export type SecurementAccelerationProfile = {
+  longitudinalG: number
+  transverseG: number
+  verticalAccelerationReductionG: number
+}
+
+export type SecurementDevice = {
+  id: string
+  type: SecurementDeviceType
+  description?: string
+  directions: SecurementDirection[]
+  effectiveSlidingCapacityKn: number
+  effectiveTippingCapacityKnM?: number
+  verified: boolean
+  cargoKeys?: string[]
+  anchorPointIds?: string[]
+}
+
+export type SecurementConfig = {
+  transportMode?: SecurementTransportMode
+  frictionCoefficient?: number
+  accelerationProfile?: SecurementAccelerationProfile
+  safetyFactor?: number
+  devices?: SecurementDevice[]
+  verifiedStackCargoKeys?: string[]
+}
+
+export type SecurementDirectionMetric = {
+  direction: SecurementDirection
+  accelerationG: number
+  demandKn: number
+  frictionResistanceKn: number
+  deviceResistanceKn: number
+  totalResistanceKn: number
+  marginKn: number
+  passed: boolean
+}
+
+export type SecurementStackMetric = {
+  stackId: string
+  cargoKeys: string[]
+  totalWeightKg: number
+  centerOfGravityHeightCm: number
+  baseLengthCm: number
+  baseWidthCm: number
+  maximumHeightCm: number
+  stackCapacityVerified: boolean
+  tippingPassed: boolean
+  minimumTippingMarginKnM: number
+}
+
+export type SecurementToolVisualKind = 'strap' | 'block' | 'brace' | 'bag' | 'barrier' | 'lock'
+
+export type SecurementPoint = {
+  xCm: number
+  yCm: number
+  zCm: number
+}
+
+export type SecurementToolPlacement = {
+  id: string
+  deviceId: string
+  deviceType: SecurementDeviceType
+  visualKind: SecurementToolVisualKind
+  label: string
+  verified: boolean
+  conceptual: true
+  direction: SecurementDirection
+  cargoKeys: string[]
+  usesFallbackCargoScope: boolean
+  anchorPointIds?: string[]
+  pointsCm?: SecurementPoint[]
+  centerCm?: SecurementPoint
+  sizeCm?: {
+    lengthCm: number
+    widthCm: number
+    heightCm: number
+  }
+}
+
+export type SecurementIssue = {
+  code: string
+  severity: 'information' | 'warning' | 'error'
+  message: string
+  cargoKeys?: string[]
+  direction?: SecurementDirection
+}
+
+export type SecurementAction = {
+  code: string
+  message: string
+  cargoKeys?: string[]
+  direction?: SecurementDirection
+}
+
+export type SecurementSummary = {
+  status: SecurementStatus
+  layoutFingerprint: string
+  coordinatesChanged: false
+  totalWeightKg: number
+  transportMode?: SecurementTransportMode
+  missingInputs: string[]
+  voids: {
+    frontCm: number
+    rearCm: number
+    leftCm: number
+    rightCm: number
+  }
+  directionMetrics: SecurementDirectionMetric[]
+  stackMetrics: SecurementStackMetric[]
+  toolPlacements: SecurementToolPlacement[]
+  issues: SecurementIssue[]
+  actions: SecurementAction[]
+  conclusion: string
+}
+
 export type PreviewCalculationSummary = {
   fitPossible: boolean
 
@@ -201,6 +329,22 @@ export type PreviewLoadPlanData = {
   cargoItems: PreviewCargoItem[]
   placedCargoItems: PreviewPlacedCargoItem[]
   calculationSummary: PreviewCalculationSummary
+  securementConfig?: SecurementConfig
+  securementSummary?: SecurementSummary
+}
+
+export type PreviewSecurementLoadPlanPayload = {
+  selectedContainerCode: string
+  placedCargoItems: PreviewPlacedCargoItem[]
+  calculationSummary: PreviewCalculationSummary
+  securementConfig: SecurementConfig
+}
+
+export type PreviewSecurementLoadPlanData = {
+  selectedContainerCode: string
+  containerType: PreviewContainerType
+  placedCargoItems: PreviewPlacedCargoItem[]
+  securementSummary: SecurementSummary
 }
 
 type PreviewLoadPlanResponse = {
@@ -219,6 +363,8 @@ export type SavedLoadPlanData = {
   cargoItems: PreviewCargoItem[]
   placedCargoItems: PreviewPlacedCargoItem[]
   calculationSummary: PreviewCalculationSummary
+  securementConfig?: SecurementConfig
+  securementSummary?: SecurementSummary
   notes?: string
   createdAt?: string
   updatedAt?: string
@@ -299,6 +445,23 @@ export const previewClosingLoadPlan = async (
 ): Promise<PreviewLoadPlanData> => {
   const response = await httpService.post<PreviewLoadPlanResponse>(
     '/load-plans/preview/closing',
+    payload
+  )
+
+  return response.data.data
+}
+
+type PreviewSecurementLoadPlanResponse = {
+  success: boolean
+  message: string
+  data: PreviewSecurementLoadPlanData
+}
+
+export const previewSecurementLoadPlan = async (
+  payload: PreviewSecurementLoadPlanPayload
+): Promise<PreviewSecurementLoadPlanData> => {
+  const response = await httpService.post<PreviewSecurementLoadPlanResponse>(
+    '/load-plans/preview/securement',
     payload
   )
 
