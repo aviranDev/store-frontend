@@ -1,4 +1,4 @@
-import { CSSProperties, useMemo } from 'react'
+import { CSSProperties, useEffect, useMemo, useRef, useState } from 'react'
 import { ContainerPlanPreviewProps } from '../../types/loadPlanPage.types'
 import { getPreviewSecurementToolPlacements } from '../../utils/loadPlanPage.utils'
 import {
@@ -68,8 +68,40 @@ const ContainerPlanPreview2D = ({
   formData,
   previewData
 }: Pick<ContainerPlanPreviewProps, 'formData' | 'previewData'>): React.JSX.Element => {
-  const canvasWidth = 620
-  const canvasHeight = 260
+  const viewportRef = useRef<HTMLDivElement>(null)
+  const [canvasSize, setCanvasSize] = useState({ width: 620, height: 260 })
+
+  useEffect(() => {
+    const viewport = viewportRef.current
+
+    if (!viewport || !previewData) return
+
+    const updateCanvasSize = (width: number, height: number): void => {
+      const nextSize = {
+        width: Math.max(620, Math.floor(width)),
+        height: Math.max(260, Math.floor(height))
+      }
+
+      setCanvasSize((current) =>
+        current.width === nextSize.width && current.height === nextSize.height ? current : nextSize
+      )
+    }
+
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0]
+
+      if (entry) {
+        updateCanvasSize(entry.contentRect.width, entry.contentRect.height)
+      }
+    })
+
+    observer.observe(viewport)
+
+    return () => observer.disconnect()
+  }, [previewData])
+
+  const canvasWidth = canvasSize.width
+  const canvasHeight = canvasSize.height
 
   const containerLengthCm = previewData?.containerType.dimensions.internalLengthCm ?? 1
   const containerWidthCm = previewData?.containerType.dimensions.internalWidthCm ?? 1
@@ -121,7 +153,7 @@ const ContainerPlanPreview2D = ({
   const securementTools: SecurementToolPlacement[] = getPreviewSecurementToolPlacements(previewData)
 
   return (
-    <PreviewViewport>
+    <PreviewViewport ref={viewportRef}>
       {previewData ? (
         <PlanCanvasWrap>
           <PlanCanvas $width={canvasWidth} $height={canvasHeight}>
