@@ -345,6 +345,7 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
       const data = await previewLoadPlan(finalPayload)
 
       setPreviewData(data)
+      setIsPreviewExpanded(true)
       setActiveCalculationMode('standard')
       setIsSecurementPopupOpen(false)
       setSecurementError('')
@@ -414,6 +415,7 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
   )
 
   const [previewMode, setPreviewMode] = useState<'2d' | '3d'>('2d')
+  const [isPreviewExpanded, setIsPreviewExpanded] = useState(false)
   const [errorPopup, setErrorPopup] = useState<ErrorPopupState | null>(null)
   const [isSavePopupOpen, setIsSavePopupOpen] = useState(false)
   const [isEmailPopupOpen, setIsEmailPopupOpen] = useState(false)
@@ -602,6 +604,7 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
       const data = await previewLoadPlan(payload)
 
       setPreviewData(data)
+      setIsPreviewExpanded(true)
       setActiveCalculationMode('standard')
       setIsSecurementPopupOpen(false)
       setSecurementError('')
@@ -648,6 +651,7 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
       const data = await previewClosingLoadPlan(payload)
 
       setPreviewData(data)
+      setIsPreviewExpanded(true)
       setActiveCalculationMode('closing')
       setIsSecurementPopupOpen(false)
       setSecurementError('')
@@ -767,6 +771,7 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
     setIsPdfLayoutVisible(false)
     setFormData(initialForm)
     setPreviewData(null)
+    setIsPreviewExpanded(false)
     setMessage('Form reset.')
     setErrorPopup(null)
     setIsSavePopupOpen(false)
@@ -1153,6 +1158,8 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
               previewData={previewData}
               previewMode={previewMode}
               onPreviewModeChange={setPreviewMode}
+              isExpanded={isPreviewExpanded}
+              onExpandedChange={setIsPreviewExpanded}
             />
           )
         }
