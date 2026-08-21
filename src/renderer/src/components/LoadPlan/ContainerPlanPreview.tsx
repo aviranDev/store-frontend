@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import Win95GroupBox from '../../components/Win95/Win95GroupBox'
 import { ContainerPlanPreviewProps, PreviewMode } from '../../types/loadPlanPage.types'
 import { getPreviewSecurementToolPlacements } from '../../utils/loadPlanPage.utils'
@@ -11,19 +12,42 @@ import {
   SummaryRow,
   PreviewHeaderRow,
   PreviewHeaderTitle,
+  PreviewHeaderActions,
   PreviewModeButtons,
-  PreviewModeButton
+  PreviewModeButton,
+  PreviewExpandButton
 } from '../../styles/LoadPlanStyle/LoadPlanStyle'
+
+type Props = ContainerPlanPreviewProps & {
+  isExpanded?: boolean
+  onExpandedChange?: (expanded: boolean) => void
+}
 
 const ContainerPlanPreview = ({
   formData,
   previewData,
   previewMode,
-  onPreviewModeChange
-}: ContainerPlanPreviewProps): React.JSX.Element => {
+  onPreviewModeChange,
+  isExpanded = false,
+  onExpandedChange
+}: Props): React.JSX.Element => {
   const handleModeChange = (mode: PreviewMode) => () => {
     onPreviewModeChange(mode)
   }
+
+  useEffect(() => {
+    if (!isExpanded) return
+
+    const handleKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') {
+        onExpandedChange?.(false)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isExpanded, onExpandedChange])
 
   const fitStatus = !previewData
     ? 'Not calculated'
@@ -54,31 +78,50 @@ const ContainerPlanPreview = ({
       : `${securementStatus} · ${securementToolCount} ${securementToolCount === 1 ? 'tool' : 'tools'}`
 
   return (
-    <PreviewWrap>
+    <PreviewWrap $expanded={isExpanded}>
       <PreviewTop>
-        <Win95GroupBox legend="Container Plan">
+        <Win95GroupBox legend={isExpanded ? 'Container Plan — Full View' : 'Container Plan'}>
           <PreviewHeaderRow>
             <PreviewHeaderTitle>
               {previewMode === '2d' ? '2D Container Plan' : '3D Container Plan'}
             </PreviewHeaderTitle>
 
-            <PreviewModeButtons>
-              <PreviewModeButton
-                type="button"
-                onClick={handleModeChange('2d')}
-                $active={previewMode === '2d'}
-              >
-                2D
-              </PreviewModeButton>
+            <PreviewHeaderActions>
+              <PreviewModeButtons>
+                <PreviewModeButton
+                  type="button"
+                  onClick={handleModeChange('2d')}
+                  $active={previewMode === '2d'}
+                  aria-pressed={previewMode === '2d'}
+                >
+                  2D View
+                </PreviewModeButton>
 
-              <PreviewModeButton
+                <PreviewModeButton
+                  type="button"
+                  onClick={handleModeChange('3d')}
+                  $active={previewMode === '3d'}
+                  aria-pressed={previewMode === '3d'}
+                >
+                  3D View
+                </PreviewModeButton>
+              </PreviewModeButtons>
+
+              <PreviewExpandButton
                 type="button"
-                onClick={handleModeChange('3d')}
-                $active={previewMode === '3d'}
+                onClick={() => onExpandedChange?.(!isExpanded)}
+                disabled={!previewData}
+                title={
+                  previewData
+                    ? isExpanded
+                      ? 'Return to Loading Details (Esc)'
+                      : 'Open the container plan in the full workspace'
+                    : 'Calculate a preview before opening Full View'
+                }
               >
-                3D
-              </PreviewModeButton>
-            </PreviewModeButtons>
+                {isExpanded ? 'Back to Details' : 'Full View'}
+              </PreviewExpandButton>
+            </PreviewHeaderActions>
           </PreviewHeaderRow>
 
           {previewMode === '2d' ? (
@@ -89,66 +132,68 @@ const ContainerPlanPreview = ({
         </Win95GroupBox>
       </PreviewTop>
 
-      <PreviewBottom>
-        <Win95GroupBox legend="Plan Summary">
-          <SummaryGrid>
-            <SummaryRow>
-              <span>Lines</span>
-              <strong>{previewData?.cargoItems.length ?? formData.items.length}</strong>
-            </SummaryRow>
+      {!isExpanded && (
+        <PreviewBottom>
+          <Win95GroupBox legend="Plan Summary">
+            <SummaryGrid>
+              <SummaryRow>
+                <span>Lines</span>
+                <strong>{previewData?.cargoItems.length ?? formData.items.length}</strong>
+              </SummaryRow>
 
-            <SummaryRow>
-              <span>Total Quantity</span>
-              <strong>{previewData?.calculationSummary.totalCargoUnits ?? '-'}</strong>
-            </SummaryRow>
+              <SummaryRow>
+                <span>Total Quantity</span>
+                <strong>{previewData?.calculationSummary.totalCargoUnits ?? '-'}</strong>
+              </SummaryRow>
 
-            <SummaryRow>
-              <span>Container</span>
-              <strong>{previewData?.containerType.code ?? formData.containerType}</strong>
-            </SummaryRow>
+              <SummaryRow>
+                <span>Container</span>
+                <strong>{previewData?.containerType.code ?? formData.containerType}</strong>
+              </SummaryRow>
 
-            <SummaryRow>
-              <span>Container Name</span>
-              <strong>{previewData?.containerType.name ?? '-'}</strong>
-            </SummaryRow>
+              <SummaryRow>
+                <span>Container Name</span>
+                <strong>{previewData?.containerType.name ?? '-'}</strong>
+              </SummaryRow>
 
-            <SummaryRow>
-              <span>Total Weight</span>
-              <strong>{previewData?.calculationSummary.totalWeightKg ?? '-'}</strong>
-            </SummaryRow>
+              <SummaryRow>
+                <span>Total Weight</span>
+                <strong>{previewData?.calculationSummary.totalWeightKg ?? '-'}</strong>
+              </SummaryRow>
 
-            <SummaryRow>
-              <span>Total Volume</span>
-              <strong>{previewData?.calculationSummary.totalVolumeM3 ?? '-'}</strong>
-            </SummaryRow>
+              <SummaryRow>
+                <span>Total Volume</span>
+                <strong>{previewData?.calculationSummary.totalVolumeM3 ?? '-'}</strong>
+              </SummaryRow>
 
-            <SummaryRow>
-              <span>Floor Use %</span>
-              <strong>{previewData?.calculationSummary.utilizationByFloorPercent ?? '-'}</strong>
-            </SummaryRow>
+              <SummaryRow>
+                <span>Floor Use %</span>
+                <strong>{previewData?.calculationSummary.utilizationByFloorPercent ?? '-'}</strong>
+              </SummaryRow>
 
-            <SummaryRow>
-              <span>Weight Use %</span>
-              <strong>{previewData?.calculationSummary.utilizationByWeightPercent ?? '-'}</strong>
-            </SummaryRow>
+              <SummaryRow>
+                <span>Weight Use %</span>
+                <strong>{previewData?.calculationSummary.utilizationByWeightPercent ?? '-'}</strong>
+              </SummaryRow>
 
-            <SummaryRow>
-              <span>1. Fit</span>
-              <strong>{fitStatus}</strong>
-            </SummaryRow>
+              <SummaryRow>
+                <span>1. Fit</span>
+                <strong>{fitStatus}</strong>
+              </SummaryRow>
 
-            <SummaryRow>
-              <span>2. Balance</span>
-              <strong>{balanceStatus}</strong>
-            </SummaryRow>
+              <SummaryRow>
+                <span>2. Balance</span>
+                <strong>{balanceStatus}</strong>
+              </SummaryRow>
 
-            <SummaryRow>
-              <span>3. Securement</span>
-              <strong>{securementStatusLabel}</strong>
-            </SummaryRow>
-          </SummaryGrid>
-        </Win95GroupBox>
-      </PreviewBottom>
+              <SummaryRow>
+                <span>3. Securement</span>
+                <strong>{securementStatusLabel}</strong>
+              </SummaryRow>
+            </SummaryGrid>
+          </Win95GroupBox>
+        </PreviewBottom>
+      )}
     </PreviewWrap>
   )
 }
