@@ -1136,7 +1136,6 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
   return (
     <Win95Page
       title="Loading Plan"
-      title="Loading Plan"
       width="calc(100vw - 20px)"
       maxWidth="none"
       height="calc(100vh - 20px)"
