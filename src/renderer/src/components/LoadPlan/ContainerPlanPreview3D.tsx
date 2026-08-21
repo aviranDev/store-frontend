@@ -790,20 +790,44 @@ const CargoVisualItem = ({
 }
 
 const KeyboardCameraControls = ({
-  containerLength
+  containerLength,
+  containerWidth,
+  containerHeight
 }: {
   containerLength: number
+  containerWidth: number
+  containerHeight: number
 }): React.JSX.Element | null => {
-  const { camera } = useThree()
+  const { camera, size } = useThree()
   const pressedKeys = useRef<Set<string>>(new Set())
+
+  const fitRadius = useMemo(() => {
+    if (!(camera instanceof THREE.PerspectiveCamera)) {
+      return Math.max(containerLength * 0.75, 10)
+    }
+
+    const viewportAspect = Math.max(size.width / Math.max(size.height, 1), 0.25)
+    const verticalFov = THREE.MathUtils.degToRad(camera.fov)
+    const horizontalFov = 2 * Math.atan(Math.tan(verticalFov / 2) * viewportAspect)
+    const horizontalSpan = containerLength + containerWidth * 0.8
+    const verticalSpan = containerHeight + containerWidth * 0.65
+    const horizontalRadius = horizontalSpan / 2 / Math.tan(horizontalFov / 2)
+    const verticalRadius = verticalSpan / 2 / Math.tan(verticalFov / 2)
+
+    return Math.max(horizontalRadius, verticalRadius, containerWidth * 1.4, 4) * 1.25
+  }, [camera, containerHeight, containerLength, containerWidth, size.height, size.width])
 
   const targetRef = useRef(new THREE.Vector3(0, 0, 0))
   const yawRef = useRef(0)
   const pitchRef = useRef(0.28)
-  const radiusRef = useRef(Math.max(containerLength * 0.75, 10))
+  const radiusRef = useRef(fitRadius)
 
   useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
+    radiusRef.current = fitRadius
+  }, [fitRadius])
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent): void => {
       const keys = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Shift', '+', '=', '-', '_']
 
       if (keys.includes(event.key)) {
@@ -812,7 +836,7 @@ const KeyboardCameraControls = ({
       }
     }
 
-    const onKeyUp = (event: KeyboardEvent) => {
+    const onKeyUp = (event: KeyboardEvent): void => {
       pressedKeys.current.delete(event.key)
     }
 
@@ -839,7 +863,10 @@ const KeyboardCameraControls = ({
       radiusRef.current += zoomSpeed * delta
     }
 
-    radiusRef.current = Math.max(3, Math.min(containerLength * 2, radiusRef.current))
+    radiusRef.current = Math.max(
+      3,
+      Math.min(Math.max(containerLength * 2, fitRadius * 1.5), radiusRef.current)
+    )
 
     const isShiftPressed = pressedKeys.current.has('Shift')
 
@@ -872,10 +899,7 @@ const KeyboardCameraControls = ({
   return null
 }
 
-const createContainerWallTexture = (
-  wallWidth: number,
-  _wallHeight: number
-): THREE.CanvasTexture => {
+const createContainerWallTexture = (wallWidth: number): THREE.CanvasTexture => {
   const canvas = document.createElement('canvas')
   const context = canvas.getContext('2d')
 
@@ -1048,10 +1072,7 @@ const ContainerWallPanel = ({
   const zMax = containerWidth / 2
   const epsilon = 0.003
 
-  const texture = useMemo(
-    () => createContainerWallTexture(wallWidth, wallHeight),
-    [wallWidth, wallHeight]
-  )
+  const texture = useMemo(() => createContainerWallTexture(wallWidth), [wallWidth])
   const ribGeometry = useMemo(
     () =>
       createWallRibGeometry({
@@ -2165,7 +2186,11 @@ const ContainerScene = ({ previewData }: { previewData: PreviewData }): React.JS
       <directionalLight position={[8, 10, 8]} intensity={1.25} />
       <directionalLight position={[-6, 6, -4]} intensity={0.55} />
 
-      <KeyboardCameraControls containerLength={containerLength} />
+      <KeyboardCameraControls
+        containerLength={containerLength}
+        containerWidth={containerWidth}
+        containerHeight={containerHeight}
+      />
 
       <mesh position={[0, -containerHeight / 2, 0]}>
         <boxGeometry args={[containerLength, 0.03, containerWidth]} />

@@ -49,7 +49,7 @@ const FixedFormPanel = styled(FormPanel)`
   height: 100%;
   min-height: 0;
   overflow: hidden;
-  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
 `
 
 const FixedCargoRowsScroll = styled(CargoRowsScroll)`
@@ -161,31 +161,6 @@ const LoadPlanForm = ({
       <LoadingDetailsGroupBox legend="Loading Details">
         <FixedWinForm onSubmit={onSubmit}>
           <FixedFormPanel>
-            <CargoHeader>
-              <HeaderCell>Shape</HeaderCell>
-              <HeaderCell>Qty</HeaderCell>
-              <DimensionsHeader>Dimensions</DimensionsHeader>
-              <HeaderCell>Dim Unit</HeaderCell>
-              <HeaderCell>Weight</HeaderCell>
-              <HeaderCell>W Unit</HeaderCell>
-              <HeaderCell />
-            </CargoHeader>
-
-            <FixedCargoRowsScroll>
-              <CargoTable>
-                {formData.items.map((item) => (
-                  <CargoItemRow
-                    key={item.id}
-                    item={item}
-                    itemsLength={formData.items.length}
-                    onItemChange={onItemChange}
-                    onCheckboxChange={onCheckboxChange}
-                    onRemoveRow={onRemoveRow}
-                  />
-                ))}
-              </CargoTable>
-            </FixedCargoRowsScroll>
-
             <FixedControlsGrid>
               <WinButton type="button" onClick={onAddRow}>
                 Add Line
@@ -233,6 +208,31 @@ const LoadPlanForm = ({
                 Reset
               </WinButton>
             </FixedControlsGrid>
+
+            <CargoHeader>
+              <HeaderCell>Shape</HeaderCell>
+              <HeaderCell>Qty</HeaderCell>
+              <DimensionsHeader>Dimensions</DimensionsHeader>
+              <HeaderCell>Dim Unit</HeaderCell>
+              <HeaderCell>Weight</HeaderCell>
+              <HeaderCell>W Unit</HeaderCell>
+              <HeaderCell />
+            </CargoHeader>
+
+            <FixedCargoRowsScroll>
+              <CargoTable>
+                {formData.items.map((item) => (
+                  <CargoItemRow
+                    key={item.id}
+                    item={item}
+                    itemsLength={formData.items.length}
+                    onItemChange={onItemChange}
+                    onCheckboxChange={onCheckboxChange}
+                    onRemoveRow={onRemoveRow}
+                  />
+                ))}
+              </CargoTable>
+            </FixedCargoRowsScroll>
 
             <FixedMessageArea $visible={!!message}>{message}</FixedMessageArea>
           </FixedFormPanel>
