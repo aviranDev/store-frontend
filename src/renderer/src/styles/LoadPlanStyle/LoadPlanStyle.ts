@@ -1,5 +1,6 @@
-import styled from 'styled-components'
+import styled, { css } from 'styled-components'
 import WinButton from '../../components/Button/WinButton'
+import { sunkenBox } from '../mixins'
 
 const CONTROL_HEIGHT = '28px'
 
@@ -295,13 +296,27 @@ export const SectionLabel = styled.label`
   white-space: nowrap;
 `
 
-export const PreviewWrap = styled.div`
+export const PreviewWrap = styled.div<{ $expanded?: boolean }>`
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto;
   gap: 10px;
   height: 100%;
   min-height: 0;
   width: 100%;
+
+  ${({ $expanded, theme }) =>
+    $expanded &&
+    css`
+      position: fixed;
+      inset: 0;
+      z-index: 9000;
+      width: 100vw;
+      height: 100vh;
+      padding: 12px;
+      gap: 0;
+      box-sizing: border-box;
+      background: ${theme.colors.windowBg};
+    `}
 `
 
 export const PreviewTop = styled.div`
@@ -595,14 +610,43 @@ export const PreviewHeader = styled.div`
 
 export const PreviewModeButtons = styled.div`
   display: inline-flex;
-  gap: 6px;
+  gap: 8px;
   flex-shrink: 0;
 `
 
 export const PreviewModeButton = styled(WinButton)<{ $active: boolean }>`
-  min-width: 46px;
-  padding: 0 10px;
-  font-weight: ${({ $active }) => ($active ? 'bold' : 'normal')};
+  min-width: 80px;
+  min-height: 38px;
+  padding: 8px 16px;
+  font-size: 15px;
+  font-weight: bold;
+  letter-spacing: 0.2px;
+  background: ${({ $active, theme }) =>
+    $active ? theme.colors.titleBar : theme.colors.buttonFace};
+  color: ${({ $active, theme }) => ($active ? theme.colors.titleText : theme.colors.text)};
+
+  ${({ $active }) => $active && sunkenBox};
+
+  &:hover:not(:disabled) {
+    filter: brightness(${({ $active }) => ($active ? 1.15 : 1.05)});
+  }
+`
+
+export const PreviewHeaderActions = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+`
+
+export const PreviewExpandButton = styled(WinButton)`
+  min-width: 128px;
+  min-height: 38px;
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: bold;
 `
 
 export const SceneWrap = styled.div`
