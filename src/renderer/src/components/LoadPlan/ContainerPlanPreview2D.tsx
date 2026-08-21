@@ -1,4 +1,4 @@
-import { CSSProperties, useMemo } from 'react'
+import { CSSProperties, useEffect, useMemo, useRef, useState } from 'react'
 import { ContainerPlanPreviewProps } from '../../types/loadPlanPage.types'
 import { getPreviewSecurementToolPlacements } from '../../utils/loadPlanPage.utils'
 import {
@@ -68,20 +68,57 @@ const ContainerPlanPreview2D = ({
   formData,
   previewData
 }: Pick<ContainerPlanPreviewProps, 'formData' | 'previewData'>): React.JSX.Element => {
-  const canvasWidth = 620
-  const canvasHeight = 260
+  const viewportRef = useRef<HTMLDivElement>(null)
+  const [canvasSize, setCanvasSize] = useState({ width: 620, height: 260 })
+
+  useEffect(() => {
+    const viewport = viewportRef.current
+
+    if (!viewport || !previewData) return
+
+    const updateCanvasSize = (width: number, height: number): void => {
+      if (width <= 0 || height <= 0) return
+
+      const nextSize = {
+        width: Math.max(1, Math.floor(width)),
+        height: Math.max(1, Math.floor(height))
+      }
+
+      setCanvasSize((current) =>
+        current.width === nextSize.width && current.height === nextSize.height ? current : nextSize
+      )
+    }
+
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0]
+
+      if (entry) {
+        updateCanvasSize(entry.contentRect.width, entry.contentRect.height)
+      }
+    })
+
+    observer.observe(viewport)
+
+    return () => observer.disconnect()
+  }, [previewData])
+
+  const canvasWidth = canvasSize.width
+  const canvasHeight = canvasSize.height
 
   const containerLengthCm = previewData?.containerType.dimensions.internalLengthCm ?? 1
   const containerWidthCm = previewData?.containerType.dimensions.internalWidthCm ?? 1
   const containerHeightCm = previewData?.containerType.dimensions.internalHeightCm ?? 1
 
-  const leftGutter = 92
-  const rightGutter = 112
-  const topGutter = 24
-  const bottomGutter = 58
+  const veryCompactCanvas = canvasWidth < 420
+  const compactCanvas = canvasWidth < 650
+  const shortCanvas = canvasHeight < 280
+  const leftGutter = veryCompactCanvas ? 48 : compactCanvas ? 64 : 92
+  const rightGutter = veryCompactCanvas ? 54 : compactCanvas ? 76 : 112
+  const topGutter = shortCanvas ? 14 : 24
+  const bottomGutter = shortCanvas ? 42 : compactCanvas ? 48 : 58
 
-  const usableWidth = canvasWidth - leftGutter - rightGutter
-  const usableHeight = canvasHeight - topGutter - bottomGutter
+  const usableWidth = Math.max(1, canvasWidth - leftGutter - rightGutter)
+  const usableHeight = Math.max(1, canvasHeight - topGutter - bottomGutter)
 
   const planScale = Math.min(usableWidth / containerLengthCm, usableHeight / containerWidthCm)
 
@@ -121,7 +158,7 @@ const ContainerPlanPreview2D = ({
   const securementTools: SecurementToolPlacement[] = getPreviewSecurementToolPlacements(previewData)
 
   return (
-    <PreviewViewport>
+    <PreviewViewport ref={viewportRef}>
       {previewData ? (
         <PlanCanvasWrap>
           <PlanCanvas $width={canvasWidth} $height={canvasHeight}>

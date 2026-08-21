@@ -1,5 +1,6 @@
 import styled from 'styled-components'
 import WinButton from '../../components/Button/WinButton'
+import { sunkenBox } from '../mixins'
 
 const CONTROL_HEIGHT = '28px'
 
@@ -304,6 +305,34 @@ export const PreviewWrap = styled.div`
   width: 100%;
 `
 
+export const ExpandedPreviewOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  padding: clamp(6px, 1vw, 12px);
+  box-sizing: border-box;
+  background: ${({ theme }) => theme.colors.windowBg};
+
+  > fieldset {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  > fieldset > div {
+    min-width: 0;
+    min-height: 0;
+  }
+
+  > fieldset > div > :last-child {
+    flex: 1;
+    min-height: 0;
+  }
+`
+
 export const PreviewTop = styled.div`
   min-height: 0;
   overflow: hidden;
@@ -315,6 +344,7 @@ export const PreviewBottom = styled.div`
 `
 
 export const PreviewViewport = styled.div`
+  width: 100%;
   min-height: 0;
   height: 100%;
   background: #f3f3f3;
@@ -324,7 +354,7 @@ export const PreviewViewport = styled.div`
   border-bottom: 2px solid ${({ theme }) => theme.colors.light};
   padding: 6px;
   box-sizing: border-box;
-  overflow: auto;
+  overflow: hidden;
 `
 
 export const PlaceholderText = styled.div`
@@ -368,13 +398,14 @@ export const MessageItem = styled.div<{ $type: 'error' | 'warning' | 'normal' }>
 `
 
 export const PlanCanvasWrap = styled.div`
+  width: 100%;
   height: 100%;
   display: flex;
   min-height: 0;
   min-width: 0;
   align-items: center;
   justify-content: center;
-  overflow: auto;
+  overflow: hidden;
 `
 
 export const PlanCanvas = styled.div<{
@@ -572,12 +603,17 @@ export const AgentInput = styled.textarea`
 `
 
 export const PreviewHeaderRow = styled.div`
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
   margin-bottom: 8px;
   min-width: 0;
+
+  @media (max-width: 680px) {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
 `
 
 export const PreviewHeaderTitle = styled.div`
@@ -595,14 +631,46 @@ export const PreviewHeader = styled.div`
 
 export const PreviewModeButtons = styled.div`
   display: inline-flex;
-  gap: 6px;
+  gap: 8px;
   flex-shrink: 0;
 `
 
 export const PreviewModeButton = styled(WinButton)<{ $active: boolean }>`
-  min-width: 46px;
-  padding: 0 10px;
-  font-weight: ${({ $active }) => ($active ? 'bold' : 'normal')};
+  min-width: 80px;
+  min-height: 38px;
+  padding: 8px 16px;
+  font-size: 15px;
+  font-weight: bold;
+  letter-spacing: 0.2px;
+  background: ${({ $active, theme }) =>
+    $active ? theme.colors.titleBar : theme.colors.buttonFace};
+  color: ${({ $active, theme }) => ($active ? theme.colors.titleText : theme.colors.text)};
+
+  ${({ $active }) => $active && sunkenBox};
+
+  &:hover:not(:disabled) {
+    filter: brightness(${({ $active }) => ($active ? 1.15 : 1.05)});
+  }
+`
+
+export const PreviewHeaderActions = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+
+  @media (max-width: 680px) {
+    justify-content: flex-start;
+  }
+`
+
+export const PreviewExpandButton = styled(WinButton)`
+  min-width: 128px;
+  min-height: 38px;
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: bold;
 `
 
 export const SceneWrap = styled.div`
