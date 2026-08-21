@@ -49,7 +49,7 @@ const FixedFormPanel = styled(FormPanel)`
   height: 100%;
   min-height: 0;
   overflow: hidden;
-  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
 `
 
 const FixedCargoRowsScroll = styled(CargoRowsScroll)`
@@ -69,8 +69,17 @@ const FixedControlsGrid = styled(ControlsGrid)`
   position: relative;
   z-index: 2;
   flex-shrink: 0;
-  padding-top: 2px;
-  background: ${({ theme }) => theme.colors.windowBg};
+  width: 100%;
+  padding: 8px;
+  box-sizing: border-box;
+  background: ${({ theme }) => theme.colors.lightSoft};
+  border-top: 2px solid ${({ theme }) => theme.colors.light};
+  border-left: 2px solid ${({ theme }) => theme.colors.light};
+  border-right: 2px solid ${({ theme }) => theme.colors.dark};
+  border-bottom: 2px solid ${({ theme }) => theme.colors.dark};
+  box-shadow:
+    inset -1px -1px 0 ${({ theme }) => theme.colors.shadow},
+    inset 1px 1px 0 ${({ theme }) => theme.colors.lightSoft};
 `
 
 const FixedMessageArea = styled(MessageArea)`
@@ -161,31 +170,6 @@ const LoadPlanForm = ({
       <LoadingDetailsGroupBox legend="Loading Details">
         <FixedWinForm onSubmit={onSubmit}>
           <FixedFormPanel>
-            <CargoHeader>
-              <HeaderCell>Shape</HeaderCell>
-              <HeaderCell>Qty</HeaderCell>
-              <DimensionsHeader>Dimensions</DimensionsHeader>
-              <HeaderCell>Dim Unit</HeaderCell>
-              <HeaderCell>Weight</HeaderCell>
-              <HeaderCell>W Unit</HeaderCell>
-              <HeaderCell />
-            </CargoHeader>
-
-            <FixedCargoRowsScroll>
-              <CargoTable>
-                {formData.items.map((item) => (
-                  <CargoItemRow
-                    key={item.id}
-                    item={item}
-                    itemsLength={formData.items.length}
-                    onItemChange={onItemChange}
-                    onCheckboxChange={onCheckboxChange}
-                    onRemoveRow={onRemoveRow}
-                  />
-                ))}
-              </CargoTable>
-            </FixedCargoRowsScroll>
-
             <FixedControlsGrid>
               <WinButton type="button" onClick={onAddRow}>
                 Add Line
@@ -233,6 +217,31 @@ const LoadPlanForm = ({
                 Reset
               </WinButton>
             </FixedControlsGrid>
+
+            <CargoHeader>
+              <HeaderCell>Shape</HeaderCell>
+              <HeaderCell>Qty</HeaderCell>
+              <DimensionsHeader>Dimensions</DimensionsHeader>
+              <HeaderCell>Dim Unit</HeaderCell>
+              <HeaderCell>Weight</HeaderCell>
+              <HeaderCell>W Unit</HeaderCell>
+              <HeaderCell />
+            </CargoHeader>
+
+            <FixedCargoRowsScroll>
+              <CargoTable>
+                {formData.items.map((item) => (
+                  <CargoItemRow
+                    key={item.id}
+                    item={item}
+                    itemsLength={formData.items.length}
+                    onItemChange={onItemChange}
+                    onCheckboxChange={onCheckboxChange}
+                    onRemoveRow={onRemoveRow}
+                  />
+                ))}
+              </CargoTable>
+            </FixedCargoRowsScroll>
 
             <FixedMessageArea $visible={!!message}>{message}</FixedMessageArea>
           </FixedFormPanel>
