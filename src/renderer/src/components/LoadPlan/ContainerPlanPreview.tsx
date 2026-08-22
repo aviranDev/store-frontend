@@ -101,11 +101,15 @@ const ContainerPlanPreview = ({
     </PreviewModeButtons>
   )
 
-  const renderPreview = (): React.JSX.Element =>
+  const renderPreview = (isFullView = false): React.JSX.Element =>
     previewMode === '2d' ? (
       <ContainerPlanPreview2D formData={formData} previewData={previewData} />
     ) : (
-      <ContainerPlanPreview3D formData={formData} previewData={previewData} />
+      <ContainerPlanPreview3D
+        formData={formData}
+        previewData={previewData}
+        isFullView={isFullView}
+      />
     )
 
   return (
@@ -223,7 +227,7 @@ const ContainerPlanPreview = ({
               </PreviewHeaderActions>
             </PreviewHeaderRow>
 
-            {renderPreview()}
+            {renderPreview(true)}
           </Win95GroupBox>
         </ExpandedPreviewOverlay>
       )}
