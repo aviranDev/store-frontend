@@ -46,6 +46,13 @@ function createWindow(): void {
   const mainWindow = new BrowserWindow({
     width: 900,
     height: 670,
+    titleBarStyle: 'hidden',
+    movable: true,
+    resizable: true,
+    minimizable: true,
+    maximizable: true,
+    closable: true,
+    thickFrame: true,
     show: false,
     autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon } : {}),
