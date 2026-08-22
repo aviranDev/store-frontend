@@ -15,6 +15,7 @@ type Win95TabsProps = {
   onChange?: (tabId: string) => void
   className?: string
   sidebar?: ReactNode
+  mainWidth?: string
   sidebarWidth?: string
 }
 
@@ -77,12 +78,14 @@ const TabPanel = styled.div`
   overflow: auto;
 `
 
-const TabPanelLayout = styled.div<{ $hasSidebar: boolean; $sidebarWidth: string }>`
+const TabPanelLayout = styled.div<{
+  $hasSidebar: boolean
+  $mainWidth: string
+  $sidebarWidth: string
+}>`
   display: grid;
-  grid-template-columns: ${({ $hasSidebar, $sidebarWidth }) =>
-    $hasSidebar
-      ? `clamp(610px, 34vw, 620px) ${$sidebarWidth}`
-      : 'minmax(0, 1fr)'};
+  grid-template-columns: ${({ $hasSidebar, $mainWidth, $sidebarWidth }) =>
+    $hasSidebar ? `${$mainWidth} ${$sidebarWidth}` : 'minmax(0, 1fr)'};
 
   gap: clamp(8px, 0.8vw, 14px);
   width: 100%;
@@ -98,18 +101,14 @@ const TabPanelLayout = styled.div<{ $hasSidebar: boolean; $sidebarWidth: string 
 
   @media (max-width: 1450px) {
     grid-template-columns: ${({ $hasSidebar, $sidebarWidth }) =>
-      $hasSidebar
-        ? `minmax(520px, 560px) ${$sidebarWidth}`
-        : 'minmax(0, 1fr)'};
+      $hasSidebar ? `minmax(520px, 560px) ${$sidebarWidth}` : 'minmax(0, 1fr)'};
 
     gap: 10px;
   }
 
   @media (max-width: 1280px) {
     grid-template-columns: ${({ $hasSidebar, $sidebarWidth }) =>
-      $hasSidebar
-        ? `minmax(500px, 540px) ${$sidebarWidth}`
-        : 'minmax(0, 1fr)'};
+      $hasSidebar ? `minmax(500px, 540px) ${$sidebarWidth}` : 'minmax(0, 1fr)'};
 
     gap: 8px;
   }
@@ -132,6 +131,7 @@ const Win95Tabs = ({
   onChange,
   className,
   sidebar,
+  mainWidth = 'clamp(610px, 34vw, 620px)',
   sidebarWidth = '1fr'
 }: Win95TabsProps) => {
   const firstEnabledTab = useMemo(() => items.find((item) => !item.disabled)?.id ?? '', [items])
@@ -174,7 +174,7 @@ const Win95Tabs = ({
         id={`panel-${currentTab.id}`}
         aria-labelledby={`tab-${currentTab.id}`}
       >
-        <TabPanelLayout $hasSidebar={!!sidebar} $sidebarWidth={sidebarWidth}>
+        <TabPanelLayout $hasSidebar={!!sidebar} $mainWidth={mainWidth} $sidebarWidth={sidebarWidth}>
           <div>{currentTab.content}</div>
           {sidebar && <div>{sidebar}</div>}
         </TabPanelLayout>

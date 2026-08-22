@@ -120,14 +120,15 @@ const ContainerPlanPreview2D = ({
   const usableWidth = Math.max(1, canvasWidth - leftGutter - rightGutter)
   const usableHeight = Math.max(1, canvasHeight - topGutter - bottomGutter)
 
-  const planScale = Math.min(usableWidth / containerLengthCm, usableHeight / containerWidthCm)
+  const planScale =
+    Math.min(usableWidth / containerLengthCm, usableHeight / containerWidthCm) * 0.92
 
   const scaledContainerLength = containerLengthCm * planScale
   const scaledContainerWidth = containerWidthCm * planScale
   const scaledContainerHeight = containerHeightCm * planScale
 
-  const offsetX = leftGutter
-  const offsetY = topGutter + (usableHeight - scaledContainerWidth) / 2
+  const offsetX = (canvasWidth - scaledContainerLength) / 2
+  const offsetY = (canvasHeight - scaledContainerWidth) / 2
 
   const widthRulerX = offsetX - 20
   const widthRulerTop = offsetY
