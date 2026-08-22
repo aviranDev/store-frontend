@@ -153,6 +153,11 @@ const MessageBox = styled.div`
   border-bottom: 2px solid ${({ theme }) => theme.colors.light};
 `
 
+const WiderLoadingPlanPage = styled(Win95Page)`
+  padding-left: 4px;
+  padding-right: 4px;
+`
+
 const toUiShape = (shape: PreviewCargoItem['shape']): CargoItem['shape'] => {
   if (shape === 'box') return 'carton'
   if (shape === 'pallet') return 'pallet'
@@ -427,7 +432,7 @@ const LoadPlanDetailsPage = (): React.JSX.Element => {
   ]
 
   return (
-    <Win95Page
+    <WiderLoadingPlanPage
       title={plan ? `Load Plan - ${plan.name}` : 'Load Plan'}
       width="calc(100vw - 8px)"
       maxWidth="none"
@@ -447,7 +452,7 @@ const LoadPlanDetailsPage = (): React.JSX.Element => {
         }
         sidebarWidth="minmax(760px, 1fr)"
       />
-    </Win95Page>
+    </WiderLoadingPlanPage>
   )
 }
 
