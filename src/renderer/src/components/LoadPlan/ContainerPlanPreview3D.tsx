@@ -1,6 +1,7 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
+import WinButton from '../Button/WinButton'
 import { ContainerPlanPreviewProps } from '../../types/loadPlanPage.types'
 import { getPreviewSecurementToolPlacements } from '../../utils/loadPlanPage.utils'
 import {
@@ -28,6 +29,12 @@ const SceneReadyNotifier = ({ onReady }: { onReady: () => void }): React.JSX.Ele
 }
 
 type PreviewData = NonNullable<ContainerPlanPreviewProps['previewData']>
+type PreviewNavigation = {
+  zoom: number
+  yaw: number
+  pitch: number
+}
+type NavigationAction = 'zoom-in' | 'zoom-out' | 'left' | 'right' | 'up' | 'down'
 type PlacedCargoItem = PreviewData['placedCargoItems'][number]
 type SecurementToolPlacement = NonNullable<
   PreviewData['securementSummary']
@@ -38,6 +45,7 @@ type ContainerWallName = 'xMin' | 'xMax' | 'zMin' | 'zMax'
 
 const SCALE = 0.01 // 1 cm = 0.01 scene units
 const CM_PER_FOOT = 30.48
+const DEFAULT_NAVIGATION: PreviewNavigation = { zoom: 1, yaw: 0, pitch: 0.28 }
 
 const formatCentimeters = (valueCm: number): string => Number(valueCm.toFixed(1)).toString()
 
@@ -792,11 +800,13 @@ const CargoVisualItem = ({
 const KeyboardCameraControls = ({
   containerLength,
   containerWidth,
-  containerHeight
+  containerHeight,
+  navigation
 }: {
   containerLength: number
   containerWidth: number
   containerHeight: number
+  navigation?: PreviewNavigation
 }): React.JSX.Element | null => {
   const { camera, size } = useThree()
   const pressedKeys = useRef<Set<string>>(new Set())
@@ -823,8 +833,11 @@ const KeyboardCameraControls = ({
   const radiusRef = useRef(fitRadius)
 
   useEffect(() => {
-    radiusRef.current = fitRadius
-  }, [fitRadius])
+    radiusRef.current = fitRadius / (navigation?.zoom ?? 1)
+    targetRef.current.set(0, 0, 0)
+    yawRef.current = navigation?.yaw ?? 0
+    pitchRef.current = navigation?.pitch ?? 0.28
+  }, [fitRadius, navigation])
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
@@ -2133,7 +2146,13 @@ const ContainerDimensionRulers = ({
   )
 }
 
-const ContainerScene = ({ previewData }: { previewData: PreviewData }): React.JSX.Element => {
+const ContainerScene = ({
+  previewData,
+  navigation
+}: {
+  previewData: PreviewData
+  navigation?: PreviewNavigation
+}): React.JSX.Element => {
   const containerLength = previewData.containerType.dimensions.internalLengthCm * SCALE
   const containerWidth = previewData.containerType.dimensions.internalWidthCm * SCALE
   const containerHeight = previewData.containerType.dimensions.internalHeightCm * SCALE
@@ -2190,6 +2209,7 @@ const ContainerScene = ({ previewData }: { previewData: PreviewData }): React.JS
         containerLength={containerLength}
         containerWidth={containerWidth}
         containerHeight={containerHeight}
+        navigation={navigation}
       />
 
       <mesh position={[0, -containerHeight / 2, 0]}>
@@ -2271,10 +2291,75 @@ const ContainerScene = ({ previewData }: { previewData: PreviewData }): React.JS
 
 const ContainerPlanPreview3D = ({
   formData,
-  previewData
-}: Pick<ContainerPlanPreviewProps, 'formData' | 'previewData'>): React.JSX.Element => {
+  previewData,
+  isFullView = false
+}: Pick<ContainerPlanPreviewProps, 'formData' | 'previewData'> & {
+  isFullView?: boolean
+}): React.JSX.Element => {
   const [isPreparing3D, setIsPreparing3D] = useState(false)
   const [sceneData, setSceneData] = useState<PreviewData | null>(null)
+  const [navigation, setNavigation] = useState<PreviewNavigation>(DEFAULT_NAVIGATION)
+  const repeatDelayRef = useRef<number | null>(null)
+  const repeatIntervalRef = useRef<number | null>(null)
+
+  const handleNavigation = useCallback((action: NavigationAction): void => {
+    const rotationStep = THREE.MathUtils.degToRad(15)
+    const tiltStep = THREE.MathUtils.degToRad(10)
+
+    setNavigation((current) => {
+      switch (action) {
+        case 'zoom-in':
+          return { ...current, zoom: Math.min(2.5, current.zoom * 1.15) }
+        case 'zoom-out':
+          return { ...current, zoom: Math.max(0.55, current.zoom / 1.15) }
+        case 'left':
+          return { ...current, yaw: current.yaw + rotationStep }
+        case 'right':
+          return { ...current, yaw: current.yaw - rotationStep }
+        case 'up':
+          return { ...current, pitch: Math.min(1.35, current.pitch + tiltStep) }
+        case 'down':
+          return { ...current, pitch: Math.max(-1.35, current.pitch - tiltStep) }
+      }
+    })
+  }, [])
+
+  const stopContinuousNavigation = useCallback((): void => {
+    if (repeatDelayRef.current !== null) {
+      window.clearTimeout(repeatDelayRef.current)
+      repeatDelayRef.current = null
+    }
+
+    if (repeatIntervalRef.current !== null) {
+      window.clearInterval(repeatIntervalRef.current)
+      repeatIntervalRef.current = null
+    }
+  }, [])
+
+  const startContinuousNavigation = useCallback(
+    (action: NavigationAction): void => {
+      stopContinuousNavigation()
+      handleNavigation(action)
+
+      repeatDelayRef.current = window.setTimeout(() => {
+        repeatIntervalRef.current = window.setInterval(() => {
+          handleNavigation(action)
+        }, 85)
+      }, 260)
+    },
+    [handleNavigation, stopContinuousNavigation]
+  )
+
+  useEffect(() => {
+    window.addEventListener('pointerup', stopContinuousNavigation)
+    window.addEventListener('pointercancel', stopContinuousNavigation)
+
+    return () => {
+      stopContinuousNavigation()
+      window.removeEventListener('pointerup', stopContinuousNavigation)
+      window.removeEventListener('pointercancel', stopContinuousNavigation)
+    }
+  }, [stopContinuousNavigation])
 
   useEffect(() => {
     if (!previewData) {
@@ -2337,10 +2422,68 @@ const ContainerPlanPreview3D = ({
                 far: 1000
               }}
             >
-              <ContainerScene previewData={sceneData} />
+              <ContainerScene previewData={sceneData} navigation={navigation} />
               <SceneReadyNotifier onReady={handleSceneReady} />
             </Canvas>
           )}
+
+          <div
+            aria-label={isFullView ? '3D Full View controls' : '3D preview controls'}
+            style={{
+              position: 'absolute',
+              top: isFullView ? 10 : 8,
+              right: isFullView ? 10 : 8,
+              zIndex: 30,
+              display: 'flex',
+              alignItems: 'center',
+              gap: isFullView ? 4 : 3,
+              padding: isFullView ? 4 : 3,
+              background: '#c0c0c0',
+              borderTop: '2px solid #ffffff',
+              borderLeft: '2px solid #ffffff',
+              borderRight: '2px solid #404040',
+              borderBottom: '2px solid #404040'
+            }}
+          >
+            {[
+              ['zoom-in', '+', 'Zoom in'],
+              ['zoom-out', '−', 'Zoom out'],
+              ['left', '←', 'Rotate view left'],
+              ['up', '↑', 'Tilt view up'],
+              ['down', '↓', 'Tilt view down'],
+              ['right', '→', 'Rotate view right']
+            ].map(([action, symbol, label]) => (
+              <WinButton
+                key={action}
+                type="button"
+                size="icon"
+                onPointerDown={(event) => {
+                  event.preventDefault()
+                  startContinuousNavigation(action as NavigationAction)
+                }}
+                onPointerLeave={stopContinuousNavigation}
+                onClick={(event) => {
+                  if (event.detail === 0) {
+                    handleNavigation(action as NavigationAction)
+                  }
+                }}
+                title={label}
+                aria-label={label}
+                style={{
+                  width: isFullView ? 38 : 32,
+                  minWidth: isFullView ? 38 : 32,
+                  height: isFullView ? 38 : 32,
+                  minHeight: isFullView ? 38 : 32,
+                  padding: 0,
+                  borderRadius: '50%',
+                  fontSize: isFullView ? 20 : 17,
+                  fontWeight: 'bold'
+                }}
+              >
+                {symbol}
+              </WinButton>
+            ))}
+          </div>
 
           {securementToolCount > 0 && !isPreparing3D && (
             <div
