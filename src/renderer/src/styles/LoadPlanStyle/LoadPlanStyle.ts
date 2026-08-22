@@ -1,34 +1,34 @@
 import styled from 'styled-components'
 import WinButton from '../../components/Button/WinButton'
-import { sunkenBox } from '../mixins'
+import { raisedBox, sunkenBox } from '../mixins'
 
 const CONTROL_HEIGHT = '28px'
 
 const TableGrid = `
-   92px
-  48px
-  52px
+  minmax(76px, 1.25fr)
+  minmax(40px, 0.55fr)
+  minmax(44px, 0.75fr)
   12px
-  52px
+  minmax(44px, 0.75fr)
   12px
-  52px
-  62px
-  58px
-  62px
+  minmax(44px, 0.75fr)
+  minmax(52px, 0.8fr)
+  minmax(50px, 0.8fr)
+  minmax(52px, 0.8fr)
   28px
 `
 
 const CompactTableGrid = `
-  72px
-  38px
-  46px
+  minmax(64px, 1.2fr)
+  minmax(34px, 0.55fr)
+  minmax(38px, 0.75fr)
   8px
-  46px
+  minmax(38px, 0.75fr)
   8px
-  46px
-  52px
-  44px
-  44px
+  minmax(38px, 0.75fr)
+  minmax(42px, 0.8fr)
+  minmax(40px, 0.8fr)
+  minmax(40px, 0.8fr)
   28px
 `
 
@@ -111,7 +111,7 @@ export const CargoRowsScroll = styled.div`
 export const CargoTable = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   min-width: 0;
 `
 
@@ -119,21 +119,29 @@ export const CargoHeader = styled.div`
   display: grid;
   grid-template-columns: ${TableGrid};
   column-gap: 6px;
-  align-items: end;
+  align-items: center;
   font-weight: bold;
-  font-size: 13px;
-  margin-bottom: 2px;
+  font-size: 12px;
+  line-height: 1.15;
+  padding: 5px 10px;
+  background: ${({ theme }) => theme.colors.lightSoft};
   min-width: 0;
+
+  ${raisedBox};
 
   @media (max-width: 1500px) {
     grid-template-columns: ${CompactTableGrid};
     column-gap: 4px;
-    font-size: 12px;
+    padding-inline: 8px;
+    font-size: 11px;
   }
 `
 
 export const HeaderCell = styled.div`
   min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `
 
 export const DimensionsHeader = styled.div`
@@ -145,8 +153,62 @@ export const DimensionsHeader = styled.div`
 export const CargoCard = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+  padding: 8px 10px 10px;
+  background: ${({ theme }) => theme.colors.face};
   min-width: 0;
+
+  ${raisedBox};
+
+  &:focus-within {
+    outline: 1px dotted ${({ theme }) => theme.colors.titleBar};
+    outline-offset: -5px;
+  }
+
+  @media (max-width: 1500px) {
+    padding-inline: 8px;
+  }
+`
+
+export const CargoCardHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+  padding-bottom: 6px;
+  border-bottom: 1px solid ${({ theme }) => theme.colors.shadow};
+  box-shadow: 0 1px 0 ${({ theme }) => theme.colors.light};
+`
+
+export const CargoCardTitle = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: bold;
+  white-space: nowrap;
+`
+
+export const CargoCardIndex = styled.span`
+  min-width: 30px;
+  padding: 3px 6px;
+  background: ${({ theme }) => theme.colors.titleBar};
+  color: ${({ theme }) => theme.colors.titleText};
+  text-align: center;
+  line-height: 1;
+`
+
+export const CargoCardMeta = styled.div`
+  min-width: 0;
+  overflow: hidden;
+  color: ${({ theme }) => theme.colors.dark};
+  font-size: 11px;
+  line-height: 1.2;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `
 
 export const CargoRow = styled.div`
@@ -172,13 +234,23 @@ export const RestrictionsGrid = styled.div`
   grid-template-columns: repeat(3, minmax(120px, 1fr));
   gap: 6px 10px;
   padding: 8px 10px;
-  background: ${({ theme }) => theme.colors.windowBg};
-  border-top: 2px solid ${({ theme }) => theme.colors.shadow};
-  border-left: 2px solid ${({ theme }) => theme.colors.shadow};
-  border-right: 2px solid ${({ theme }) => theme.colors.light};
-  border-bottom: 2px solid ${({ theme }) => theme.colors.light};
-  box-shadow: inset 1px 1px 0 ${({ theme }) => theme.colors.black};
+  background: ${({ theme }) => theme.colors.lightSoft};
   min-width: 0;
+
+  ${sunkenBox};
+
+  &::before {
+    content: 'References & handling';
+    grid-column: 1 / -1;
+    padding-bottom: 5px;
+    border-bottom: 1px solid ${({ theme }) => theme.colors.shadow};
+    box-shadow: 0 1px 0 ${({ theme }) => theme.colors.light};
+    color: ${({ theme }) => theme.colors.dark};
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 0.2px;
+    text-transform: uppercase;
+  }
 
   @media (max-width: 1500px) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -191,8 +263,27 @@ export const RestrictionItem = styled.label`
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  min-height: 28px;
+  padding: 1px 3px;
   font-size: 12px;
+  line-height: 1.25;
   min-width: 0;
+
+  > input[type='checkbox'] {
+    width: 14px;
+    height: 14px;
+    margin: 0;
+    flex: 0 0 auto;
+  }
+
+  > input:not([type='checkbox']),
+  > select {
+    flex: 1 1 auto;
+  }
+
+  &:has(input[type='checkbox']:not(:disabled)) {
+    cursor: pointer;
+  }
 `
 
 export const DimSeparator = styled.span`

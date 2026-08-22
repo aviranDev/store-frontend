@@ -19,6 +19,12 @@ import {
 import { CargoItem, LoadingPlanFormState } from '../types/loadPlanPage.types'
 import {
   CargoHeader,
+  CargoCard,
+  CargoCardHeader,
+  CargoCardIndex,
+  CargoCardMeta,
+  CargoCardTitle,
+  CargoRow,
   HeaderCell,
   DimensionsHeader,
   TabContentLayout,
@@ -67,41 +73,10 @@ const CargoScroll = styled.div`
 const ReadOnlyTable = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 `
 
-const ReadOnlyCargoRow = styled.div`
-  display: grid;
-  grid-template-columns:
-    92px
-    48px
-    52px
-    12px
-    52px
-    12px
-    52px
-    62px
-    58px
-    62px;
-  column-gap: 6px;
-  align-items: center;
-  min-width: 0;
-
-  @media (max-width: 1500px) {
-    grid-template-columns:
-      72px
-      38px
-      46px
-      8px
-      46px
-      8px
-      46px
-      52px
-      44px
-      44px;
-    column-gap: 4px;
-  }
-`
+const ReadOnlyCargoRow = styled(CargoRow)``
 
 const ReadOnlyValue = styled.div`
   min-height: 28px;
@@ -126,21 +101,64 @@ const Separator = styled.div`
 const RestrictionBox = styled.div`
   display: grid;
   grid-template-columns: repeat(3, minmax(120px, 1fr));
-  gap: 6px 10px;
+  gap: 8px 12px;
   padding: 8px 10px;
-  background: ${({ theme }) => theme.colors.windowBg};
+  background: ${({ theme }) => theme.colors.lightSoft};
   border-top: 2px solid ${({ theme }) => theme.colors.shadow};
   border-left: 2px solid ${({ theme }) => theme.colors.shadow};
   border-right: 2px solid ${({ theme }) => theme.colors.light};
   border-bottom: 2px solid ${({ theme }) => theme.colors.light};
-  box-shadow: inset 1px 1px 0 ${({ theme }) => theme.colors.black};
+  box-shadow:
+    inset 1px 1px 0 ${({ theme }) => theme.colors.black},
+    inset -1px -1px 0 ${({ theme }) => theme.colors.lightSoft};
   font-size: 12px;
+
+  @media (max-width: 1500px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 `
 
-const CargoCard = styled.div`
-  display: flex;
-  flex-direction: column;
+const DetailItem = styled.div<{ $wide?: boolean }>`
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
   gap: 6px;
+  min-width: 0;
+  ${({ $wide }) => $wide && 'grid-column: span 2;'}
+`
+
+const DetailLabel = styled.strong`
+  color: ${({ theme }) => theme.colors.dark};
+  font-size: 11px;
+  letter-spacing: 0.15px;
+  text-transform: uppercase;
+`
+
+const DetailValue = styled.span`
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`
+
+const RestrictionList = styled.div`
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding-top: 7px;
+  border-top: 1px solid ${({ theme }) => theme.colors.shadow};
+  box-shadow: 0 -1px 0 ${({ theme }) => theme.colors.light};
+`
+
+const RestrictionTag = styled.span`
+  padding: 3px 6px;
+  background: ${({ theme }) => theme.colors.face};
+  border-top: 1px solid ${({ theme }) => theme.colors.light};
+  border-left: 1px solid ${({ theme }) => theme.colors.light};
+  border-right: 1px solid ${({ theme }) => theme.colors.dark};
+  border-bottom: 1px solid ${({ theme }) => theme.colors.dark};
+  font-size: 11px;
+  line-height: 1.2;
 `
 
 const MessageBox = styled.div`
@@ -348,9 +366,19 @@ const LoadPlanDetailsPage = (): React.JSX.Element => {
               <ReadOnlyTable>
                 {plan.cargoItems.map((item, index) => {
                   const [dimension1, dimension2, dimension3] = getDisplayDimensions(item)
+                  const itemNumber = String(index + 1).padStart(2, '0')
 
                   return (
                     <CargoCard key={`${item.description}-${index}`}>
+                      <CargoCardHeader>
+                        <CargoCardTitle>
+                          <CargoCardIndex>#{itemNumber}</CargoCardIndex>
+                          Cargo item
+                        </CargoCardTitle>
+
+                        <CargoCardMeta>{item.description || formatShape(item.shape)}</CargoCardMeta>
+                      </CargoCardHeader>
+
                       <ReadOnlyCargoRow>
                         <ReadOnlyValue>{formatShape(item.shape)}</ReadOnlyValue>
                         <ReadOnlyValue>{item.quantity}</ReadOnlyValue>
@@ -362,16 +390,30 @@ const LoadPlanDetailsPage = (): React.JSX.Element => {
                         <ReadOnlyValue>cm</ReadOnlyValue>
                         <ReadOnlyValue>{item.unitWeightKg}</ReadOnlyValue>
                         <ReadOnlyValue>kg</ReadOnlyValue>
+                        <span aria-hidden="true" />
                       </ReadOnlyCargoRow>
 
                       <RestrictionBox>
-                        <span>PO: {item.poNumber || '-'}</span>
-                        <span>Description: {item.description}</span>
-                        <span>Color: {item.color || 'Auto'}</span>
+                        <DetailItem>
+                          <DetailLabel>PO</DetailLabel>
+                          <DetailValue>{item.poNumber || '-'}</DetailValue>
+                        </DetailItem>
 
-                        {formatRestrictions(item).map((restriction) => (
-                          <span key={restriction}>{restriction}</span>
-                        ))}
+                        <DetailItem $wide>
+                          <DetailLabel>Description</DetailLabel>
+                          <DetailValue>{item.description || '-'}</DetailValue>
+                        </DetailItem>
+
+                        <DetailItem>
+                          <DetailLabel>Color</DetailLabel>
+                          <DetailValue>{item.color || 'Auto'}</DetailValue>
+                        </DetailItem>
+
+                        <RestrictionList>
+                          {formatRestrictions(item).map((restriction) => (
+                            <RestrictionTag key={restriction}>{restriction}</RestrictionTag>
+                          ))}
+                        </RestrictionList>
                       </RestrictionBox>
                     </CargoCard>
                   )

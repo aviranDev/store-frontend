@@ -2,6 +2,10 @@ import deleteIcon from '../../assets/msg_error-1.png'
 import { CargoItem } from '../../types/loadPlanPage.types'
 import {
   CargoCard,
+  CargoCardHeader,
+  CargoCardIndex,
+  CargoCardMeta,
+  CargoCardTitle,
   CargoRow,
   RestrictionsGrid,
   RestrictionItem,
@@ -58,9 +62,23 @@ const CargoItemRow = ({
   const isDrum = item.shape === 'drum'
   const showGeneralCargoOptions = item.shape === 'carton' || item.shape === 'crate'
   const showPalletOptions = item.shape === 'pallet'
+  const shapeLabel = item.shape.charAt(0).toUpperCase() + item.shape.slice(1)
+  const quantityLabel = item.quantity.trim() || '—'
+  const itemNumber = item.id.padStart(2, '0')
 
   return (
     <CargoCard>
+      <CargoCardHeader>
+        <CargoCardTitle>
+          <CargoCardIndex>#{itemNumber}</CargoCardIndex>
+          Cargo item
+        </CargoCardTitle>
+
+        <CargoCardMeta>
+          {shapeLabel} · Qty {quantityLabel}
+        </CargoCardMeta>
+      </CargoCardHeader>
+
       <CargoRow>
         <NativeSelect value={item.shape} onChange={onItemChange(item.id, 'shape')}>
           <option value="pallet">Pallet</option>
