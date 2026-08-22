@@ -37,7 +37,6 @@ type Win95PageProps = {
   desktopBackgroundSize?: string
   desktopBackgroundPosition?: string
   desktopBackgroundOverlay?: boolean
-  desktopPadding?: string
 }
 
 const Desktop = styled.div<{
@@ -45,7 +44,6 @@ const Desktop = styled.div<{
   $desktopBackgroundSize: string
   $desktopBackgroundPosition: string
   $desktopBackgroundOverlay: boolean
-  $desktopPadding?: string
 }>`
   width: 100%;
   min-height: 100vh;
@@ -80,10 +78,10 @@ const Desktop = styled.div<{
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: ${({ $desktopPadding }) => $desktopPadding ?? 'clamp(8px, 2vw, 24px)'};
+  padding: clamp(8px, 2vw, 24px);
 
   @media (max-width: 900px) {
-    padding: ${({ $desktopPadding }) => $desktopPadding ?? '8px'};
+    padding: 8px;
   }
 `
 
@@ -111,6 +109,22 @@ const PageWindow = styled(Window)<{
     `}
 `
 
+const DraggableTitleBar = styled(TitleBar)`
+  app-region: drag;
+  -webkit-app-region: drag;
+  user-select: none;
+`
+
+const WindowControlButtons = styled(TitleButtons)`
+  app-region: no-drag;
+  -webkit-app-region: no-drag;
+`
+
+const WindowControlButton = styled(TitleButton)`
+  app-region: no-drag;
+  -webkit-app-region: no-drag;
+`
+
 function Win95Page({
   title,
   children,
@@ -125,8 +139,7 @@ function Win95Page({
   desktopBackgroundImage,
   desktopBackgroundSize = 'cover',
   desktopBackgroundPosition = 'center',
-  desktopBackgroundOverlay = true,
-  desktopPadding
+  desktopBackgroundOverlay = true
 }: Win95PageProps): React.JSX.Element {
   const handleMinimize = (): void => {
     window.api?.windowControls?.minimize()
@@ -147,7 +160,6 @@ function Win95Page({
       $desktopBackgroundSize={desktopBackgroundSize}
       $desktopBackgroundPosition={desktopBackgroundPosition}
       $desktopBackgroundOverlay={desktopBackgroundOverlay}
-      $desktopPadding={desktopPadding}
     >
       <PageWindow
         $width={width}
@@ -156,25 +168,33 @@ function Win95Page({
         $maxHeight={maxHeight}
         $stretchOnSmallScreens={stretchOnSmallScreens}
       >
-        <TitleBar>
+        <DraggableTitleBar>
           <Title>{title}</Title>
 
           {showWindowControls && (
-            <TitleButtons>
-              <TitleButton type="button" aria-label="Minimize window" onClick={handleMinimize}>
+            <WindowControlButtons>
+              <WindowControlButton
+                type="button"
+                aria-label="Minimize window"
+                onClick={handleMinimize}
+              >
                 <TitleButtonIcon $variant="min">_</TitleButtonIcon>
-              </TitleButton>
+              </WindowControlButton>
 
-              <TitleButton type="button" aria-label="Maximize window" onClick={handleMaximize}>
+              <WindowControlButton
+                type="button"
+                aria-label="Maximize window"
+                onClick={handleMaximize}
+              >
                 <TitleButtonIcon $variant="max">□</TitleButtonIcon>
-              </TitleButton>
+              </WindowControlButton>
 
-              <TitleButton type="button" aria-label="Close window" onClick={handleClose}>
+              <WindowControlButton type="button" aria-label="Close window" onClick={handleClose}>
                 <TitleButtonIcon $variant="close">×</TitleButtonIcon>
-              </TitleButton>
-            </TitleButtons>
+              </WindowControlButton>
+            </WindowControlButtons>
           )}
-        </TitleBar>
+        </DraggableTitleBar>
 
         <WindowBody>{children}</WindowBody>
       </PageWindow>

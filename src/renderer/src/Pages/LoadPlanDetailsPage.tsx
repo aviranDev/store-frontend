@@ -429,9 +429,9 @@ const LoadPlanDetailsPage = (): React.JSX.Element => {
   return (
     <Win95Page
       title={plan ? `Load Plan - ${plan.name}` : 'Load Plan'}
-      width="calc(100vw - 20px)"
+      width="calc(100vw - 8px)"
       maxWidth="none"
-      height="calc(100vh - 20px)"
+      height="calc(100vh - 8px)"
       maxHeight="none"
     >
       <Win95Tabs
