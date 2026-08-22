@@ -37,6 +37,7 @@ type Win95PageProps = {
   desktopBackgroundSize?: string
   desktopBackgroundPosition?: string
   desktopBackgroundOverlay?: boolean
+  desktopPadding?: string
 }
 
 const Desktop = styled.div<{
@@ -44,6 +45,7 @@ const Desktop = styled.div<{
   $desktopBackgroundSize: string
   $desktopBackgroundPosition: string
   $desktopBackgroundOverlay: boolean
+  $desktopPadding?: string
 }>`
   width: 100%;
   min-height: 100vh;
@@ -78,10 +80,10 @@ const Desktop = styled.div<{
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: clamp(8px, 2vw, 24px);
+  padding: ${({ $desktopPadding }) => $desktopPadding ?? 'clamp(8px, 2vw, 24px)'};
 
   @media (max-width: 900px) {
-    padding: 8px;
+    padding: ${({ $desktopPadding }) => $desktopPadding ?? '8px'};
   }
 `
 
@@ -123,7 +125,8 @@ function Win95Page({
   desktopBackgroundImage,
   desktopBackgroundSize = 'cover',
   desktopBackgroundPosition = 'center',
-  desktopBackgroundOverlay = true
+  desktopBackgroundOverlay = true,
+  desktopPadding
 }: Win95PageProps): React.JSX.Element {
   const handleMinimize = (): void => {
     window.api?.windowControls?.minimize()
@@ -144,6 +147,7 @@ function Win95Page({
       $desktopBackgroundSize={desktopBackgroundSize}
       $desktopBackgroundPosition={desktopBackgroundPosition}
       $desktopBackgroundOverlay={desktopBackgroundOverlay}
+      $desktopPadding={desktopPadding}
     >
       <PageWindow
         $width={width}

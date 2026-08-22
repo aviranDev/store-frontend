@@ -60,6 +60,11 @@ type LoadingPlanRouteState = {
   editLoadPlan?: LoadPlanDetailsData
 }
 
+const WiderLoadingPlanPage = styled(Win95Page)`
+  padding-left: 4px;
+  padding-right: 4px;
+`
+
 const wait = (milliseconds: number): Promise<void> =>
   new Promise((resolve) => window.setTimeout(resolve, milliseconds))
 
@@ -1134,11 +1139,11 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
   }
 
   return (
-    <Win95Page
+    <WiderLoadingPlanPage
       title="Loading Plan"
-      width="calc(100vw - 20px)"
+      width="calc(100vw - 8px)"
       maxWidth="none"
-      height="calc(100vh - 20px)"
+      height="calc(100vh - 8px)"
       maxHeight="none"
     >
       <Win95Tabs
@@ -1156,6 +1161,7 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
             />
           )
         }
+        mainWidth="650px"
         sidebarWidth="minmax(0, 1fr)"
       />
 
@@ -1377,7 +1383,7 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
           </MessagesPopupWindow>
         </MessagesPopupBackdrop>
       )}
-    </Win95Page>
+    </WiderLoadingPlanPage>
   )
 }
 
