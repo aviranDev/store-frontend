@@ -6,8 +6,7 @@ axios.defaults.withCredentials = true
 
 const instance = axios.create({
   baseURL: 'http://localhost:8080/api',
-  withCredentials: true,
-  headers: { 'Content-Type': 'application/json' }
+  withCredentials: true
 })
 
 let refreshPromise: Promise<string> | null = null
@@ -41,21 +40,22 @@ instance.interceptors.request.use(
     const token = getAccessToken()
     const requestUrl = config.url ?? ''
 
-    if (!token) {
-      return config
+    /*
+     * FormData requests must let the browser set Content-Type,
+     * including the multipart boundary.
+     */
+    if (config.data instanceof FormData) {
+      config.headers.delete('Content-Type')
     }
 
-    if (isAuthRoute(requestUrl)) {
+    if (!token || isAuthRoute(requestUrl)) {
       return config
     }
 
     if (isTokenExpired(token)) {
       try {
         const newToken = await refreshAccessToken()
-
-        if (config.headers) {
-          config.headers.Authorization = `Bearer ${newToken}`
-        }
+        config.headers.Authorization = `Bearer ${newToken}`
 
         return config
       } catch (error) {
@@ -64,9 +64,7 @@ instance.interceptors.request.use(
       }
     }
 
-    if (config.headers) {
-      config.headers.Authorization = `Bearer ${token}`
-    }
+    config.headers.Authorization = `Bearer ${token}`
 
     return config
   },
@@ -76,7 +74,9 @@ instance.interceptors.request.use(
 instance.interceptors.response.use(
   (response: AxiosResponse) => response,
   async (error: AxiosError) => {
-    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean }
+    const originalRequest = error.config as InternalAxiosRequestConfig & {
+      _retry?: boolean
+    }
 
     if (!originalRequest) {
       return Promise.reject(error)
@@ -93,10 +93,7 @@ instance.interceptors.response.use(
 
       try {
         const newToken = await refreshAccessToken()
-
-        if (originalRequest.headers) {
-          originalRequest.headers.Authorization = `Bearer ${newToken}`
-        }
+        originalRequest.headers.Authorization = `Bearer ${newToken}`
 
         return instance(originalRequest)
       } catch (refreshError) {

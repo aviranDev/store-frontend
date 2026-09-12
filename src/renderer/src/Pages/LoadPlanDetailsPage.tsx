@@ -27,6 +27,20 @@ import {
 
 const LOADING_PLAN_ROUTE = '/EmployeeLoadingPlan'
 
+const DetailsGroupBox = styled(Win95GroupBox)`
+  flex: 1;
+  height: auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+
+  > div {
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+  }
+`
+
 const DetailsPanel = styled.div`
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
@@ -60,7 +74,10 @@ const MetaValue = styled.div`
 
 const CargoScroll = styled.div`
   min-height: 0;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
   padding-right: 6px;
 `
 
@@ -230,6 +247,7 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
 const formatShape = (shape: PreviewCargoItem['shape']): string => {
   if (shape === 'box') return 'Carton'
   if (shape === 'drum') return 'Drum'
+
   return shape.charAt(0).toUpperCase() + shape.slice(1)
 }
 
@@ -311,7 +329,7 @@ const LoadPlanDetailsPage = (): React.JSX.Element => {
 
   const loadingDetailsContent = (
     <TabContentLayout>
-      <Win95GroupBox legend="Loading Details">
+      <DetailsGroupBox legend="Loading Details">
         {isLoading ? (
           <MessageBox>Loading saved load plan...</MessageBox>
         ) : errorMessage ? (
@@ -387,7 +405,7 @@ const LoadPlanDetailsPage = (): React.JSX.Element => {
         ) : (
           <MessageBox>No load plan found.</MessageBox>
         )}
-      </Win95GroupBox>
+      </DetailsGroupBox>
 
       <TabFooter>
         <div style={{ display: 'flex', gap: 8 }}>

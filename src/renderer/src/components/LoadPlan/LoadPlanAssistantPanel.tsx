@@ -14,7 +14,11 @@ import {
   AgentInput
 } from '../../styles/LoadPlanStyle/LoadPlanStyle'
 
-import { PreviewLoadPlanData, PreviewLoadPlanPayload } from '../../Services/loadPlan'
+import {
+  LoadPlanCalculationMode,
+  PreviewLoadPlanData,
+  PreviewLoadPlanPayload
+} from '../../Services/loadPlan'
 import { askLoadPlanAgent, uploadPackingListFile } from '../../Services/loadPlanAgent'
 import type { AskLoadPlanAgentResult } from '../../Services/loadPlanAgent'
 
@@ -36,10 +40,16 @@ type Props = {
   warnings: string[]
   errors: string[]
   onBack: () => void
-  onApplyGeneratedPayload: (payload: PreviewLoadPlanPayload) => Promise<void>
+  onApplyGeneratedPayload: (
+    payload: PreviewLoadPlanPayload,
+    previewResult?: PreviewLoadPlanData,
+    calculationMode?: LoadPlanCalculationMode
+  ) => Promise<void>
 }
 
 const createId = (): string => `${Date.now()}-${Math.random().toString(16).slice(2)}`
+
+const MAX_PACKING_LIST_FILE_SIZE = 5 * 1024 * 1024
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   const axiosError = error as AxiosError<{ message?: string }>
@@ -133,7 +143,11 @@ const formatBuildRequestMessage = (result: RequestAgentResult): string => {
   }
 
   lines.push('')
-  lines.push('Calculating the preview now...')
+  lines.push(
+    result.previewResult
+      ? `The server calculated the ${result.calculationMode ?? 'standard'} preview.`
+      : 'Calculating the preview now...'
+  )
 
   appendListSection(lines, 'Assumptions', result.assumptions)
   appendListSection(lines, 'Warnings', result.warnings)
@@ -249,7 +263,11 @@ const LoadPlanAssistantPanel = ({
 
     addMessage('assistant', formatBuildRequestMessage(result))
 
-    await onApplyGeneratedPayload(result.request)
+    await onApplyGeneratedPayload(
+      result.request,
+      result.previewResult,
+      result.calculationMode
+    )
 
     addMessage(
       'assistant',
@@ -267,51 +285,15 @@ const LoadPlanAssistantPanel = ({
       clearInput()
       addMessage('user', question)
 
-      const shouldSendPreviewData =
-        /\bwhy\b/i.test(question) ||
-        /\bfit\b/i.test(question) ||
-        /\bnot fit\b/i.test(question) ||
-        /\bunplaced\b/i.test(question) ||
-        /\bwarning\b/i.test(question) ||
-        /\berror\b/i.test(question) ||
-        /\bweight balance\b/i.test(question) ||
-        /\bbalance\b/i.test(question) ||
-        /\bwhere\b/i.test(question) ||
-        /\bplaced\b/i.test(question) ||
-        /\bposition\b/i.test(question)
-
       const result = await askLoadPlanAgent({
         question,
-        loadPlanResult: shouldSendPreviewData ? previewData : null,
+        loadPlanResult: previewData,
         currentRequest: currentAgentRequest ?? undefined
       })
 
       await handleAgentResult(result)
     } catch (error) {
       addMessage('assistant', getErrorMessage(error, 'Failed to get AI agent response.'))
-    } finally {
-      setIsSending(false)
-    }
-  }
-
-  const handleBuildForm = async (): Promise<void> => {
-    const text = input.trim()
-
-    if (!text) return
-
-    try {
-      setIsSending(true)
-      clearInput()
-      addMessage('user', text)
-
-      const result = await askLoadPlanAgent({
-        question: text,
-        currentRequest: currentAgentRequest ?? undefined
-      })
-
-      await handleAgentResult(result)
-    } catch (error) {
-      addMessage('assistant', getErrorMessage(error, 'Failed to build load plan from text.'))
     } finally {
       setIsSending(false)
     }
@@ -332,6 +314,11 @@ const LoadPlanAssistantPanel = ({
 
     if (!isAllowedPackingListFile(file)) {
       addMessage('assistant', 'Please upload only .xlsx, .xls, or .csv packing list files.')
+      return
+    }
+
+    if (file.size > MAX_PACKING_LIST_FILE_SIZE) {
+      addMessage('assistant', 'The packing list is larger than the 5 MB upload limit.')
       return
     }
 
@@ -453,16 +440,8 @@ const LoadPlanAssistantPanel = ({
                   Upload File
                 </WinButton>
 
-                <WinButton
-                  type="button"
-                  onClick={handleBuildForm}
-                  disabled={isSending || !input.trim()}
-                >
-                  {isSending ? 'Working...' : 'Build Form'}
-                </WinButton>
-
                 <WinButton type="submit" disabled={isSending || !input.trim()}>
-                  {isSending ? 'Thinking...' : 'Ask'}
+                  {isSending ? 'Working...' : 'Send'}
                 </WinButton>
               </div>
             </AgentInputRow>
