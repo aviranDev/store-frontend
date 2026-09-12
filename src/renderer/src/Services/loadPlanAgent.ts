@@ -1,5 +1,9 @@
 import httpService from './http'
-import { PreviewLoadPlanData, PreviewLoadPlanPayload } from './loadPlan'
+import {
+  LoadPlanCalculationMode,
+  PreviewLoadPlanData,
+  PreviewLoadPlanPayload
+} from './loadPlan'
 
 type BuildLoadPlanRequestResponse = {
   success: boolean
@@ -30,6 +34,8 @@ type AgentSkippedRow = {
 type AgentResultMeta = {
   source?: AgentFileSource
   skippedRows?: AgentSkippedRow[]
+  calculationMode?: LoadPlanCalculationMode
+  previewResult?: PreviewLoadPlanData
 }
 
 export type AskLoadPlanAgentResult =
@@ -152,12 +158,7 @@ export const uploadPackingListFile = async ({
 
   const response = await httpService.post<AskLoadPlanAgentResponse>(
     '/load-plan-agent/upload-packing-list',
-    formData,
-    {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    }
+    formData
   )
 
   return response.data.data
