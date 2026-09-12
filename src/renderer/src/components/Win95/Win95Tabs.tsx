@@ -1,4 +1,5 @@
-import { ReactNode, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
+import type { JSX, ReactNode } from 'react'
 import styled, { css } from 'styled-components'
 
 export type TabItem = {
@@ -17,6 +18,7 @@ type Win95TabsProps = {
   sidebar?: ReactNode
   mainWidth?: string
   sidebarWidth?: string
+  keepMounted?: boolean
 }
 
 const TabsWrapper = styled.div`
@@ -124,6 +126,14 @@ const TabPanelLayout = styled.div<{
   }
 `
 
+const TabContentPane = styled.div<{ $active: boolean }>`
+  display: ${({ $active }) => ($active ? 'block' : 'none')};
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+`
+
 const Win95Tabs = ({
   items,
   defaultTabId,
@@ -132,8 +142,9 @@ const Win95Tabs = ({
   className,
   sidebar,
   mainWidth = 'clamp(610px, 34vw, 620px)',
-  sidebarWidth = '1fr'
-}: Win95TabsProps) => {
+  sidebarWidth = '1fr',
+  keepMounted = false
+}: Win95TabsProps): JSX.Element => {
   const firstEnabledTab = useMemo(() => items.find((item) => !item.disabled)?.id ?? '', [items])
 
   const [uncontrolledActiveTab, setUncontrolledActiveTab] = useState<string>(
@@ -144,7 +155,7 @@ const Win95Tabs = ({
 
   const currentTab = items.find((item) => item.id === activeTab) || items[0]
 
-  const handleTabChange = (tabId: string) => {
+  const handleTabChange = (tabId: string): void => {
     setUncontrolledActiveTab(tabId)
     onChange?.(tabId)
   }
@@ -169,13 +180,37 @@ const Win95Tabs = ({
         ))}
       </TabList>
 
-      <TabPanel
-        role="tabpanel"
-        id={`panel-${currentTab.id}`}
-        aria-labelledby={`tab-${currentTab.id}`}
-      >
+      <TabPanel>
         <TabPanelLayout $hasSidebar={!!sidebar} $mainWidth={mainWidth} $sidebarWidth={sidebarWidth}>
-          <div>{currentTab.content}</div>
+          <div>
+            {keepMounted ? (
+              items.map((item) => {
+                const isActive = item.id === currentTab.id
+
+                return (
+                  <TabContentPane
+                    key={item.id}
+                    $active={isActive}
+                    role="tabpanel"
+                    id={`panel-${item.id}`}
+                    aria-labelledby={`tab-${item.id}`}
+                    aria-hidden={!isActive}
+                  >
+                    {item.content}
+                  </TabContentPane>
+                )
+              })
+            ) : (
+              <TabContentPane
+                $active
+                role="tabpanel"
+                id={`panel-${currentTab.id}`}
+                aria-labelledby={`tab-${currentTab.id}`}
+              >
+                {currentTab.content}
+              </TabContentPane>
+            )}
+          </div>
           {sidebar && <div>{sidebar}</div>}
         </TabPanelLayout>
       </TabPanel>

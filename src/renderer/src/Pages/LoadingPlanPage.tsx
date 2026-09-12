@@ -335,40 +335,22 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
   const locationState = location.state as LoadingPlanRouteState | null
   const editingPlan = locationState?.editLoadPlan ?? null
 
-  const handleApplyGeneratedPayload = async (
-    payload: PreviewLoadPlanPayload,
-    serverPreviewResult?: PreviewLoadPlanData,
-    serverCalculationMode?: LoadPlanCalculationMode
-  ): Promise<void> => {
+  const handleApplyGeneratedPayload = async (payload: PreviewLoadPlanPayload): Promise<void> => {
     try {
       setIsCalculating(true)
       setErrorPopup(null)
-      setMessage(
-        serverPreviewResult
-          ? 'AI created the form. Applying the preview calculated by the server...'
-          : 'AI created the form. Running your loading algorithm...'
-      )
+      setMessage('AI created the form. Running your loading algorithm...')
 
       const nextFormData = payloadToFormState(payload)
 
       setFormData(nextFormData)
 
-      /**
-       * The agent endpoints can return the calculated preview together with
-       * the generated request. Use that result directly so the same cargo is
-       * not calculated a second time in a different mode.
-       *
-       * The fallback keeps compatibility with an older backend response.
-       */
-      const data =
-        serverPreviewResult ??
-        (await previewLoadPlan(buildPreviewPayload(nextFormData)))
+      const finalPayload = buildPreviewPayload(nextFormData)
 
-      const calculationMode =
-        serverCalculationMode ?? data.calculationMode ?? 'standard'
+      const data = await previewLoadPlan(finalPayload)
 
       setPreviewData(data)
-      setActiveCalculationMode(calculationMode)
+      setActiveCalculationMode('standard')
       setIsSecurementPopupOpen(false)
       setSecurementError('')
       setActiveTab('loading-details')
@@ -392,9 +374,7 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
       }
 
       setMessage(
-        serverPreviewResult
-          ? `AI created the form and the server calculated the ${calculationMode} preview successfully.`
-          : 'AI created the form and the loading algorithm calculated the preview successfully.'
+        'AI created the form and the loading algorithm calculated the preview successfully.'
       )
       setErrorPopup(null)
     } catch (error) {
@@ -1171,6 +1151,7 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
         defaultTabId="loading-details"
         activeTab={activeTab}
         onChange={handleTabChange}
+        keepMounted
         sidebar={
           activeTab === 'saved-load-plans' ? undefined : (
             <ContainerPlanPreview
