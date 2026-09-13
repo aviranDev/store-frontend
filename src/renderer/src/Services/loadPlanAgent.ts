@@ -1,9 +1,5 @@
 import httpService from './http'
-import {
-  LoadPlanCalculationMode,
-  PreviewLoadPlanData,
-  PreviewLoadPlanPayload
-} from './loadPlan'
+import { LoadPlanCalculationMode, PreviewLoadPlanData, PreviewLoadPlanPayload } from './loadPlan'
 
 type BuildLoadPlanRequestResponse = {
   success: boolean
@@ -31,11 +27,20 @@ type AgentSkippedRow = {
   reason: string
 }
 
+export type LoadPlanAgentPendingContext = {
+  version: 1
+  intent: 'cargo_request'
+  requestAction: 'build_request' | 'modify_request'
+  originalQuestion: string
+  missingFields: string[]
+}
+
 type AgentResultMeta = {
   source?: AgentFileSource
   skippedRows?: AgentSkippedRow[]
   calculationMode?: LoadPlanCalculationMode
   previewResult?: PreviewLoadPlanData
+  pendingContext?: LoadPlanAgentPendingContext | null
 }
 
 export type AskLoadPlanAgentResult =
@@ -102,16 +107,19 @@ export const explainLoadPlan = async ({
 export const askLoadPlanAgent = async ({
   question,
   loadPlanResult,
-  currentRequest
+  currentRequest,
+  pendingContext
 }: {
   question: string
   loadPlanResult?: PreviewLoadPlanData | null
   currentRequest?: PreviewLoadPlanPayload | null
+  pendingContext?: LoadPlanAgentPendingContext | null
 }): Promise<AskLoadPlanAgentResult> => {
   const body: {
     question: string
     loadPlanResult?: PreviewLoadPlanData
     currentRequest?: PreviewLoadPlanPayload
+    pendingContext?: LoadPlanAgentPendingContext
   } = {
     question
   }
@@ -122,6 +130,10 @@ export const askLoadPlanAgent = async ({
 
   if (currentRequest) {
     body.currentRequest = currentRequest
+  }
+
+  if (pendingContext) {
+    body.pendingContext = pendingContext
   }
 
   const response = await httpService.post<AskLoadPlanAgentResponse>('/load-plan-agent/ask', body)
