@@ -20,7 +20,10 @@ import {
   PreviewLoadPlanPayload
 } from '../../Services/loadPlan'
 import { askLoadPlanAgent, uploadPackingListFile } from '../../Services/loadPlanAgent'
-import type { AskLoadPlanAgentResult } from '../../Services/loadPlanAgent'
+import type {
+  AskLoadPlanAgentResult,
+  LoadPlanAgentPendingContext
+} from '../../Services/loadPlanAgent'
 
 type ChatMessage = {
   id: string
@@ -193,6 +196,13 @@ const LoadPlanAssistantPanel = ({
     null
   )
 
+  /**
+   * Holds only an unfinished clarification, not the whole chat transcript.
+   * This lets short replies such as "1 carton" or "15 kg" complete the
+   * previous message without sending the request to Ollama again.
+   */
+  const [pendingContext, setPendingContext] = useState<LoadPlanAgentPendingContext | null>(null)
+
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: createId(),
@@ -246,6 +256,12 @@ const LoadPlanAssistantPanel = ({
 
   const handleAgentResult = async (result: AskLoadPlanAgentResult): Promise<void> => {
     if (result.action === 'answer') {
+      if (result.pendingContext === null) {
+        setPendingContext(null)
+      } else if (result.pendingContext) {
+        setPendingContext(result.pendingContext)
+      }
+
       addMessage('assistant', formatAgentResult(result))
       return
     }
@@ -255,19 +271,18 @@ const LoadPlanAssistantPanel = ({
         setCurrentAgentRequest(result.draftRequest)
       }
 
+      setPendingContext(result.pendingContext ?? null)
+
       addMessage('assistant', formatAgentResult(result))
       return
     }
 
+    setPendingContext(null)
     setCurrentAgentRequest(result.request)
 
     addMessage('assistant', formatBuildRequestMessage(result))
 
-    await onApplyGeneratedPayload(
-      result.request,
-      result.previewResult,
-      result.calculationMode
-    )
+    await onApplyGeneratedPayload(result.request, result.previewResult, result.calculationMode)
 
     addMessage(
       'assistant',
@@ -288,7 +303,8 @@ const LoadPlanAssistantPanel = ({
       const result = await askLoadPlanAgent({
         question,
         loadPlanResult: previewData,
-        currentRequest: currentAgentRequest ?? undefined
+        currentRequest: currentAgentRequest ?? undefined,
+        pendingContext
       })
 
       await handleAgentResult(result)
