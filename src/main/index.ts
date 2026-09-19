@@ -26,22 +26,6 @@ const getCurrentWindow = (): BrowserWindow => {
   return firstWindow
 }
 
-const createLoadPlanPdfBuffer = async (): Promise<Buffer> => {
-  const win = getCurrentWindow()
-
-  const pdfBuffer = await win.webContents.printToPDF({
-    landscape: true,
-    printBackground: true,
-    pageSize: 'A4',
-    preferCSSPageSize: true,
-    margins: {
-      marginType: 'none'
-    }
-  })
-
-  return pdfBuffer
-}
-
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
     width: 900,
@@ -118,7 +102,7 @@ app.whenReady().then(() => {
     win?.close()
   })
 
-  ipcMain.handle('load-plan-pdf:save', async (_event, fileName: string) => {
+  ipcMain.handle('load-plan-pdf:save', async (_event, fileName: string, pdfBytes: ArrayBuffer) => {
     const win = getCurrentWindow()
     const safeFileName = sanitizeFileName(fileName)
     const defaultFileName = safeFileName.toLowerCase().endsWith('.pdf')
@@ -143,7 +127,11 @@ app.whenReady().then(() => {
       }
     }
 
-    const pdfBuffer = await createLoadPlanPdfBuffer()
+    const pdfBuffer = Buffer.from(pdfBytes)
+
+    if (!pdfBuffer.length || pdfBuffer.subarray(0, 5).toString() !== '%PDF-') {
+      throw new Error('The server returned an invalid PDF file.')
+    }
 
     await writeFile(result.filePath, pdfBuffer)
 
@@ -151,12 +139,6 @@ app.whenReady().then(() => {
       canceled: false,
       filePath: result.filePath
     }
-  })
-
-  ipcMain.handle('load-plan-pdf:create-base64', async () => {
-    const pdfBuffer = await createLoadPlanPdfBuffer()
-
-    return pdfBuffer.toString('base64')
   })
 
   createWindow()

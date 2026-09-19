@@ -3,7 +3,6 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { AxiosError } from 'axios'
 import styled from 'styled-components'
 import LoadPlansCardsPanel from '../components/LoadPlan/LoadPlansCardsPanel'
-import ClientLoadPlanPdf from '../components/LoadPlan/ClientLoadPlanPdf'
 import Win95Page from '../components/Win95/Win95Page'
 import Win95Tabs, { TabItem } from '../components/Win95/Win95Tabs'
 import WinButton from '../components/Button/WinButton'
@@ -20,6 +19,7 @@ import {
   saveLoadPlan,
   ShipmentType,
   updateLoadPlan,
+  generateLoadPlanPdf,
   sendLoadPlanPdfEmail
 } from '../Services/loadPlan'
 // test
@@ -65,13 +65,22 @@ const WiderLoadingPlanPage = styled(Win95Page)`
   padding-right: 4px;
 `
 
-const wait = (milliseconds: number): Promise<void> =>
-  new Promise((resolve) => window.setTimeout(resolve, milliseconds))
-
 const sanitizePdfFileName = (value: string): string => {
   const cleanValue = value.trim() || 'load-plan'
 
   return cleanValue.replace(/[<>:"/\\|?*\x00-\x1F]/g, '-')
+}
+
+const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
+  const bytes = new Uint8Array(buffer)
+  const chunkSize = 0x8000
+  let binary = ''
+
+  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize))
+  }
+
+  return window.btoa(binary)
 }
 
 const toUiShape = (shape: PreviewCargoItem['shape']): CargoItem['shape'] => {
@@ -428,8 +437,6 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
   const [saveError, setSaveError] = useState('')
   const [emailError, setEmailError] = useState('')
   const [securementError, setSecurementError] = useState('')
-  const [isPdfLayoutVisible, setIsPdfLayoutVisible] = useState(false)
-
   const [saveForm, setSaveForm] = useState<SavePlanFormState>(() =>
     editingPlan ? createSaveFormFromPlan(editingPlan) : createDefaultSaveForm(createInitialForm())
   )
@@ -449,9 +456,12 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
   )
 
   const getPdfPlanName = (): string => {
-    const fallback = createDefaultSaveForm(formData).name
+    const containerCode = (previewData?.containerType.code || formData.containerType || 'load-plan')
+      .trim()
+      .toUpperCase()
+    const today = new Date().toISOString().slice(0, 10)
 
-    return saveForm.name.trim() || fallback
+    return `${containerCode} load plan - ${today}`
   }
 
   const getPdfFileName = (): string => {
@@ -769,7 +779,6 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
   const handleReset = () => {
     const initialForm = createInitialForm()
 
-    setIsPdfLayoutVisible(false)
     setFormData(initialForm)
     setPreviewData(null)
     setMessage('Form reset.')
@@ -799,15 +808,6 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
     (balanceStatus === 'balanced' || balanceStatus === 'acceptable')
   const placedCargoKeys =
     previewData?.placedCargoItems.map((item) => `${item.cargoDescription}::${item.unitIndex}`) ?? []
-
-  const showPdfLayoutBeforePrint = async (): Promise<void> => {
-    setIsPdfLayoutVisible(true)
-    await wait(1200)
-  }
-
-  const hidePdfLayoutAfterPrint = (): void => {
-    setIsPdfLayoutVisible(false)
-  }
 
   const handleOpenSavePopup = () => {
     if (!previewData) {
@@ -900,9 +900,11 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
       setMessage('Creating PDF...')
       setErrorPopup(null)
 
-      await showPdfLayoutBeforePrint()
+      const generatedPdf = await generateLoadPlanPdf({
+        previewResult: previewData
+      })
 
-      const result = await window.api.loadPlanPdf.save(getPdfFileName())
+      const result = await window.api.loadPlanPdf.save(generatedPdf.fileName, generatedPdf.pdfBytes)
 
       if (result.canceled) {
         setMessage('PDF export canceled.')
@@ -913,7 +915,6 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
     } catch (error) {
       setMessage(getErrorMessage(error, 'Failed to create PDF.'))
     } finally {
-      hidePdfLayoutAfterPrint()
       setIsPdfBusy(false)
     }
   }
@@ -955,27 +956,24 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
       return
     }
 
-    if (!window.api?.loadPlanPdf) {
-      setEmailError('PDF export is available only inside the Electron app.')
-      return
-    }
-
     try {
       setIsPdfBusy(true)
       setEmailError('')
       setIsEmailPopupOpen(false)
       setMessage('Creating and sending PDF...')
 
-      await showPdfLayoutBeforePrint()
-
-      const pdfBase64 = await window.api.loadPlanPdf.createBase64()
+      const generatedPdf = await generateLoadPlanPdf({
+        previewResult: previewData,
+        requestSubject: subject,
+        customerEmail: to
+      })
 
       await sendLoadPlanPdfEmail({
         to,
         subject,
         message: emailMessage || 'Please find attached the loading plan PDF.',
-        fileName: getPdfFileName(),
-        pdfBase64
+        fileName: generatedPdf.fileName,
+        pdfBase64: arrayBufferToBase64(generatedPdf.pdfBytes)
       })
 
       setMessage('PDF email sent successfully.')
@@ -985,7 +983,6 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
       setMessage('Failed to send PDF email.')
     } finally {
       setIsPdfBusy(false)
-      hidePdfLayoutAfterPrint()
     }
   }
 
@@ -1124,20 +1121,6 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
     }
   }
 
-  if (isPdfLayoutVisible && previewData) {
-    return (
-      <ClientLoadPlanPdf
-        planName={getPdfPlanName()}
-        customer={saveForm.customer}
-        shipmentType={saveForm.shipmentType}
-        notes={saveForm.notes}
-        calculationMode={activeCalculationMode}
-        formData={formData}
-        previewData={previewData}
-      />
-    )
-  }
-
   return (
     <WiderLoadingPlanPage
       title="Loading Plan"
@@ -1151,7 +1134,6 @@ const EmployeeLoadingPlanPage = (): React.JSX.Element => {
         defaultTabId="loading-details"
         activeTab={activeTab}
         onChange={handleTabChange}
-        keepMounted
         sidebar={
           activeTab === 'saved-load-plans' ? undefined : (
             <ContainerPlanPreview
