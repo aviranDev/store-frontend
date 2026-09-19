@@ -497,6 +497,37 @@ export const deleteLoadPlan = async (id: string): Promise<DeleteLoadPlanResponse
   return response.data
 }
 
+export type GenerateLoadPlanPdfPayload = {
+  previewResult: PreviewLoadPlanData
+  requestSubject?: string
+  customerEmail?: string
+  assumptions?: string[]
+  warnings?: string[]
+}
+
+export type GeneratedLoadPlanPdf = {
+  fileName: string
+  pdfBytes: ArrayBuffer
+}
+
+export const generateLoadPlanPdf = async (
+  payload: GenerateLoadPlanPdfPayload
+): Promise<GeneratedLoadPlanPdf> => {
+  const response = await httpService.post<ArrayBuffer>('/load-plans/pdf', payload, {
+    responseType: 'arraybuffer'
+  })
+  const contentDisposition = response.headers['content-disposition']
+  const fileNameMatch =
+    typeof contentDisposition === 'string'
+      ? contentDisposition.match(/filename="?([^";]+)"?/i)
+      : null
+
+  return {
+    fileName: fileNameMatch?.[1]?.trim() || 'load-plan.pdf',
+    pdfBytes: response.data
+  }
+}
+
 export type SendLoadPlanPdfEmailPayload = {
   to: string
   subject: string
