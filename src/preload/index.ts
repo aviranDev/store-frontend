@@ -2,6 +2,9 @@ import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 
 const api = {
+  outlook: {
+    openSignIn: (url: string): Promise<void> => ipcRenderer.invoke('outlook:open-sign-in', url)
+  },
   windowControls: {
     minimize: () => ipcRenderer.send('window:minimize'),
     maximize: () => ipcRenderer.send('window:maximize'),
@@ -29,3 +32,4 @@ if (process.contextIsolated) {
   // @ts-ignore
   window.api = api
 }
+

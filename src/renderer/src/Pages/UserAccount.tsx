@@ -7,6 +7,7 @@ import Win95Tabs, { TabItem } from '../components/Win95/Win95Tabs'
 import WinButton from '../components/Button/WinButton'
 
 import AccountDetailsPanel from '../components/account/AccountDetailsPanel'
+import OutlookConnectionPanel from '../components/account/OutlookConnectionPanel'
 import SecurityPanel from '../components/account/SecurityPanel'
 import { forceLogout } from '../Services/auth'
 
@@ -264,9 +265,14 @@ const UserAccount = () => {
         id: 'info',
         label: 'Info',
         content: infoTabContent
-      }
+      },
+      ...((profile?.role === 'employee' || profile?.role === 'admin') ? [{
+        id: 'outlook',
+        label: 'Outlook',
+        content: <OutlookConnectionPanel key={profile.email} />
+      }] : [])
     ],
-    [generalTabContent, infoTabContent]
+    [generalTabContent, infoTabContent, profile?.role, profile?.email]
   )
 
   return (

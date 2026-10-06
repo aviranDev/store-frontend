@@ -79,6 +79,19 @@ app.whenReady().then(() => {
     win?.webContents.openDevTools({ mode: 'detach' })
   })
 
+  ipcMain.handle('outlook:open-sign-in', async (event, value: unknown) => {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    if (!win || event.senderFrame !== event.sender.mainFrame) throw new Error('Invalid sign-in source.')
+    if (typeof value !== 'string' || value.length > 16384) throw new Error('Invalid sign-in URL.')
+    const url = new URL(value)
+    if (url.protocol !== 'https:' || url.hostname !== 'login.microsoftonline.com' ||
+        url.port || url.username || url.password || url.hash ||
+        !/^\/[^/]+\/oauth2\/v2\.0\/authorize$/.test(url.pathname)) {
+      throw new Error('Only Microsoft sign-in URLs are allowed.')
+    }
+    await shell.openExternal(url.toString())
+  })
+
   ipcMain.on('ping', () => console.log('pong'))
 
   ipcMain.on('window:minimize', () => {
@@ -153,3 +166,4 @@ app.on('window-all-closed', () => {
     app.quit()
   }
 })
+

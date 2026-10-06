@@ -4,6 +4,9 @@ declare global {
   interface Window {
     electron: ElectronAPI
     api?: {
+      outlook?: {
+        openSignIn: (url: string) => Promise<void>
+      }
       windowControls?: {
         minimize: () => void
         maximize: () => void
@@ -24,3 +27,4 @@ declare global {
     }
   }
 }
+
