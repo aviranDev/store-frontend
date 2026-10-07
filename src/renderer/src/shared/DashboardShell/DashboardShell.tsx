@@ -48,6 +48,7 @@ const allowedPanelsByRole: Record<UserRole, PanelType[]> = {
 }
 
 export default function DashboardShell({
+  title,
   activePanel,
   children
 }: DashboardShellProps): React.JSX.Element {
@@ -73,7 +74,7 @@ export default function DashboardShell({
 
   return (
     <Win95Page
-      title="User Account"
+      title={title}
       width="clamp(980px, 82vw, 1500px)"
       maxWidth="calc(100vw - 24px)"
       height="clamp(560px, 68vh, 760px)"
