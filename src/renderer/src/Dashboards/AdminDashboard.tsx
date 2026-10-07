@@ -13,6 +13,12 @@ export default function AdminDashboard(): React.JSX.Element {
     <DashboardShell title="Admin Dashboard" activePanel="admin">
       <AdminGrid>
         <PanelItem
+          image={containerIcon}
+          label="All Quotation Requests"
+          onClick={() => navigate('/employee/quotations')}
+          onHover={() => {}}
+        />
+        <PanelItem
           image={usersIcon}
           label="Users"
           onClick={() => alert('Users')}
