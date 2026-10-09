@@ -1,3 +1,4 @@
+import SourcingPanel from '../components/Quotation/SourcingPanel'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import DashboardShell from '../shared/DashboardShell/DashboardShell'
@@ -391,6 +392,11 @@ export default function QuotationDetailsPage(): React.JSX.Element {
           </Toolbar>
         )}
       </Box>
+      <SourcingPanel
+        id={id}
+        locked={blocked || d.stage === 'sent'}
+        onApplied={() => void refresh(true)}
+      />
       <Toolbar aria-label="Request sections">
         {(['details', 'quotation', 'emails', 'history'] as Section[]).map((value) => (
           <WinButton
@@ -466,7 +472,7 @@ export default function QuotationDetailsPage(): React.JSX.Element {
                           {editing === 'details' ? (
                             options ? (
                               <Select
-                                value={String(value || 'unknown')}
+                                value={String(value || options[0])}
                                 onChange={(e) =>
                                   setDetails((prev) => ({ ...prev, [key]: e.target.value }))
                                 }

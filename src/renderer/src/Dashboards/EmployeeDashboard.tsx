@@ -13,6 +13,12 @@ export default function EmployeeDashboard(): React.JSX.Element {
       <AdminGrid>
         <PanelItem
           image={containerIcon}
+          label="Agents & Tariffs"
+          onClick={() => navigate('/employee/freight-catalog')}
+          onHover={() => {}}
+        />
+        <PanelItem
+          image={containerIcon}
           label="My Quotation Requests"
           onClick={() => navigate('/employee/quotations')}
           onHover={() => {}}

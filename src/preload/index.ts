@@ -2,6 +2,10 @@ import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 
 const api = {
+  freightFiles: {
+    pick: (): Promise<{ name: string; bytes: Uint8Array }[]> =>
+      ipcRenderer.invoke('freight:pick-files')
+  },
   outlook: {
     openSignIn: (url: string): Promise<void> => ipcRenderer.invoke('outlook:open-sign-in', url)
   },
@@ -32,4 +36,3 @@ if (process.contextIsolated) {
   // @ts-ignore
   window.api = api
 }
-
