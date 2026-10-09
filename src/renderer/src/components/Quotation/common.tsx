@@ -207,6 +207,23 @@ export const detailGroups: { title: string; fields: [string, string, string[]?][
     ]
   },
   {
+    title: 'Sourcing scope',
+    fields: [
+      ['originCountryCode', 'Origin country (two-letter code, e.g. CN)'],
+      [
+        'tradeDirection',
+        'Direction relative to your company',
+        ['unknown', 'import', 'export', 'cross_trade']
+      ],
+      [
+        'requiredServices',
+        'Service codes (comma separated): pickup, origin_handling, export_clearance, main_carriage, destination_handling, import_clearance, delivery, insurance, duties, other'
+      ],
+      ['serviceScopeConfirmed', 'I confirmed all requested services', ['no', 'yes']],
+      ['chargeableWeightKg', 'Confirmed chargeable weight for air tariffs (kg)']
+    ]
+  },
+  {
     title: 'Cargo and requirements',
     fields: [
       ['commodity', 'Cargo description'],
@@ -226,6 +243,12 @@ export const detailGroups: { title: string; fields: [string, string, string[]?][
     ]
   }
 ]
-export const numericFields = ['packageCount', 'grossWeightKg', 'cbm', 'containerCount']
+export const numericFields = [
+  'packageCount',
+  'grossWeightKg',
+  'cbm',
+  'containerCount',
+  'chargeableWeightKg'
+]
 export const fieldLabel = (key: string) =>
   detailGroups.flatMap((g) => g.fields).find(([k]) => k === key)?.[1] || key

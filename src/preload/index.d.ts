@@ -4,6 +4,7 @@ declare global {
   interface Window {
     electron: ElectronAPI
     api?: {
+      freightFiles?: { pick: () => Promise<{ name: string; bytes: Uint8Array }[]> }
       outlook?: {
         openSignIn: (url: string) => Promise<void>
       }
@@ -27,4 +28,3 @@ declare global {
     }
   }
 }
-

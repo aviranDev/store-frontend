@@ -62,6 +62,7 @@ export type Quotation = {
   timers: { totalMs: number; activeMs: number; waitingMs: number; stageMs: number }
 }
 export type QuotationRow = {
+  sourcing?: { status: string; valid?: boolean; decision?: string }
   _id: string
   quoteName: string
   reference?: string

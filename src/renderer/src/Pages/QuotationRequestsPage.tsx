@@ -1,3 +1,4 @@
+import { SourcingBadge } from '../components/Quotation/SourcingPanel'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import styled from 'styled-components'
@@ -148,6 +149,9 @@ export default function QuotationRequestsPage(): React.JSX.Element {
           <h2 style={{ margin: '0 auto 0 0' }}>
             {admin ? 'All Quotation Requests' : 'My Quotation Requests'}
           </h2>
+          <WinButton onClick={() => navigate('/employee/freight-catalog')}>
+            Agents & Tariffs
+          </WinButton>
           <WinButton onClick={() => void refresh()}>Refresh</WinButton>
           <WinButton onClick={() => navigate('/account')}>Account</WinButton>
           <WinButton onClick={() => navigate(admin ? '/admin' : '/employee')}>Back</WinButton>
@@ -305,6 +309,8 @@ export default function QuotationRequestsPage(): React.JSX.Element {
                         {stageLabel(row.stage)}
                         <br />
                         <StatusBadge state={row.state} />
+                        <br />
+                        <SourcingBadge {...row.sourcing} />
                         {row.missingFields.length > 0 && (
                           <small>⚠ {row.missingFields.length} missing fields</small>
                         )}

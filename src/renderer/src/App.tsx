@@ -11,6 +11,7 @@ import { GlobalStyles } from './styles/GlobalStyles'
 import { win95Theme } from './styles/theme'
 
 const LoadPlanDetailsPage = lazy(() => import('./Pages/LoadPlanDetailsPage'))
+const FreightCatalogPage = lazy(() => import('./Pages/FreightCatalogPage'))
 const QuotationRequestsPage = lazy(() => import('./Pages/QuotationRequestsPage'))
 const QuotationDetailsPage = lazy(() => import('./Pages/QuotationDetailsPage'))
 const LoadingPlanPage = lazy(() => import('./Pages/LoadingPlanPage'))
@@ -103,6 +104,14 @@ function App(): React.JSX.Element {
               }
             />
             <Route path="/unauthorized" element={<Unauthorized />} />
+            <Route
+              path="/employee/freight-catalog"
+              element={
+                <ProtectedRoute allowedRoles={['employee', 'admin']}>
+                  <FreightCatalogPage />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/employee/quotations"
               element={
