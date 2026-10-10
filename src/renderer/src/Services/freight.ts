@@ -61,6 +61,16 @@ export type Sourcing = {
     valid: boolean
     incoterm: { code: string; status: string; reasons: string[] }
     blockers: string[]
+    missingInformation?: string[]
+    rfqBlockers?: string[]
+    agentDiagnostics?: {
+      totalActive: number
+      countryMatches: number
+      modeMatches: number
+      directionMatches: number
+      serviceMatches: number
+    }
+    reviewRequired?: string[]
     warnings: string[]
     offers: Offer[]
     agents: Agent[]

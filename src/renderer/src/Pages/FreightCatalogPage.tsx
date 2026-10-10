@@ -28,6 +28,11 @@ import {
   uploadCatalog,
   type Batch
 } from '../Services/freight'
+const agentLabels: Record<string, string> = {
+  company: 'Agent Name', contact: 'Contact Person', email: 'Email', countries: 'Country',
+  modes: 'Transport', directions: 'Direction', services: 'Capabilities (optional)',
+  preferred: 'Preferred (optional)', notes: 'Notes (optional)'
+}
 const cellStyle = {
   padding: 8,
   borderBottom: '1px solid #ccc',
@@ -79,7 +84,7 @@ export default function FreightCatalogPage(): React.JSX.Element {
       if (signature.current !== key) {
         setMapping(
           result.sheet === sheet && result.headerRow === headerRow
-            ? result.mapping || result.suggestion || {}
+            ? Object.keys(result.mapping || {}).length ? result.mapping! : result.suggestion || {}
             : result.suggestion || {}
         )
         setChecked(false)
@@ -150,7 +155,7 @@ export default function FreightCatalogPage(): React.JSX.Element {
   }
   const cols =
     kind === 'agents'
-      ? ['company', 'email', 'countries', 'modes', 'directions', 'services', 'preferred']
+      ? ['company', 'contact', 'email', 'countries', 'modes', 'directions']
       : [
           'tariff',
           'supplier',
@@ -374,9 +379,12 @@ export default function FreightCatalogPage(): React.JSX.Element {
                 {detail.status !== 'ready' && (
                   <>
                     <p>
-                      Map each database field to its Excel column. Unmapped optional fields stay
-                      empty. Required fields are validated at import.
+                      {detail.kind === 'agents'
+                        ? 'Use Agent Name, Country, Direction, Transport, Contact Person and Email. Country names and Air / Ocean / Both are accepted. Your original Services column can contain transport types. Capabilities are optional.'
+                        : 'Map each database field to its Excel column. Required fields are validated at import.'}
                     </p>
+                    <details open={detail.kind !== 'agents'}>
+                      <summary>Column matching — change only if needed</summary>
                     <WinButton
                       disabled={busy || !detail.headers?.length}
                       onClick={() =>
@@ -392,7 +400,7 @@ export default function FreightCatalogPage(): React.JSX.Element {
                     <Grid style={{ marginTop: 12 }}>
                       {detail.fields?.map((field) => (
                         <Label key={field}>
-                          {field}
+                          {detail.kind === 'agents' ? agentLabels[field] || field : field}
                           <Select
                             value={mapping[field] ?? ''}
                             onChange={(e) => {
@@ -415,7 +423,8 @@ export default function FreightCatalogPage(): React.JSX.Element {
                         </Label>
                       ))}
                     </Grid>
-                    <details>
+                    </details>
+                    <details open={detail.kind === 'agents'}>
                       <summary>Preview first five data rows</summary>
                       <div style={{ overflowX: 'auto' }}>
                         <table>
@@ -442,7 +451,7 @@ export default function FreightCatalogPage(): React.JSX.Element {
                         </table>
                       </div>
                     </details>
-                    <p>
+                    {detail.kind !== 'agents' && <p>
                       <label>
                         <input
                           type="checkbox"
@@ -451,9 +460,9 @@ export default function FreightCatalogPage(): React.JSX.Element {
                         />{' '}
                         I checked the mapping, currencies, units and dates against the source.
                       </label>
-                    </p>
+                    </p>}
                     <WinButton
-                      disabled={busy || !checked || !detail.headers?.length}
+                      disabled={busy || (detail.kind !== 'agents' && !checked) || !detail.headers?.length}
                       onClick={() =>
                         void action(async () => {
                           const result = await importCatalog(detail._id, {
@@ -506,7 +515,7 @@ export default function FreightCatalogPage(): React.JSX.Element {
                 <tr>
                   {cols.map((c) => (
                     <th key={c} style={cellStyle}>
-                      {c}
+                      {kind === 'agents' ? agentLabels[c] || c : c}
                     </th>
                   ))}
                 </tr>

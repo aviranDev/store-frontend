@@ -1,3 +1,5 @@
+import QuickRfqReview from '../components/Quotation/QuickRfqReview'
+import ServicePicker, { serviceLabel, splitServices } from '../components/Quotation/ServicePicker'
 import SourcingPanel from '../components/Quotation/SourcingPanel'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -35,7 +37,6 @@ import {
   detailGroups,
   duration,
   errorText,
-  fieldLabel,
   numericFields,
   stageLabel,
   useClock
@@ -59,6 +60,7 @@ export default function QuotationDetailsPage(): React.JSX.Element {
   const [editing, setEditing] = useState<string | null>(null)
   const editingRef = useRef<string | null>(null)
   const [section, setSection] = useState<Section>('details')
+  const [showDetails, setShowDetails] = useState(false)
   const [details, setDetails] = useState<Details>({})
   const [quoteText, setQuoteText] = useState('')
   const [draftText, setDraftText] = useState({ subject: '', body: '' })
@@ -127,9 +129,11 @@ export default function QuotationDetailsPage(): React.JSX.Element {
       setNotice(
         payload.action === 'send'
           ? 'Outlook accepted the email for sending. Delivery is not confirmed.'
-          : isRetry
-            ? 'Parsing queued. Progress will refresh automatically.'
-            : 'Saved.'
+          : payload.action === 'confirm_rfq'
+            ? 'Review confirmed. Matching agents and preparing drafts…'
+            : isRetry
+              ? 'Parsing queued. Progress will refresh automatically.'
+              : 'Saved.'
       )
       await refresh(true)
     } catch (err) {
@@ -216,6 +220,21 @@ export default function QuotationDetailsPage(): React.JSX.Element {
         >
           Refresh
         </WinButton>
+        <WinButton
+          onClick={() => {
+            setSection('details')
+            if (d.stage !== 'details_review') setShowDetails(true)
+            window.requestAnimationFrame(() =>
+              document
+                .getElementById(
+                  d.stage === 'details_review' ? 'quick-rfq-review' : 'shipment-review'
+                )
+                ?.scrollIntoView({ behavior: 'smooth' })
+            )
+          }}
+        >
+          Review & confirm
+        </WinButton>
       </Toolbar>
       <Box>
         <h3 style={{ marginTop: 0 }}>{request.receivedEmail.subject}</h3>
@@ -267,133 +286,161 @@ export default function QuotationDetailsPage(): React.JSX.Element {
         </Notice>
       )}
       {request.errorMessage && <Notice>⚠ {request.errorMessage}</Notice>}
-      {request.missingFields.length > 0 && !terminal && (
-        <Notice>
-          ⚠ Required information: {request.missingFields.map(fieldLabel).join(', ')}. Confirm
-          whether the information is in the original email, or prepare a clarification below.
-        </Notice>
+      {d.stage === 'details_review' && ['active', 'waiting'].includes(d.state) && !terminal && (
+        <QuickRfqReview
+          request={request}
+          locked={locked || terminal || Boolean(editing && editing !== 'rfq-scope')}
+          busy={busy}
+          onConfirm={(services) => void perform({ action: 'confirm_rfq', services })}
+          onScopeEditing={(value) => edit(value ? 'rfq-scope' : null)}
+          onEdit={() => {
+            setSection('details')
+            setShowDetails(true)
+            setDetails({ ...d.details })
+            edit('details')
+            window.requestAnimationFrame(() =>
+              document.getElementById('shipment-review')?.scrollIntoView({ behavior: 'smooth' })
+            )
+          }}
+          onSource={() => {
+            setSection('details')
+            setShowDetails(true)
+            window.requestAnimationFrame(() =>
+              document.getElementById('original-emails')?.scrollIntoView({ behavior: 'smooth' })
+            )
+          }}
+        />
       )}
-      {d.conflicts.length > 0 && (
-        <Notice>
-          ⚠ Source information conflicts with employee edits: {d.conflicts.join('; ')}. Review the
-          original messages before confirming details.
-        </Notice>
-      )}
-      <Box>
-        <Toolbar aria-label="Request actions">
-          {!terminal && d.stage !== 'sent' && (
-            <WinButton disabled={blocked} onClick={() => beginAction('wait')}>
-              ◷ Wait for customer
-            </WinButton>
-          )}
-          {['waiting', 'error'].includes(d.state) && !terminal && (
-            <WinButton disabled={blocked} onClick={() => void perform({ action: 'resume' })}>
-              Resume review
-            </WinButton>
-          )}
-          {d.state === 'error' && !terminal && (
-            <WinButton disabled={blocked} onClick={() => void perform({}, true)}>
-              Retry parsing
-            </WinButton>
-          )}
-          {!terminal && d.stage !== 'sent' && (
-            <WinButton disabled={blocked} onClick={() => beginAction('reject')}>
-              ✕ Reject request
-            </WinButton>
-          )}
-          {!terminal && (
-            <WinButton disabled={blocked} onClick={() => beginAction('close')}>
-              Close request
-            </WinButton>
-          )}
-          {(terminal || d.stage === 'sent') && (
-            <WinButton disabled={locked || Boolean(editing)} onClick={() => beginAction('reopen')}>
-              Reopen for revision
-            </WinButton>
-          )}
-        </Toolbar>
-        {action && (
-          <form
-            onSubmit={(e) => {
-              e.preventDefault()
-              void perform({ action, reason, ...(action === 'close' ? { outcome } : {}) })
-            }}
-          >
-            <h4>
-              {action === 'reject'
-                ? 'Reject this request (employee decision)'
-                : action === 'close'
-                  ? 'Record the request outcome'
-                  : action === 'wait'
-                    ? 'Wait for customer information'
-                    : 'Reopen this request'}
-            </h4>
-            {action === 'close' && (
+      <details open={Boolean(action) || d.state === 'error'}>
+        <summary style={{ cursor: 'pointer', padding: 8 }}>
+          Other request actions & assignment
+        </summary>
+        <Box>
+          <Toolbar aria-label="Request actions">
+            {!terminal && d.stage !== 'sent' && (
+              <WinButton disabled={blocked} onClick={() => beginAction('wait')}>
+                ◷ Wait for customer
+              </WinButton>
+            )}
+            {['waiting', 'error'].includes(d.state) && !terminal && (
+              <WinButton disabled={blocked} onClick={() => void perform({ action: 'resume' })}>
+                Resume review
+              </WinButton>
+            )}
+            {(d.state === 'error' || d.stage === 'details_review') &&
+              !terminal &&
+              d.stage !== 'sent' && (
+                <WinButton disabled={blocked} onClick={() => void perform({}, true)}>
+                  {d.state === 'error' ? 'Retry parsing' : 'Re-parse email'}
+                </WinButton>
+              )}
+            {!terminal && d.stage !== 'sent' && (
+              <WinButton disabled={blocked} onClick={() => beginAction('reject')}>
+                ✕ Reject request
+              </WinButton>
+            )}
+            {!terminal && (
+              <WinButton disabled={blocked} onClick={() => beginAction('close')}>
+                Close request
+              </WinButton>
+            )}
+            {(terminal || d.stage === 'sent') && (
+              <WinButton
+                disabled={locked || Boolean(editing)}
+                onClick={() => beginAction('reopen')}
+              >
+                Reopen for revision
+              </WinButton>
+            )}
+          </Toolbar>
+          {action && (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault()
+                void perform({ action, reason, ...(action === 'close' ? { outcome } : {}) })
+              }}
+            >
+              <h4>
+                {action === 'reject'
+                  ? 'Reject this request (employee decision)'
+                  : action === 'close'
+                    ? 'Record the request outcome'
+                    : action === 'wait'
+                      ? 'Wait for customer information'
+                      : 'Reopen this request'}
+              </h4>
+              {action === 'close' && (
+                <Label>
+                  Outcome
+                  <Select value={outcome} onChange={(e) => setOutcome(e.target.value)}>
+                    <option value="other">Otherwise closed</option>
+                    <option disabled={d.stage !== 'sent'} value="accepted">
+                      Customer accepted quotation
+                    </option>
+                    <option disabled={d.stage !== 'sent'} value="declined">
+                      Customer declined quotation
+                    </option>
+                  </Select>
+                </Label>
+              )}
               <Label>
-                Outcome
-                <Select value={outcome} onChange={(e) => setOutcome(e.target.value)}>
-                  <option value="other">Otherwise closed</option>
-                  <option disabled={d.stage !== 'sent'} value="accepted">
-                    Customer accepted quotation
-                  </option>
-                  <option disabled={d.stage !== 'sent'} value="declined">
-                    Customer declined quotation
-                  </option>
+                Reason (required)
+                <TextArea
+                  required
+                  minLength={3}
+                  maxLength={1000}
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                />
+              </Label>
+              <Toolbar>
+                <WinButton disabled={busy} type="submit">
+                  Confirm {action}
+                </WinButton>
+                <WinButton disabled={busy} type="button" onClick={() => beginAction('')}>
+                  Cancel
+                </WinButton>
+              </Toolbar>
+              <p>
+                <small>This changes the request only. It does not send an email.</small>
+              </p>
+            </form>
+          )}
+          {admin && !terminal && (
+            <Toolbar style={{ marginTop: 12 }}>
+              <Label>
+                Reassign request
+                <Select
+                  disabled={locked || Boolean(editing)}
+                  value={assignee}
+                  onChange={(e) => setAssignee(e.target.value)}
+                >
+                  <option value="">Choose employee</option>
+                  {employees.map((x) => (
+                    <option key={x._id} value={x._id}>
+                      {x.username}
+                    </option>
+                  ))}
                 </Select>
               </Label>
-            )}
-            <Label>
-              Reason (required)
-              <TextArea
-                required
-                minLength={3}
-                maxLength={1000}
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-              />
-            </Label>
-            <Toolbar>
-              <WinButton disabled={busy} type="submit">
-                Confirm {action}
-              </WinButton>
-              <WinButton disabled={busy} type="button" onClick={() => beginAction('')}>
-                Cancel
-              </WinButton>
-            </Toolbar>
-            <p>
-              <small>This changes the request only. It does not send an email.</small>
-            </p>
-          </form>
-        )}
-        {admin && !terminal && (
-          <Toolbar style={{ marginTop: 12 }}>
-            <Label>
-              Reassign request
-              <Select
-                disabled={locked || Boolean(editing)}
-                value={assignee}
-                onChange={(e) => setAssignee(e.target.value)}
+              <WinButton
+                disabled={blocked || !assignee || assignee === request.assignedTo}
+                onClick={() => void perform({ action: 'assign', assignedTo: assignee })}
               >
-                <option value="">Choose employee</option>
-                {employees.map((x) => (
-                  <option key={x._id} value={x._id}>
-                    {x.username}
-                  </option>
-                ))}
-              </Select>
-            </Label>
-            <WinButton
-              disabled={blocked || !assignee || assignee === request.assignedTo}
-              onClick={() => void perform({ action: 'assign', assignedTo: assignee })}
-            >
-              Assign
-            </WinButton>
-            <small>Transfers handling permission. Replies still use the source mailbox.</small>
-          </Toolbar>
-        )}
-      </Box>
+                Assign
+              </WinButton>
+              <small>Transfers handling permission. Replies still use the source mailbox.</small>
+            </Toolbar>
+          )}
+        </Box>
+      </details>
       <SourcingPanel
         id={id}
+        admin={admin}
+        refreshKey={d.revision}
+        onReview={() =>
+          document.getElementById('quick-rfq-review')?.scrollIntoView({ behavior: 'smooth' })
+        }
         locked={blocked || d.stage === 'sent'}
         onApplied={() => void refresh(true)}
       />
@@ -423,8 +470,11 @@ export default function QuotationDetailsPage(): React.JSX.Element {
         ))}
       </Toolbar>
       {section === 'details' && (
-        <>
-          <Box>
+        <details open={showDetails} onToggle={(e) => setShowDetails(e.currentTarget.open)}>
+          <summary style={{ cursor: 'pointer', padding: 12 }}>
+            All shipment fields, original email & final quotation review
+          </summary>
+          <Box id="shipment-review">
             <Toolbar>
               <strong>Shipment details</strong>
               {d.verifiedAt ? (
@@ -442,16 +492,19 @@ export default function QuotationDetailsPage(): React.JSX.Element {
                 Edit details
               </WinButton>
             </Toolbar>
-            {request.analysis?.summary && (
-              <>
-                <h4>Extraction summary (AI / rules)</h4>
-                <Pre>{String(request.analysis.summary)}</Pre>
-              </>
-            )}
+            <details>
+              <summary>Extraction notes and source conflicts</summary>
+              {request.analysis?.summary && <Pre>{String(request.analysis.summary)}</Pre>}
+              {Array.isArray(request.analysis?.extractionNotes) &&
+                request.analysis.extractionNotes.map((note, i) => <p key={i}>{String(note)}</p>)}
+              {!!d.conflicts.length && <Notice>{d.conflicts.join('; ')}</Notice>}
+            </details>
             <p>
               <small>
-                Values are extracted from the source unless marked “Employee edit.” Extraction is
-                not verification. Empty fields stay unknown.
+                Review the source, then edit and save any corrections. Stackable / non-DG defaults
+                are labelled as quotation assumptions, not shipper declarations. The summary above
+                prepares a preliminary agent inquiry. Complete shipment verification below when the
+                remaining details are available.
               </small>
             </p>
             <form
@@ -464,65 +517,89 @@ export default function QuotationDetailsPage(): React.JSX.Element {
                 <div key={group.title}>
                   <h4>{group.title}</h4>
                   <Grid>
-                    {group.fields.map(([key, label, options]) => {
-                      const value = editing === 'details' ? details[key] : d.details[key]
-                      return (
-                        <Label key={key}>
-                          {label}
-                          {editing === 'details' ? (
-                            options ? (
-                              <Select
-                                value={String(value || options[0])}
-                                onChange={(e) =>
-                                  setDetails((prev) => ({ ...prev, [key]: e.target.value }))
-                                }
-                              >
-                                {options.map((x) => (
-                                  <option key={x}>{x}</option>
-                                ))}
-                              </Select>
+                    {group.fields
+                      .filter(([key]) => key !== 'serviceScopeConfirmed')
+                      .map(([key, label, options]) => {
+                        const value = editing === 'details' ? details[key] : d.details[key]
+                        return (
+                          <Label key={key} as={key === 'requiredServices' ? 'div' : 'label'}>
+                            {key === 'requiredServices' ? 'Requested services' : label}
+                            {editing === 'details' ? (
+                              key === 'requiredServices' ? (
+                                <ServicePicker
+                                  selected={splitServices(value)}
+                                  mode={details.shipmentMode}
+                                  onChange={(v) =>
+                                    setDetails((prev) => ({
+                                      ...prev,
+                                      requiredServices: v.join(','),
+                                      serviceScopeConfirmed: 'no'
+                                    }))
+                                  }
+                                  disabled={busy}
+                                />
+                              ) : options ? (
+                                <Select
+                                  value={String(value || options[0])}
+                                  onChange={(e) =>
+                                    setDetails((prev) => ({ ...prev, [key]: e.target.value }))
+                                  }
+                                >
+                                  {options.map((x) => (
+                                    <option key={x}>{x}</option>
+                                  ))}
+                                </Select>
+                              ) : (
+                                <Input
+                                  type={
+                                    numericFields.includes(key)
+                                      ? 'number'
+                                      : key.endsWith('Date')
+                                        ? 'date'
+                                        : 'text'
+                                  }
+                                  min={0}
+                                  step={
+                                    ['containerCount', 'packageCount'].includes(key) ? 1 : 'any'
+                                  }
+                                  maxLength={4000}
+                                  value={value ?? ''}
+                                  onChange={(e) =>
+                                    setDetails((prev) => ({
+                                      ...prev,
+                                      [key]: numericFields.includes(key)
+                                        ? e.target.value === ''
+                                          ? null
+                                          : Number(e.target.value)
+                                        : e.target.value
+                                    }))
+                                  }
+                                />
+                              )
                             ) : (
-                              <Input
-                                type={
-                                  numericFields.includes(key)
-                                    ? 'number'
-                                    : key.endsWith('Date')
-                                      ? 'date'
-                                      : 'text'
-                                }
-                                min={0}
-                                step={['containerCount', 'packageCount'].includes(key) ? 1 : 'any'}
-                                maxLength={4000}
-                                value={value ?? ''}
-                                onChange={(e) =>
-                                  setDetails((prev) => ({
-                                    ...prev,
-                                    [key]: numericFields.includes(key)
-                                      ? e.target.value === ''
-                                        ? null
-                                        : Number(e.target.value)
-                                      : e.target.value
-                                  }))
-                                }
-                              />
-                            )
-                          ) : (
-                            <span>
-                              {value == null || value === '' || value === 'unknown'
-                                ? 'Unknown'
-                                : String(value)}
-                            </span>
-                          )}
-                          <small>
-                            {d.editedFields.includes(key)
-                              ? 'Employee edit'
-                              : value != null && value !== '' && value !== 'unknown'
-                                ? 'Extracted · verify against source'
-                                : 'Not provided'}
-                          </small>
-                        </Label>
-                      )
-                    })}
+                              <span>
+                                {value == null || value === '' || value === 'unknown'
+                                  ? 'Unknown'
+                                  : key === 'requiredServices'
+                                    ? splitServices(value).map(serviceLabel).join(', ')
+                                    : String(value)}
+                              </span>
+                            )}
+                            <small>
+                              {d.editedFields.includes(key)
+                                ? 'Employee edit'
+                                : d.assumedFields?.includes(key)
+                                  ? 'Quotation assumption · not confirmed by shipper'
+                                  : key === 'incotermPlace' &&
+                                      request.analysis?.incotermPlaceSuggested === true
+                                    ? 'Suggested from pickup address · confirm the agreed named place'
+                                    : value != null && value !== '' && value !== 'unknown'
+                                      ? 'Extracted · verify against source'
+                                      : 'Not provided'}
+                            </small>
+                          </Label>
+                        )
+                      })}
                   </Grid>
                 </div>
               ))}
@@ -544,33 +621,56 @@ export default function QuotationDetailsPage(): React.JSX.Element {
                 </Toolbar>
               )}
             </form>
-            {d.stage === 'details_review' && d.state === 'active' && !terminal && (
-              <Toolbar style={{ marginTop: 16 }}>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={reviewed}
-                    disabled={blocked || request.missingFields.length > 0}
-                    onChange={(e) => {
-                      setReviewed(e.target.checked)
-                      editingRef.current = e.target.checked ? 'review' : null
-                    }}
-                  />{' '}
-                  I reviewed these values against the source and resolved conflicts.
-                </label>
-                <WinButton
-                  disabled={blocked || !reviewed || request.missingFields.length > 0}
-                  onClick={() => {
-                    editingRef.current = null
-                    void perform({ action: 'verify' })
-                  }}
-                >
-                  ✓ Confirm details
-                </WinButton>
-              </Toolbar>
-            )}
+            {d.stage === 'details_review' &&
+              ['active', 'waiting'].includes(d.state) &&
+              !terminal && (
+                <div>
+                  {d.rfqReviewedAt && (
+                    <p>
+                      ✓ Employee confirmed for preliminary agent RFQ · {dateText(d.rfqReviewedAt)}
+                    </p>
+                  )}
+                  {!!request.missingFields.length && (
+                    <Notice>
+                      Completed quotation review still needs: {request.missingFields.join(', ')}.
+                      Cargo description and shipping date can remain pending for a preliminary agent
+                      inquiry.
+                    </Notice>
+                  )}
+
+                  <Toolbar style={{ marginTop: 16 }}>
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={reviewed}
+                        disabled={blocked}
+                        onChange={(e) => {
+                          setReviewed(e.target.checked)
+                          editingRef.current = e.target.checked ? 'review' : null
+                        }}
+                      />{' '}
+                      I reviewed the available details, assumptions, requested services and source
+                      conflicts.
+                    </label>
+                    <WinButton
+                      disabled={blocked || !reviewed || request.missingFields.length > 0}
+                      onClick={() => {
+                        editingRef.current = null
+                        void perform({ action: 'verify' })
+                      }}
+                    >
+                      ✓ Complete shipment verification
+                    </WinButton>
+                  </Toolbar>
+                  <p>
+                    <small>
+                      Confirmation records your review and recalculates sourcing. No email is sent.
+                    </small>
+                  </p>
+                </div>
+              )}
           </Box>
-          <Box>
+          <Box id="original-emails">
             <Toolbar>
               <h3>Original emails & attachments</h3>
               <WinButton onClick={() => void attachments()}>Load attachments</WinButton>
@@ -612,7 +712,7 @@ export default function QuotationDetailsPage(): React.JSX.Element {
               </p>
             ))}
           </Box>
-        </>
+        </details>
       )}
       {section === 'quotation' && (
         <Box>

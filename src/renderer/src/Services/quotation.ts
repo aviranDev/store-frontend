@@ -23,6 +23,8 @@ export type Dashboard = {
   details: Details
   editedFields: string[]
   conflicts: string[]
+  rfqReviewedAt?: string
+  assumedFields?: string[]
   verifiedAt?: string
   quotationText: string
   pricingApprovedAt?: string
@@ -56,6 +58,8 @@ export type Quotation = {
   workflowSteps: { key: string; label: string; status: string; note?: string }[]
   dashboard: Dashboard
   missingFields: string[]
+  rfqReviewBlockers?: string[]
+  rfqReview?: { services: string[]; suggested: boolean; blockers: string[]; pending: string[] }
   serverNow: string
   errorMessage?: string
   connection?: { accountEmail: string; status: string }
