@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import WinButton from '../Button/WinButton'
 import {
@@ -22,9 +23,9 @@ import {
   errorText
 } from './common'
 const labels: Record<string, string> = {
-  needs_details: 'Information / review needed',
+  needs_details: 'Review shipment to continue',
   tariff_available: 'Tariff available',
-  agent_rfq: 'Agent RFQ needed',
+  agent_rfq: 'Ready for agent RFQ — draft prepared',
   no_agent: 'No matching agent'
 }
 export function SourcingBadge({
@@ -41,22 +42,29 @@ export function SourcingBadge({
   if (status === 'stale') return <Badge>⚠ Re-evaluate sourcing</Badge>
   if (status === 'error') return <Badge>⚠ Sourcing error</Badge>
   return valid ? (
-    <Badge>✓ Fulfilled / Valid — tariff costs available</Badge>
+    <Badge>✓ Ready to quote — tariff costs checked</Badge>
   ) : (
     <Badge>
-      {decision === 'agent_rfq' ? '◷' : '⚠'} {labels[decision || ''] || 'Review required'}
+      {decision === 'agent_rfq' ? '✓' : '⚠'} {labels[decision || ''] || 'Review required'}
     </Badge>
   )
 }
 export default function SourcingPanel({
   id,
   locked,
-  onApplied
+  onApplied,
+  onReview,
+  admin = false,
+  refreshKey = 0
 }: {
+  onReview?: () => void
+  admin?: boolean
+  refreshKey?: number
   id: string
   locked: boolean
   onApplied: () => void
 }) {
+  const navigate = useNavigate()
   const [source, setSource] = useState<Sourcing>()
   const [history, setHistory] = useState<Sourcing[]>([])
   const [revision, setRevision] = useState(0)
@@ -98,7 +106,7 @@ export default function SourcingPanel({
       window.clearInterval(timer)
       sequence.current++
     }
-  }, [refresh, source?.status])
+  }, [refresh, source?.status, refreshKey])
   async function act(task: () => Promise<unknown>) {
     if (busy) return
     setBusy(true)
@@ -133,38 +141,38 @@ export default function SourcingPanel({
   return (
     <Box>
       <Toolbar>
-        <h3>Sourcing: tariffs & agents</h3>
+        <h3>Rates & agent drafts</h3>
         <SourcingBadge status={source?.status} valid={result?.valid} decision={result?.decision} />
         <WinButton disabled={disabled} onClick={() => void act(() => runSourcing(id))}>
-          Evaluate / retry
+          Refresh rates & agents
         </WinButton>
       </Toolbar>
-      <p>
-        <small>
-          Active steps refresh every second; completed results refresh every five seconds.
-          “Fulfilled / Valid” means the entered scope can be priced from a tariff; customer approval
-          and sending remain separate.
-        </small>
-      </p>
       {error && <Notice role="alert">{error}</Notice>}
       {source?.error && <Notice>⚠ {source.error}</Notice>}
       {source && (
         <>
-          <progress
-            style={{ width: '100%' }}
-            aria-label="Sourcing progress"
-            value={done}
-            max={Math.max(4, source.steps.length)}
-          />
-          <ol aria-live="polite">
-            {source.steps.map((step) => (
-              <li key={step.key}>
-                {step.status === 'complete' ? '✓' : step.status === 'error' ? '⚠' : '●'}{' '}
-                <strong>{step.label}</strong> · {dateText(step.at)}
-                {step.note && <div>{step.note}</div>}
-              </li>
-            ))}
-          </ol>
+          {source.status === 'running' && (
+            <progress
+              style={{ width: '100%' }}
+              aria-label="Sourcing progress"
+              value={done}
+              max={Math.max(4, source.steps.length)}
+            />
+          )}
+          <details open={source.status === 'running'}>
+            <summary>
+              {source.status === 'running' ? 'Checking rates and agents…' : 'View processing steps'}
+            </summary>
+            <ol aria-live="polite">
+              {source.steps.map((step) => (
+                <li key={step.key}>
+                  {step.status === 'complete' ? '✓' : step.status === 'error' ? '⚠' : '●'}{' '}
+                  <strong>{step.label}</strong> · {dateText(step.at)}
+                  {step.note && <div>{step.note}</div>}
+                </li>
+              ))}
+            </ol>
+          </details>
         </>
       )}
       {source?.status === 'stale' && (
@@ -175,35 +183,46 @@ export default function SourcingPanel({
       )}
       {result && (
         <>
-          <p>
-            Incoterm: <strong>{result.incoterm.code}</strong> ·{' '}
-            {result.incoterm.status === 'valid'
-              ? '✓ Consistency checks passed'
-              : '⚠ Requires confirmation'}
-          </p>
-          {!!result.blockers.length && (
-            <Notice>
-              <strong>Required before a valid sign-off</strong>
-              <ul>
-                {result.blockers.map((x, i) => (
-                  <li key={i}>{x}</li>
-                ))}
-              </ul>
-            </Notice>
-          )}
-          {!!result.warnings.length && (
-            <Notice>
-              <ul>
-                {result.warnings.map((x, i) => (
-                  <li key={i}>{x}</li>
-                ))}
-              </ul>
-            </Notice>
-          )}
-          <h4>Tariff options</h4>
-          {!result.offers.length && (
-            <p>No tariff matched the entered route, shipment type, Incoterm and shipping date.</p>
-          )}
+          <details>
+            <summary>Shipment checks and requirements for the completed quotation</summary>
+            <p>
+              Incoterm: <strong>{result.incoterm.code}</strong> ·{' '}
+              {result.incoterm.status === 'valid'
+                ? '✓ Consistency checks passed'
+                : '⚠ Requires confirmation'}
+            </p>
+            {!!(result.missingInformation ?? result.blockers).length && (
+              <Notice>
+                <strong>Information still needed for the completed quotation</strong>
+                <ul>
+                  {(result.missingInformation ?? result.blockers).map((x, i) => (
+                    <li key={i}>{x}</li>
+                  ))}
+                </ul>
+              </Notice>
+            )}
+            {!!result.reviewRequired?.length && (
+              <Notice>
+                <strong>Review still needed for the completed quotation</strong>
+                <ul>
+                  {result.reviewRequired.map((x, i) => (
+                    <li key={i}>{x}</li>
+                  ))}
+                </ul>
+              </Notice>
+            )}
+            {!!result.warnings.length && (
+              <Notice>
+                <strong>Cargo and sourcing checks</strong>
+                <ul>
+                  {result.warnings.map((x, i) => (
+                    <li key={i}>{x}</li>
+                  ))}
+                </ul>
+              </Notice>
+            )}
+          </details>
+          {!!result.offers.length && <h4>Available tariff costs</h4>}
           {result.offers.map((offer) => (
             <Box key={offer.id} style={{ marginBottom: 10 }}>
               <strong>
@@ -273,21 +292,45 @@ export default function SourcingPanel({
               </WinButton>
             </Box>
           ))}
-          <h4>Agent RFQ drafts</h4>
-          <p>
-            <small>
-              Drafts are prepared automatically for EXW or missing/unsupported tariff coverage.
-              Nothing is sent automatically. Check the recipient and unresolved details before using
-              a draft.
-            </small>
-          </p>
-          {!result.rfqs.length && (
+          <h4 id="agent-rfq-drafts">Agent RFQ drafts</h4>
+          {result.decision === 'needs_details' && (
             <p>
-              {result.decision === 'tariff_available'
-                ? 'No agent inquiry is needed for the validated scope.'
-                : 'No RFQ recipient matched. Check the agent catalog, origin country, direction and services.'}
+              Review the shipment summary above to continue.{' '}
+              <WinButton disabled={disabled} onClick={onReview}>
+                Review shipment
+              </WinButton>
             </p>
           )}
+          {result.decision === 'tariff_available' && (
+            <p>The confirmed scope has tariff coverage. No agent inquiry is needed.</p>
+          )}
+          {result.decision === 'no_agent' && (
+            <Notice>
+              <strong>Shipment reviewed — a matching agent is still needed</strong>
+              <p>
+                {!result.agentDiagnostics
+                  ? 'No active agent matched this shipment.'
+                  : result.agentDiagnostics.totalActive === 0
+                    ? 'There are no agents in the active catalog. Import and activate an agent list.'
+                    : result.agentDiagnostics.countryMatches === 0
+                      ? 'No active agent covers the origin country.'
+                      : result.agentDiagnostics.modeMatches === 0
+                        ? 'Agents cover the origin country, but none match this transport mode.'
+                        : result.agentDiagnostics.directionMatches === 0
+                          ? 'No agent matches the selected import/export direction.'
+                          : 'No agent matches the requested services.'}
+              </p>
+              <WinButton disabled={disabled} onClick={() => navigate('/employee/freight-catalog')}>
+                {admin ? 'Manage agent catalog' : 'View agent catalog'}
+              </WinButton>
+              {!admin && (
+                <p>
+                  An administrator can import or activate agents. Your shipment review is saved.
+                </p>
+              )}
+            </Notice>
+          )}
+          {!!result.rfqs.length && <p>Choose a draft below to review. Nothing has been sent.</p>}
           {result.rfqs.map((draft) => (
             <Box key={draft.id} style={{ marginBottom: 10 }}>
               <strong>
@@ -342,8 +385,10 @@ export default function SourcingPanel({
                 </form>
               ) : (
                 <>
-                  <h4>{draft.subject}</h4>
-                  <Pre>{draft.body}</Pre>
+                  <details>
+                    <summary>Preview: {draft.subject}</summary>
+                    <Pre>{draft.body}</Pre>
+                  </details>
                   <Toolbar>
                     <WinButton
                       disabled={disabled || stale}
@@ -356,7 +401,9 @@ export default function SourcingPanel({
                       Edit draft
                     </WinButton>
                     <WinButton
-                      disabled={disabled || stale || !!result.blockers.length}
+                      disabled={
+                        disabled || stale || !!(result.rfqBlockers ?? result.blockers).length
+                      }
                       onClick={() => eml(draft)}
                     >
                       Download Outlook draft (.eml)
