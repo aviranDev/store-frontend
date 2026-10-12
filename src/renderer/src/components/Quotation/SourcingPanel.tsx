@@ -7,6 +7,10 @@ import {
   getSourcing,
   runSourcing,
   saveRfq,
+  sendRfq,
+  checkRfq,
+  reconcileRfq,
+  type AgentRfqSend,
   type RFQ,
   type Sourcing
 } from '../../Services/freight'
@@ -55,8 +59,12 @@ export default function SourcingPanel({
   onApplied,
   onReview,
   admin = false,
-  refreshKey = 0
+  refreshKey = 0,
+  from = '',
+  canSend = false
 }: {
+  from?: string
+  canSend?: boolean
   onReview?: () => void
   admin?: boolean
   refreshKey?: number
@@ -69,6 +77,8 @@ export default function SourcingPanel({
   const [history, setHistory] = useState<Sourcing[]>([])
   const [revision, setRevision] = useState(0)
   const [error, setError] = useState('')
+  const [message, setMessage] = useState('')
+  const [sends, setSends] = useState<AgentRfqSend[]>([])
   const [busy, setBusy] = useState(false)
   const [editing, setEditing] = useState<RFQ | null>(null)
   const editingRef = useRef(false)
@@ -80,6 +90,7 @@ export default function SourcingPanel({
       const data = await getSourcing(id)
       if (seq === sequence.current && !editingRef.current) {
         setSource(data.sourcing)
+        setSends(data.sends || [])
         setRevision(data.revision)
         const run = data.sourcing?.runId || ''
         if (historyRun.current !== run) {
@@ -111,15 +122,19 @@ export default function SourcingPanel({
     if (busy) return
     setBusy(true)
     setError('')
+    setMessage('')
     try {
       await task()
       editingRef.current = false
       setEditing(null)
       await refresh()
+      onApplied()
     } catch (e) {
       setError(errorText(e))
     } finally {
       setBusy(false)
+      void refresh()
+      onApplied()
     }
   }
   const stale = source?.status !== 'complete'
@@ -142,12 +157,15 @@ export default function SourcingPanel({
     <Box>
       <Toolbar>
         <h3>Rates & agent drafts</h3>
-        <SourcingBadge status={source?.status} valid={result?.valid} decision={result?.decision} />
+        {result?.rfqs.length && result.rfqs.every(draft => draft.send?.status === 'accepted')
+          ? <Badge>✓ Agent RFQs accepted by Outlook — awaiting replies</Badge>
+          : <SourcingBadge status={source?.status} valid={result?.valid} decision={result?.decision} />}
         <WinButton disabled={disabled} onClick={() => void act(() => runSourcing(id))}>
           Refresh rates & agents
         </WinButton>
       </Toolbar>
       {error && <Notice role="alert">{error}</Notice>}
+      {message && <Notice role="status">{message}</Notice>}
       {source?.error && <Notice>⚠ {source.error}</Notice>}
       {source && (
         <>
@@ -330,7 +348,7 @@ export default function SourcingPanel({
               )}
             </Notice>
           )}
-          {!!result.rfqs.length && <p>Choose a draft below to review. Nothing has been sent.</p>}
+          {!!result.rfqs.length && <p>Review a draft, then approve and send it from <strong>{from || 'the request mailbox'}</strong>. Sending status appears below.</p>}
           {result.rfqs.map((draft) => (
             <Box key={draft.id} style={{ marginBottom: 10 }}>
               <strong>
@@ -340,6 +358,13 @@ export default function SourcingPanel({
                 {draft.agent.services.join(', ')}
                 {draft.agent.preferred ? ' · Preferred agent' : ''}
               </p>
+              {draft.send && <Notice role="status">
+                {draft.send.status === 'accepted' ? `✓ Outlook accepted — awaiting agent reply · ${dateText(draft.send.acceptedAt)}`
+                  : draft.send.status === 'sending' ? '● Sending RFQ through Outlook…'
+                  : draft.send.status === 'unknown' ? '⚠ Sending outcome uncertain — check Outlook before retrying'
+                  : '⚠ Send failed — review the error and retry'}
+                {draft.send.error && <p>{draft.send.error}</p>}
+              </Notice>}
               {editing?.id === draft.id ? (
                 <form
                   onSubmit={(e) => {
@@ -391,7 +416,17 @@ export default function SourcingPanel({
                   </details>
                   <Toolbar>
                     <WinButton
-                      disabled={disabled || stale}
+                      disabled={disabled || stale || !canSend || !!(result.rfqBlockers ?? result.blockers).length || (draft.send && draft.send.status !== 'failed')}
+                      onClick={() => {
+                        if (!window.confirm(`Approve and send this RFQ?\n\nFrom: ${from}\nTo: ${draft.agent.email}\nSubject: ${draft.subject}\n\nThe saved draft shown here will be sent.`)) return
+                        void act(async () => {
+                          const response = await sendRfq(id, source!.runId, draft, revision)
+                          setMessage(response.message)
+                        })
+                      }}
+                    >Approve &amp; send to agent</WinButton>
+                    <WinButton
+                      disabled={disabled || stale || (draft.send && draft.send.status !== 'failed')}
                       onClick={() => {
                         editingRef.current = true
                         sequence.current++
@@ -402,7 +437,7 @@ export default function SourcingPanel({
                     </WinButton>
                     <WinButton
                       disabled={
-                        disabled || stale || !!(result.rfqBlockers ?? result.blockers).length
+                        disabled || stale || !!(result.rfqBlockers ?? result.blockers).length || (draft.send && draft.send.status !== 'failed')
                       }
                       onClick={() => eml(draft)}
                     >
@@ -415,6 +450,25 @@ export default function SourcingPanel({
           ))}
         </>
       )}
+      {!!sends.length && <details open={sends.some(s => s.status === 'unknown')}>
+        <summary>Agent email history ({sends.length})</summary>
+        {[...sends].reverse().map(send => <Box key={send.id}>
+          <strong>{send.to} · {send.status === 'accepted' ? '✓ Accepted by Outlook — awaiting reply' : send.status}</strong>
+          <p>From: {send.from} · Approved {dateText(send.approvedAt)}</p>
+          {send.error && <Notice>{send.error}</Notice>}
+          <details><summary>{send.subject}</summary><Pre>{send.body}</Pre></details>
+          {send.status === 'unknown' && <WinButton disabled={busy} onClick={() => void act(async () => {
+            const response = await checkRfq(id, send.id); setMessage(response.message)
+          })}>Check Outlook sending status</WinButton>}
+          {send.status === 'unknown' && admin && <Toolbar>
+            {(['sent', 'not_sent'] as const).map(outcome => <WinButton key={outcome} disabled={busy} onClick={() => {
+              const reason = window.prompt(`Check Outlook Sent Items and Drafts first. Record why you are certain this RFQ was ${outcome === 'sent' ? 'sent' : 'NOT sent'} (at least 10 characters). Marking not sent allows a new send.`)
+              if (!reason || reason.trim().length < 10) return
+              void act(async () => { const response = await reconcileRfq(id, send.id, outcome, reason.trim()); setMessage(response.message) })
+            }}>{outcome === 'sent' ? 'Confirm sent after checking Outlook' : 'Confirm NOT sent after checking Outlook'}</WinButton>)}
+          </Toolbar>}
+        </Box>)}
+      </details>}
       {!!history.length && (
         <details>
           <summary>Previous sourcing runs ({history.length})</summary>

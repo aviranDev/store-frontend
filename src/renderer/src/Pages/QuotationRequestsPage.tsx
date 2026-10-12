@@ -140,7 +140,7 @@ export default function QuotationRequestsPage(): React.JSX.Element {
   const change = (key: keyof FiltersState, value: string | boolean) =>
     setFilters((prev) => ({ ...prev, [key]: value }))
   return (
-    <DashboardShell
+    <DashboardShell expanded
       title={admin ? 'All Quotation Requests' : 'My Quotation Requests'}
       activePanel={admin ? 'admin' : 'employee'}
     >
