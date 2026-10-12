@@ -34,7 +34,20 @@ export type Offer = {
   warnings: string[]
   complete: boolean
 }
+export type AgentRfqSend = {
+  id: string
+  to: string
+  from: string
+  subject: string
+  body: string
+  status: 'sending' | 'accepted' | 'failed' | 'unknown'
+  approvedAt: string
+  approvedBy: string
+  acceptedAt?: string
+  error?: string
+}
 export type RFQ = {
+  send?: AgentRfqSend
   id: string
   agent: Agent
   subject: string
@@ -138,7 +151,7 @@ export const catalogEntries = async (kind: string, page: number) =>
   ).data.data
 export const getSourcing = async (id: string, includeHistory = false) =>
   (
-    await http.get<{ data: { sourcing?: Sourcing; history?: Sourcing[]; revision: number } }>(
+    await http.get<{ data: { sourcing?: Sourcing; history?: Sourcing[]; sends?: AgentRfqSend[]; revision: number } }>(
       `/quotations/${id}/sourcing`,
       { params: { includeHistory } }
     )
@@ -166,3 +179,13 @@ export function downloadBlob(blob: Blob, name: string) {
   a.click()
   window.setTimeout(() => URL.revokeObjectURL(url), 10000)
 }
+
+export const sendRfq = async (id: string, runId: string, draft: RFQ, revision: number) =>
+  (await http.post<{ message: string }>(`/quotations/${id}/sourcing/rfq/send`, {
+    runId, draftId: draft.id, version: draft.version, revision
+  }, { timeout: 120000 })).data
+export const checkRfq = async (id: string, attemptId: string) =>
+  (await http.post<{ message: string }>(`/quotations/${id}/sourcing/rfq/check`, { attemptId })).data
+
+export const reconcileRfq = async (id: string, attemptId: string, outcome: 'sent' | 'not_sent', reason: string) =>
+  (await http.post<{ message: string }>(`/quotations/${id}/sourcing/rfq/reconcile`, { attemptId, outcome, reason })).data

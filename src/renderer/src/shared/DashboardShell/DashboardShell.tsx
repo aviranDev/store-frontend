@@ -1,3 +1,4 @@
+import styled, { css } from 'styled-components'
 import React, { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useLogin } from '../../Store/LoginProvider'
@@ -20,12 +21,21 @@ import {
   PanelSelectWrap
 } from '../../styles/DashboardStyle/DashboardPage.styles'
 
+const DashboardPage = styled(Win95Page)<{ $expanded: boolean }>`
+  ${({ $expanded }) => $expanded && css`
+    padding: 4px;
+    box-sizing: border-box;
+    @media (max-width: 900px) { padding: 4px; }
+  `}
+`
+
 export type UserRole = 'admin' | 'employee' | 'customer'
 export type PanelType = 'admin' | 'employee' | 'customer'
 
 type DashboardShellProps = {
   title: string
   activePanel: PanelType
+  expanded?: boolean
   children: React.ReactNode
 }
 
@@ -50,6 +60,7 @@ const allowedPanelsByRole: Record<UserRole, PanelType[]> = {
 export default function DashboardShell({
   title,
   activePanel,
+  expanded = false,
   children
 }: DashboardShellProps): React.JSX.Element {
   const navigate = useNavigate()
@@ -73,12 +84,13 @@ export default function DashboardShell({
   }
 
   return (
-    <Win95Page
+    <DashboardPage
+      $expanded={expanded}
       title={title}
-      width="clamp(980px, 82vw, 1500px)"
-      maxWidth="calc(100vw - 24px)"
-      height="clamp(560px, 68vh, 760px)"
-      maxHeight="calc(100vh - 24px)"
+      width={expanded ? 'calc(100vw - 8px)' : 'clamp(980px, 82vw, 1500px)'}
+      maxWidth={expanded ? 'none' : 'calc(100vw - 24px)'}
+      height={expanded ? 'calc(100vh - 8px)' : 'clamp(560px, 68vh, 760px)'}
+      maxHeight={expanded ? 'none' : 'calc(100vh - 24px)'}
     >
       <AdminBody>
         <AdminMenuBar>
@@ -130,6 +142,6 @@ export default function DashboardShell({
 
         <AdminStatusBar>{statusText}</AdminStatusBar>
       </AdminBody>
-    </Win95Page>
+    </DashboardPage>
   )
 }

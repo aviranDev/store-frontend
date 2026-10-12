@@ -171,7 +171,7 @@ export default function FreightCatalogPage(): React.JSX.Element {
           'validTo'
         ]
   return (
-    <DashboardShell title="Agents & Tariffs" activePanel={admin ? 'admin' : 'employee'}>
+    <DashboardShell expanded title="Agents & Tariffs" activePanel={admin ? 'admin' : 'employee'}>
       <Surface>
         <Toolbar>
           <h2 style={{ margin: '0 auto 0 0' }}>Agents & Tariffs</h2>

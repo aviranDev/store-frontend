@@ -167,7 +167,7 @@ export default function QuotationDetailsPage(): React.JSX.Element {
       void perform({ action: 'send', draftId: draft.id })
   }
   const shell = (children: React.ReactNode) => (
-    <DashboardShell title="Quotation Request" activePanel={admin ? 'admin' : 'employee'}>
+    <DashboardShell expanded title="Quotation Request" activePanel={admin ? 'admin' : 'employee'}>
       <Surface>{children}</Surface>
     </DashboardShell>
   )
@@ -182,7 +182,7 @@ export default function QuotationDetailsPage(): React.JSX.Element {
       </>
     )
   const d = request.dashboard
-  const pendingSend = d.drafts.some((x) => x.status === 'sending' || x.status === 'unknown')
+  const pendingSend = [...d.drafts, ...(d.agentRfqs || [])].some((x) => x.status === 'sending' || x.status === 'unknown')
   const locked = busy || Boolean(d.processing) || pendingSend
   const terminal = Boolean(d.terminalAt)
   const blocked = locked || terminal || Boolean(editing)
@@ -438,6 +438,8 @@ export default function QuotationDetailsPage(): React.JSX.Element {
         id={id}
         admin={admin}
         refreshKey={d.revision}
+        from={request.connection?.accountEmail || request.sourceMailbox || ''}
+        canSend={request.source === 'outlook' && request.connection?.status === 'connected'}
         onReview={() =>
           document.getElementById('quick-rfq-review')?.scrollIntoView({ behavior: 'smooth' })
         }

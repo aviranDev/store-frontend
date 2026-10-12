@@ -31,6 +31,7 @@ export type Dashboard = {
   outcome?: string
   reason?: string
   processing?: { startedAt: string }
+  agentRfqs?: import('./freight').AgentRfqSend[]
   drafts: Draft[]
   events: { at: string; actor: string; action: string; note: string }[]
   messages: {
